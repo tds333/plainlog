@@ -49,6 +49,7 @@ class Command(str, Enum):
     REMOVE_HANDLER = "REMOVE_HANDLER"
     ADD_LEVEL = "ADD_LEVEL"
     OPTIONS = "OPTIONS"
+    EVENT = "EVENT"
 
 
 def _validate_callables(callables, name="Callable"):
@@ -172,6 +173,11 @@ class Core:
         self.put(options, Command.OPTIONS)
 
         return [self.add(**params) for params in handlers]
+    
+    def event_wait(self, timeout=None):
+        event = Event()
+        self.put(event, Command.EVENT)
+        event.wait(timeout)
 
     def add(
         self,
@@ -194,9 +200,8 @@ class Core:
 
         handler_record = HandlerRecord(name, level, print_errors, handler)
 
-        event = Event() # Handlers and initial config is essential so wait with an event if core is finished
-        self.put((handler_record, event), Command.ADD_HANDLER)
-        event.wait()
+        self.put(handler_record, Command.ADD_HANDLER)
+        self.event_wait()
 
         return handler_record
 
@@ -208,6 +213,7 @@ class Core:
             )
 
         self.put(name, Command.REMOVE_HANDLER)
+        self.event_wait()
     
     def close(self):
         if self.is_alive():
@@ -250,13 +256,12 @@ class Core:
 
             elif command is Command.ADD_HANDLER:
                 handlers = self._handlers.copy()
-                handler_record, event = message
+                handler_record = message
                 name = handler_record.name
                 if not name in self._handlers:
                     handlers[name] = handler_record
                     self.min_level_no = min(self.min_level_no, handler_record.level.no)
                     self._handlers = handlers
-                event.set()
 
             elif command is Command.REMOVE_HANDLER:
                 handlers = self._handlers.copy()
@@ -266,7 +271,7 @@ class Core:
                     handler_names = [name_]
 
                 for handler_name in handler_names:
-                    name, level, print_errors, handler = handlers.pop(handler_name, (None, None, None))
+                    name, level, print_errors, handler = handlers.pop(handler_name, (None, None, None, None))
 
                     if name is None:
                         continue
@@ -293,6 +298,10 @@ class Core:
             elif command is Command.OPTIONS:
                 options = message
                 self._options = options
+
+            elif command is Command.EVENT:
+                event = message
+                event.set()
 
     @staticmethod
     def _print_error(record, handler_name, exception=None):
