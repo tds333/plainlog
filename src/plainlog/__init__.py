@@ -7,13 +7,13 @@ The plainlog library provides a pre-instanced logger to facilitate dealing with 
 Just ``from plainlog import logger``.
 """
 import sys
-from ._logger import logger
-from .configure import configure_log_profile
+from ._logger import logger, logger_core
+from .configure import configure_log_profile, configure_log
 from . import _defaults
 
 __version__ = "0.1.0"
 
-__all__ = ["logger"]
+__all__ = ["logger", "configure_log", "configure_log_profile"]
 
 
 if _defaults.PLAINLOG_AUTOINIT and sys.stderr:

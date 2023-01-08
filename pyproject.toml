@@ -19,7 +19,7 @@ classifiers = [
   "Intended Audience :: Developers",
   "Natural Language :: English",
   "License :: OSI Approved :: MIT License",
-  "License :: OSI Approved :: Apache 2.0 License",
+  "License :: OSI Approved :: Apache Software License",
   "Operating System :: OS Independent",
   "Programming Language :: Python",
   "Programming Language :: Python :: 3.7",
@@ -45,8 +45,10 @@ path = "src/plainlog/__version__.py"
 dependencies = [
   "pytest",
   "pytest-cov",
+  "rich",
 ]
 [tool.hatch.envs.default.scripts]
+tests = "pytest {args}"
 cov = "pytest --cov-report=term-missing --cov-config=pyproject.toml --cov=src/plainlog --cov=tests {args}"
 no-cov = "cov --no-cov {args}"
 
