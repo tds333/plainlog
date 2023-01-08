@@ -49,24 +49,24 @@ class FileDateFormatter:
 
 
 def load_ctime_functions():
-    if os.name == "nt":
-        import win32_setctime
+    # if os.name == "nt":
+    #     import win32_setctime
 
-        def get_ctime_windows(filepath):
-            return os.stat(filepath).st_ctime
+    #     def get_ctime_windows(filepath):
+    #         return os.stat(filepath).st_ctime
 
-        def set_ctime_windows(filepath, timestamp):
-            if not win32_setctime.SUPPORTED:
-                return
+    #     def set_ctime_windows(filepath, timestamp):
+    #         if not win32_setctime.SUPPORTED:
+    #             return
 
-            try:
-                win32_setctime.setctime(filepath, timestamp)
-            except (OSError, ValueError):
-                pass
+    #         try:
+    #             win32_setctime.setctime(filepath, timestamp)
+    #         except (OSError, ValueError):
+    #             pass
 
-        return get_ctime_windows, set_ctime_windows
+    #     return get_ctime_windows, set_ctime_windows
 
-    elif hasattr(os.stat_result, "st_birthtime"):
+    if hasattr(os.stat_result, "st_birthtime"):
 
         def get_ctime_macos(filepath):
             return os.stat(filepath).st_birthtime
