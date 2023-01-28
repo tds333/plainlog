@@ -48,7 +48,9 @@ def _format_exception(exc_info):
     return s
 
 
-def _find_first_app_frame_and_name(additional_ignores: list[str] | None = None) -> tuple[FrameType, str]:
+def _find_first_app_frame_and_name(
+    additional_ignores: list[str] | None = None,
+) -> tuple[FrameType, str]:
     """
     Remove all intra-plainlog calls and return the relevant app frame.
 

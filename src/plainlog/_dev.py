@@ -2,12 +2,11 @@
 #
 # SPDX-License-Identifier: Apache-2.0 OR MIT
 
-#Mostly copied from structlog.
+# Mostly copied from structlog.
 
 from __future__ import annotations
 
 import sys
-import warnings
 
 from io import StringIO
 from typing import Any, Iterable, TextIO, Type, Union
@@ -128,7 +127,7 @@ class _ColorfulStyles:
 
     timestamp = DIM
     logger_name = BLUE
-    #logger_name = DIM
+    # logger_name = DIM
     kv_key = CYAN
     kv_value = MAGENTA
 
@@ -138,7 +137,7 @@ class _PlainStyles:
     bright = ""
 
     level_critical = ""
-    #level_exception = ""
+    # level_exception = ""
     level_error = ""
     level_warn = ""
     level_info = ""
@@ -248,7 +247,7 @@ class ConsoleRenderer:
         force_colors: bool = False,
         repr_native_str: bool = False,
         level_styles: Styles | None = None,
-        exception_formatter = default_exception_formatter,
+        exception_formatter=default_exception_formatter,
         sort_keys: bool = True,
         short_level: bool = True,
         log_name: bool = True,
@@ -287,9 +286,7 @@ class ConsoleRenderer:
 
         for key in self._level_to_color.keys():
             self._level_to_color[key] += styles.bright
-        self._longest_level = len(
-            max(self._level_to_color.keys(), key=lambda e: len(e))
-        )
+        self._longest_level = len(max(self._level_to_color.keys(), key=lambda e: len(e)))
 
         self._repr_native_str = repr_native_str
         self._exception_formatter = exception_formatter
@@ -328,20 +325,18 @@ class ConsoleRenderer:
             if self._shoert_level:
                 level = level.name
                 sio.write(
-                    self._level_to_color.get(level, "")
-                    + "[" + level[0] + "] "
-                    + self._styles.reset
+                    self._level_to_color.get(level, "") + "[" + level[0] + "] " + self._styles.reset
                 )
             else:
                 level = level.name
                 sio.write(
                     self._level_to_color.get(level, "")
-                    + _pad(level, self._longest_level+1)
+                    + _pad(level, self._longest_level + 1)
                     + self._styles.reset
                 )
 
         event = record.get("message", "")
-        #event = record.get("message_fmt", event)
+        # event = record.get("message_fmt", event)
         if not isinstance(event, str):
             event = str(event)
 
@@ -353,15 +348,14 @@ class ConsoleRenderer:
             event = _pad(event, self._pad_event) + self._styles.reset + " "
         else:
             event += self._styles.reset
-        #sio.write(self._styles.bright + event)
+        # sio.write(self._styles.bright + event)
         sio.write(event)
-
 
         if logger_name is not None:
             sio.write(
                 "["
                 + self._styles.logger_name
-                #+ self._styles.bright
+                # + self._styles.bright
                 + logger_name
                 + self._styles.reset
                 + "] "
@@ -400,7 +394,7 @@ class ConsoleRenderer:
             self._exception_formatter(sio, exc_info)
         elif exc is not None:
             sio.write("\n" + exc)
-        #sio.write("\n")
+        # sio.write("\n")
 
         return sio.getvalue()
 

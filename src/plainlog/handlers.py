@@ -2,26 +2,19 @@
 #
 # SPDX-License-Identifier: Apache-2.0 OR MIT
 import sys
-import json
-import operator
 import logging
 from collections import deque
-from typing import (
-    Any,
-    Callable,
-    ClassVar,
-    Collection,
-    NamedTuple,
-    Sequence,
-    TextIO,
+from .formatters import (
+    SimpleFormatter,
+    ConsoleRenderer,
+    JsonFormatter,
+    default_formatter,
 )
-from .formatters import SimpleFormatter, ConsoleRenderer, JsonFormatter, DefaultFormatter, default_formatter
-from ._file_handler import FileHandler
+from ._file_handler import FileHandler  # noqa
 from ._defaults import PLAINLOG_LEVEL
 
 
 class StreamHandler:
-
     def __init__(self, stream=None, formatter=None):
         if stream is None:
             stream = sys.stderr
@@ -29,23 +22,22 @@ class StreamHandler:
         self._formatter = SimpleFormatter() if formatter is None else formatter
         self._flushable = callable(getattr(stream, "flush", None))
         self.terminator = "\n"
-    
+
     def __call__(self, record):
         message = self._formatter(record)
         self.write(message)
-    
+
     def __repr__(self):
         return f"{self.__class__.__name__}(formatter={self._formatter.__class__.__name__})"
 
     def write(self, message):
         self._stream.write(message + self.terminator)
-        #self._stream.write(self.terminator)
+        # self._stream.write(self.terminator)
         if self._flushable:
             self._stream.flush()
 
 
 class DefaultHandler(StreamHandler):
-
     def __init__(self, stream=None):
         if stream is None:
             stream = sys.stdout
@@ -53,7 +45,6 @@ class DefaultHandler(StreamHandler):
 
 
 class ConsoleHandler(StreamHandler):
-
     def __init__(self, stream=None, colors=True):
         if stream is None:
             stream = sys.stdout
@@ -61,10 +52,9 @@ class ConsoleHandler(StreamHandler):
 
 
 class WrapStandardHandler:
-
     def __init__(self, handler):
         self._handler = handler
-    
+
     def __repr__(self):
         return f"{self.__class__.__name__}(handler={self._handler!r})"
 
@@ -74,12 +64,12 @@ class WrapStandardHandler:
         record = logging.getLogger().makeRecord(
             record["name"],
             record["level"].no,
-            "", #record["file"].path,
-            0, #record["line"],
+            "",  # record["file"].path,
+            0,  # record["line"],
             message,
             (),
             (exc.type, exc.value, exc.traceback) if exc else None,
-            "", #record["function"],
+            "",  # record["function"],
             {"extra": record["extra"]},
         )
         if exc:
@@ -91,14 +81,26 @@ class WrapStandardHandler:
 
 
 class JsonHandler(StreamHandler):
-
-    def __init__(self, stream=None, converter=None, indent=None, separators=None, sort_keys=False, additional_keys=None):
-        formatter = JsonFormatter(converter=converter, indent=indent, separators=separators, sort_keys=sort_keys, additional_keys=additional_keys)
+    def __init__(
+        self,
+        stream=None,
+        converter=None,
+        indent=None,
+        separators=None,
+        sort_keys=False,
+        additional_keys=None,
+    ):
+        formatter = JsonFormatter(
+            converter=converter,
+            indent=indent,
+            separators=separators,
+            sort_keys=sort_keys,
+            additional_keys=additional_keys,
+        )
         super().__init__(stream, formatter)
 
 
 class FingersCrossedHandler:
-
     def __init__(self, handler, action_level=None, buffer_size=None, reset=None):
         self._handler = handler
         action_level = 40 if action_level is None else action_level  # default action_level ERROR
@@ -107,7 +109,7 @@ class FingersCrossedHandler:
         self.buffered_records = deque(maxlen=buffer_size)
         self._action_triggered = False
         self._reset = False if reset is None else reset
-    
+
     def __repr__(self):
         return f"{self.__class__.__name__}(action_level={self._level!r}, handler={self._handler!r})"
 
@@ -130,10 +132,10 @@ class FingersCrossedHandler:
             self._handler(record)
 
         self._action_triggered = not self._reset
-    
+
     def __call__(self, record):
         if self.enqueue(record):
             self.rollover()
 
 
-DEFAULT_HANDLERS = ({"handler": DefaultHandler(), "level": PLAINLOG_LEVEL}, )
+DEFAULT_HANDLERS = ({"handler": DefaultHandler(), "level": PLAINLOG_LEVEL},)

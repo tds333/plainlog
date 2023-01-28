@@ -14,10 +14,11 @@ from enum import Enum
 import atexit
 import traceback
 from functools import partial
-#from time import time_ns
+
+# from time import time_ns
 
 from . import _defaults
-from ._recattrs import RecordException, Level, HandlerRecord, Options
+from ._recattrs import Level, HandlerRecord, Options
 from ._frames import get_frame
 
 
@@ -48,13 +49,13 @@ def _validate_callables(callables, name="Callable"):
         if isinstance(callables, collections.abc.Iterable):
             callables = tuple(callables)
         else:
-            callables = (callables, )
+            callables = (callables,)
 
         for c in callables:
             if not callable(c):
                 raise ValueError(f"{name} '{c}' must be a callable object.")
     else:
-        callables = tuple()
+        callables = ()
 
     return callables
 
@@ -66,7 +67,7 @@ def _validate_extra(extra):
         if not isinstance(extra, collections.abc.Mapping):
             raise ValueError("Extra must be a Mapping (dict like) object.")
         extra = deepcopy(extra)
-    
+
     return extra
 
 
@@ -85,7 +86,7 @@ def _get_levels():
         levels[name] = level
         levels[level] = level
         levels[name[0]] = level
-    
+
     return levels
 
 
@@ -95,7 +96,7 @@ class Core:
         self.min_level_no = self._max_level_no
         self._levels = _get_levels()
         self._handlers = {}
-        self._options = Options("CORE", tuple(), tuple(), {})
+        self._options = Options("CORE", (), (), {})
         self._queue = SimpleQueue()
         self._thread = Thread(target=self._worker, daemon=True, name="plainlog-worker")
         self._thread.start()
@@ -108,23 +109,23 @@ class Core:
     def __setstate__(self, state):
         self.__dict__.update(state)
         self._queue = SimpleQueue()
-    
+
     def __repr__(self):
         handlers = list(self._handlers.values())
         return f"<plainlog.Core handlers={handlers!r}>"
-    
+
     def put(self, message, command=Command.LOG):
         self._queue.put((command, message))
 
     def stop(self):
         self.put(None, Command.STOP)
-    
+
     def join(self):
         self._thread.join()
-    
+
     def is_alive(self):
         return self._thread.is_alive()
-    
+
     def level(self, level):
         ret = self._levels.get(level)
 
@@ -132,16 +133,18 @@ class Core:
             raise ValueError(f"Invalid level {level!r}. Does not exist.")
 
         return ret
-    
-    def configure(self, *, handlers=None, extra=None, preprocessors=None, processors=None, update_levels=False):
+
+    def configure(
+        self, *, handlers=None, extra=None, preprocessors=None, processors=None, update_levels=False
+    ):
         if handlers is not None:
             self.remove()
         else:
             handlers = []
-        
+
         if update_levels:
             self.put((None, Command.UPDATE_LEVELS))
-        
+
         extra = _validate_extra(extra)
         preprocessors = _validate_callables(preprocessors, "Preprocessor")
         processors = _validate_callables(processors, "Processor")
@@ -149,7 +152,7 @@ class Core:
         self.put(options, Command.OPTIONS)
 
         return [self.add(**params) for params in handlers]
-    
+
     def wait_for_processed(self, timeout=None):
         event = Event()
         self.put(event, Command.EVENT)
@@ -158,13 +161,16 @@ class Core:
     def add(
         self,
         handler,
-        name = None,
+        name=None,
         level=None,
         print_errors=True,
     ):
 
         if not callable(handler):
-            raise TypeError("Cannot log to objects of type '%s'. Object must be a callable." % type(handler).__name__)
+            raise TypeError(
+                "Cannot log to objects of type '%s'. Object must be a callable."
+                % type(handler).__name__
+            )
 
         if name is None:
             try:
@@ -186,18 +192,18 @@ class Core:
         if not (name is None or isinstance(name, str)):
             raise TypeError(
                 "Invalid handler name, it should be an string "
-                "or None, not: '%s'" % type(handler_id).__name__
+                "or None, not: '%s'" % type(name)
             )
 
         self.put(name, Command.REMOVE_HANDLER)
         self.wait_for_processed()
-    
+
     def close(self):
         if self.is_alive():
             self.remove()
             self.stop()
             self.join()
-    
+
     def _worker(self):
         queue = self._queue
 
@@ -205,7 +211,6 @@ class Core:
             command, message = None, None
             with contextlib.suppress(Exception):
                 command, message = queue.get()
-                len_handlers = len(self._handlers)
 
             if command is Command.LOG:
                 log_record, processors = message
@@ -219,7 +224,7 @@ class Core:
 
                 if stop:
                     continue  # with while loop to process next commands
-                
+
                 for name, level, print_errors, handler in self._handlers.values():
                     if log_record["level"].no >= level.no:
                         try:
@@ -235,7 +240,7 @@ class Core:
                 handlers = self._handlers.copy()
                 handler_record = message
                 name = handler_record.name
-                if not name in self._handlers:
+                if name not in self._handlers:
                     handlers[name] = handler_record
                     self.min_level_no = min(self.min_level_no, handler_record.level.no)
                     self._handlers = handlers
@@ -248,27 +253,32 @@ class Core:
                     handler_names = [name_]
 
                 for handler_name in handler_names:
-                    name, level, print_errors, handler = handlers.pop(handler_name, (None, None, None, None))
+                    name, level, print_errors, handler = handlers.pop(
+                        handler_name, (None, None, None, None)
+                    )
 
                     if name is None:
                         continue
 
                     levelnos = (h.level.no for h in handlers.values())
                     self.min_level_no = min(levelnos, default=self._max_level_no)
-                    #self._handlers = handlers
+                    # self._handlers = handlers
 
                     if hasattr(handler, "close") and callable(handler.close):
                         try:
                             handler.close()
                         except Exception as ex:
                             if print_errors:
-                                print(f"Error in handler.close(). Handler: {name!r} Error: {ex!r}", file=sys.stderr)
+                                print(
+                                    f"Error in handler.close(). Handler: {name!r} Error: {ex!r}",
+                                    file=sys.stderr,
+                                )
                 self._handlers = handlers
-            
+
             elif command is Command.OPTIONS:
                 options = message
                 self._options = options
-            
+
             elif command is Command.UPDATE_LEVELS:
                 self._levels = _get_levels()
 
@@ -320,7 +330,7 @@ class Logger:
     def bind(self, **kwargs):  # noqa: N805
         *options, extra = self._options
         return Logger(self._core, *options, {**extra, **kwargs})
-    
+
     def unbind(self, *args):  # noqa: N805
         *options, old_extra = self._options
         extra = old_extra.copy()
@@ -338,17 +348,17 @@ class Logger:
             yield
         finally:
             context.reset(token)
-   
+
     def bind_context(__self, **kwargs):
         global context
         new_context = {**context.get(), **kwargs}
         token = context.set(new_context)
 
         return token
-    
+
     def unbind_context(__self, *args):
         global context
-        #context_dict = context.get().copy()
+        # context_dict = context.get().copy()
         context_dict = {**context.get()}
         for key in args:
             context_dict.pop(key, None)
@@ -362,14 +372,14 @@ class Logger:
         token = context.set(new_context)
 
         return token
-    
+
     def reset_context(__self, token):
         global context
         context.reset(token)
 
     def level(self, level):
         return self._core.level(level)
-    
+
     def name(self, name=None):
         if name is None:
             name = "root"
@@ -387,11 +397,11 @@ class Logger:
     def preprocessor(self, *args):
         options = self._options._replace(preprocessors=args)
         return Logger(self._core, *options)
-    
+
     def processor(self, *args):
         options = self._options._replace(processors=args)
         return Logger(self._core, *options)
-    
+
     def extra(self, **kwargs):
         options = self._options._replace(extra=kwargs)
         return Logger(self._core, *options)
@@ -399,10 +409,10 @@ class Logger:
     def _log(self, level, msg, args, kwargs):
         level_no, _ = level
         core = self._core
-        
+
         if level_no < core.min_level_no:
             return
-        
+
         current_datetime = get_now_utc()
         elapsed = current_datetime - start_time
 
@@ -416,7 +426,7 @@ class Logger:
             "message": str(msg),
             "name": name,
             "datetime": current_datetime,
-            #"time_ns": time_ns(),
+            # "time_ns": time_ns(),
             "context": {**context.get()},
             "extra": {**core_extra, **extra},
             "args": args,
@@ -425,7 +435,7 @@ class Logger:
 
         stop = False
         for preprocessor in (*preprocessors, *core_preprocessors):
-            #with contextlib.suppress(Exception):
+            # with contextlib.suppress(Exception):
             stop = preprocessor(log_record)
             if stop:
                 return
@@ -455,11 +465,10 @@ class Logger:
         level = self.level(level)
         self._log(level, msg, args, kwargs)
 
-    def __call__ (self, level=LEVEL_DEBUG, msg="", *args, **kwargs):  # noqa: N805
+    def __call__(self, level=LEVEL_DEBUG, msg="", *args, **kwargs):  # noqa: N805
         level = self.level(level)
         self._log(level, msg, args, kwargs)
 
 
 logger_core = Core()
 atexit.register(logger_core.close)
-#logger = Logger(core=logger_core, name="root", preprocessors=None, processors=None, extra={})

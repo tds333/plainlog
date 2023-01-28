@@ -4,7 +4,6 @@
 
 # mostly copied from loguru
 
-import datetime
 import decimal
 import glob
 import numbers
@@ -29,7 +28,7 @@ def aware_now():
         seconds = local.tm_gmtoff
         zone = local.tm_zone
     except AttributeError:
-        offset = datetime_.fromtimestamp(timestamp) - datetime_.utcfromtimestamp(timestamp)
+        offset = datetime.fromtimestamp(timestamp) - datetime.utcfromtimestamp(timestamp)
         seconds = offset.total_seconds()
         zone = strftime("%Z")
 
@@ -303,8 +302,6 @@ def generate_rename_path(root, ext, creation_time):
     return renamed_path
 
 
-
-
 class Compression:
     @staticmethod
     def add_compress(path_in, path_out, opener, **kwargs):
@@ -443,7 +440,7 @@ class FileHandler:
             path = self._create_path()
             self._create_dirs(path)
             self._create_file(path)
-    
+
     def __call__(self, record):
         message = self._formatter(record)
         self.write(message)

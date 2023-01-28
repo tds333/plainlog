@@ -21,6 +21,7 @@ from rich.traceback import Traceback
 
 MESSAGE_WIDTH = 40
 
+
 def _pad(s: str, length: int) -> str:
     """
     Pads *s* to length *length*.
@@ -122,7 +123,7 @@ class RichHandler:
         self.locals_max_string = locals_max_string
         self.keywords = keywords
         self.local_time = local_time
-    
+
     def __call__(self, record):
         self.emit(record)
 
@@ -136,9 +137,7 @@ class RichHandler:
             Text: A tuple of the style and level name.
         """
         level_name = record["level"].name
-        level_text = Text.styled(
-            level_name.ljust(8), f"logging.level.{level_name.lower()}"
-        )
+        level_text = Text.styled(level_name.ljust(8), f"logging.level.{level_name.lower()}")
         return level_text
 
     def emit(self, record) -> None:
@@ -170,7 +169,7 @@ class RichHandler:
                 locals_max_string=self.locals_max_string,
                 suppress=self.tracebacks_suppress,
             )
-        
+
         message = _pad(message, MESSAGE_WIDTH) + str(kv)
 
         message_renderable = self.render_message(record, message)
@@ -198,7 +197,7 @@ class RichHandler:
         Returns:
             ConsoleRenderable: Renderable to display log message.
         """
-        #use_markup = getattr(record, "markup", self.markup)
+        # use_markup = getattr(record, "markup", self.markup)
         use_markup = record.get("markup", self.markup)
         message_text = Text.from_markup(message) if use_markup else Text(message)
 
@@ -235,7 +234,7 @@ class RichHandler:
         path_name = path.name
         level = self.get_level_text(record)
         time_format = None
-        #log_time = datetime.fromtimestamp(record.get("created", None))
+        # log_time = datetime.fromtimestamp(record.get("created", None))
         log_time = record.get("datetime")
         if self.local_time:
             log_time = log_time.astimezone()

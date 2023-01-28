@@ -27,7 +27,7 @@ CONTINUE_PROCESSING = False
 
 def add_caller_info(record):
     frame = get_frame(3)
-    #name = frame.f_globals["__name__"]
+    # name = frame.f_globals["__name__"]
     code = frame.f_code
     file_path = code.co_filename
     file_name = basename(file_path)
@@ -53,7 +53,7 @@ def dynamic_name(record):
 
 
 def eval_args(record):
-    eval_args = []        
+    eval_args = []
     args = record.get("args", [])
     kwargs = record.get("kwargs", {})
     for arg in args:
@@ -104,12 +104,11 @@ def preformat_message(record):
 
 
 def remove_items(*args):
-
     def remover(record):
         for arg in args:
             arg = str(arg)
             record.pop(arg, None)
-    
+
     return remover
 
 
@@ -122,18 +121,16 @@ def filter_all(record):
 
 
 def filter_by_name(parent):
-
     def namefilter(record):
         name = record["name"]
         if name is None:
             return STOP_PROCESSING
         return name.startswith(parent)
-    
+
     return namefilter
 
 
 def filter_by_level(level_per_module):
-
     def levelfilter(record):
         name = record["name"]
 
@@ -152,12 +149,11 @@ def filter_by_level(level_per_module):
 
 
 class FilterList:
-
     def __init__(self, blacklist, whitelist=None):
-        self._whitelist = frozenset() if whitelist is None else frozenset(whitelist) 
+        self._whitelist = frozenset() if whitelist is None else frozenset(whitelist)
         self._blacklist = frozenset(blacklist)
         self._partition_cache = {}
-    
+
     def partition(self, name):
         if name in self._partition_cache:
             return self._partition_cache[name]
@@ -168,7 +164,7 @@ class FilterList:
         self._partition_cache[name] = part_set
 
         return part_set
-    
+
     def __call__(self, record):
         name = record["name"]
         name_parts = self.partition(name)
@@ -176,24 +172,24 @@ class FilterList:
         whitelist = name_parts.isdisjoint(self._whitelist)
         blacklist = not name_parts.isdisjoint(self._blacklist)
 
-        return (whitelist and blacklist)
+        return whitelist and blacklist
 
 
 class WhitelistLevel:
-
     def __init__(self, whitelist):
-        self._whitelist_names = frozenset(whitelist) 
+        self._whitelist_names = frozenset(whitelist)
         self._whitelist_levels = whitelist
 
-    @lru_cache 
-    def partition(self, name):
+    @staticmethod
+    @lru_cache
+    def partition(name):
         part_set = set()
         parts = name.split(".")
         for i in range(1, len(parts) + 1):
             part_set.add(".".join(parts[:i]))
 
         return part_set
-    
+
     def __call__(self, record):
         name = record["name"]
         level_no = record["level"].no
@@ -211,11 +207,10 @@ class WhitelistLevel:
 
 
 class Duration:
-
     def __init__(self, add_message=True):
         self._starts = {}
         self._add_message = add_message
-    
+
     def __call__(self, record):
         kwargs = record.get("kwargs", {})
         message = record.get("message", "")
@@ -230,19 +225,20 @@ class Duration:
             start_time = self._starts.pop(str(stop), None)
             if start_time:
                 duration = time.time() - start_time
-                #extra = record.get("extra", {})
+                # extra = record.get("extra", {})
                 # extra["duration_key"] = stop
                 # extra["duration"] = duration
-                #kwargs["duration_key"] = stop
+                # kwargs["duration_key"] = stop
                 kwargs["duration"] = duration
                 if not message and self._add_message:
                     message = f"Stop {stop!r}. Duration: {duration:.6f} seconds."
                     record["message"] = message
 
+
 # defaults used for core configuration
-DEFAULT_PREPROCESSORS = (preprocess_exc_info, )
+DEFAULT_PREPROCESSORS = (preprocess_exc_info,)
 DEFAULT_PROCESSORS = (context_to_extra, kwargs_to_extra, preformat_message)
 
 # defaults used for root logger configuration
 DEFAULT_LOGGER_PREPROCESSORS = None
-DEFAULT_LOGGER_PROCESSORS = (eval_args, )
+DEFAULT_LOGGER_PROCESSORS = (eval_args,)

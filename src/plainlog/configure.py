@@ -86,9 +86,7 @@ def _simple(level=None, extra=None, **kwargs):
 
     stream = kwargs.get("stream", sys.stderr)
     logger_core.configure(
-        handlers=[
-            {"handler": StreamHandler(stream, SimpleFormatter()), "level": level}
-        ],
+        handlers=[{"handler": StreamHandler(stream, SimpleFormatter()), "level": level}],
         preprocessors=DEFAULT_PREPROCESSORS,
         processors=DEFAULT_PROCESSORS,
         extra=extra,

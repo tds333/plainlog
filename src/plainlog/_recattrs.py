@@ -11,7 +11,6 @@ Options = namedtuple("Options", ["name", "preprocessors", "processors", "extra"]
 
 
 class Level(namedtuple("Level", ["no", "name"])):
-
     def __repr__(self):
         return "(no=%r, name=%r)" % (self.no, self.name)
 
