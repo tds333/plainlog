@@ -64,6 +64,9 @@ class WrapStandardHandler:
 
     def __init__(self, handler):
         self._handler = handler
+    
+    def __repr__(self):
+        return f"{self.__class__.__name__}(handler={self._handler!r})"
 
     def __call__(self, record):
         message = str(record.get("message", ""))
@@ -104,6 +107,9 @@ class FingersCrossedHandler:
         self.buffered_records = deque(maxlen=buffer_size)
         self._action_triggered = False
         self._reset = False if reset is None else reset
+    
+    def __repr__(self):
+        return f"{self.__class__.__name__}(action_level={self._level!r}, handler={self._handler!r})"
 
     def close(self):
         if hasattr(self._handler, "close") and callable(self._handler.close):

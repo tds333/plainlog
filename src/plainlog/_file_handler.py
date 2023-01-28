@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0 OR MIT
 
-# mostly copied from logure
+# mostly copied from loguru
 
 import datetime
 import decimal

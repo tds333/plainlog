@@ -5,7 +5,7 @@
 # codeparts from std library logging
 
 import warnings
-from ._logger import logger
+from . import logger
 
 
 _warnings_showwarning = None

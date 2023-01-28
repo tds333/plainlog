@@ -100,7 +100,6 @@ class _Styles(Protocol):
     reset: str
     bright: str
     level_critical: str
-    #level_exception: str
     level_error: str
     level_warn: str
     level_info: str
@@ -121,7 +120,6 @@ class _ColorfulStyles:
     bright = BRIGHT
 
     level_critical = RED
-    #level_exception = RED
     level_error = RED
     level_warn = YELLOW
     level_info = BLUE

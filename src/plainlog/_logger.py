@@ -14,27 +14,18 @@ from enum import Enum
 import atexit
 import traceback
 from functools import partial
-from time import time_ns
+#from time import time_ns
 
 from . import _defaults
 from ._recattrs import RecordException, Level, HandlerRecord, Options
 from ._frames import get_frame
-from .processors import DEFAULT_PREPROCESSORS, DEFAULT_PROCESSORS
-from .handlers import DEFAULT_HANDLERS
 
 
 get_now_utc = partial(datetime.now, timezone.utc)
-
 start_time = get_now_utc()
-
 context = ContextVar("plainlog_context", default={})
 
-MAX_LOG_NO = 100
-OFF = MAX_LOG_NO
-MIN_LOG_NO = logging.NOTSET
-
-logging.addLevelName(OFF, "OFF")
-
+# predefined for performance reason
 LEVEL_DEBUG = Level(logging.DEBUG, "DEBUG")
 LEVEL_INFO = Level(logging.INFO, "INFO")
 LEVEL_WARNING = Level(logging.WARNING, "WARNING")
@@ -47,8 +38,8 @@ class Command(str, Enum):
     STOP = "STOP"
     ADD_HANDLER = "ADD_HANDLER"
     REMOVE_HANDLER = "REMOVE_HANDLER"
-    ADD_LEVEL = "ADD_LEVEL"
     OPTIONS = "OPTIONS"
+    UPDATE_LEVELS = "UPDATE_LEVELS"
     EVENT = "EVENT"
 
 
@@ -66,24 +57,6 @@ def _validate_callables(callables, name="Callable"):
         callables = tuple()
 
     return callables
-
-
-def _validate_levels(levels):
-    validated_levels = []
-    if levels is not None:
-        for (no, name) in levels:
-            no = int(no)
-            name = str(name)
-            if no <= MIN_LOG_NO or no >= MAX_LOG_NO:
-                raise ValueError(f"Log level no must be >{MIN_LOG_NO} and <{MAX_LOG_NO}.")
-            #known_level = _level_to_name.get(no)
-            known_level = logging._levelToName.get(no)
-            if known_level is not None:
-                raise ValueError(f"Overwriting know default log levels is not allowed. Level for no {no} is known as '{known_level}'.")
-            level = Level(no, name)
-            validated_levels.append(level)
-
-    return validated_levels
 
 
 def _validate_extra(extra):
@@ -104,20 +77,25 @@ def _validate_name(name):
     return name
 
 
+def _get_levels():
+    levels = {}
+    for no, name in logging._levelToName.items():
+        level = Level(no, name)
+        levels[no] = level
+        levels[name] = level
+        levels[level] = level
+        levels[name[0]] = level
+    
+    return levels
+
+
 class Core:
     def __init__(self):
-        _level_to_name = logging._levelToName
-        self.levels = {no: Level(no, name) for no, name in _level_to_name.items()}
-        self.levels.update((name, Level(no, name)) for no, name in _level_to_name.items())
-        self.levels.update((Level(no, name), Level(no, name)) for no, name in _level_to_name.items())
-        self.levels.update((name[0], Level(no, name)) for no, name in _level_to_name.items())
-
+        self._max_level_no = sys.maxsize
+        self.min_level_no = self._max_level_no
+        self._levels = _get_levels()
         self._handlers = {}
-
-        self._options = Options(None, tuple(), tuple(), {})
-
-        self.min_level_no = MAX_LOG_NO
-
+        self._options = Options("CORE", tuple(), tuple(), {})
         self._queue = SimpleQueue()
         self._thread = Thread(target=self._worker, daemon=True, name="plainlog-worker")
         self._thread.start()
@@ -148,33 +126,31 @@ class Core:
         return self._thread.is_alive()
     
     def level(self, level):
-        ret = self.levels.get(level)
+        ret = self._levels.get(level)
 
         if ret is None:
-            raise ValueError(f"Invalid level '{level}'. Does not exist.")
+            raise ValueError(f"Invalid level {level!r}. Does not exist.")
 
         return ret
     
-    def configure(self, *, handlers=DEFAULT_HANDLERS, extra=None, preprocessors=DEFAULT_PREPROCESSORS, processors=DEFAULT_PROCESSORS, levels=None):
+    def configure(self, *, handlers=None, extra=None, preprocessors=None, processors=None, update_levels=False):
         if handlers is not None:
             self.remove()
         else:
             handlers = []
         
-        levels = _validate_levels(levels)
-        for level in levels:
-            self.put(level, Command.ADD_LEVEL)
+        if update_levels:
+            self.put((None, Command.UPDATE_LEVELS))
         
         extra = _validate_extra(extra)
         preprocessors = _validate_callables(preprocessors, "Preprocessor")
         processors = _validate_callables(processors, "Processor")
-        
-        options = Options(None, preprocessors, processors, extra)
+        options = Options("CORE", preprocessors, processors, extra)
         self.put(options, Command.OPTIONS)
 
         return [self.add(**params) for params in handlers]
     
-    def event_wait(self, timeout=None):
+    def wait_for_processed(self, timeout=None):
         event = Event()
         self.put(event, Command.EVENT)
         event.wait(timeout)
@@ -183,7 +159,7 @@ class Core:
         self,
         handler,
         name = None,
-        level=_defaults.PLAINLOG_LEVEL,
+        level=None,
         print_errors=True,
     ):
 
@@ -196,12 +172,13 @@ class Core:
             except AttributeError:
                 name = handler.__class__.__name__
 
+        level = _defaults.PLAINLOG_LEVEL if level is None else level
         level = self.level(level)
 
         handler_record = HandlerRecord(name, level, print_errors, handler)
 
         self.put(handler_record, Command.ADD_HANDLER)
-        self.event_wait()
+        self.wait_for_processed()
 
         return handler_record
 
@@ -213,7 +190,7 @@ class Core:
             )
 
         self.put(name, Command.REMOVE_HANDLER)
-        self.event_wait()
+        self.wait_for_processed()
     
     def close(self):
         if self.is_alive():
@@ -277,7 +254,7 @@ class Core:
                         continue
 
                     levelnos = (h.level.no for h in handlers.values())
-                    self.min_level_no = min(levelnos, default=MAX_LOG_NO)
+                    self.min_level_no = min(levelnos, default=self._max_level_no)
                     #self._handlers = handlers
 
                     if hasattr(handler, "close") and callable(handler.close):
@@ -285,19 +262,15 @@ class Core:
                             handler.close()
                         except Exception as ex:
                             if print_errors:
-                                print(f"Error in handler.close(). Handler: '{name}' Error: '{ex}'", file=sys.stderr)
+                                print(f"Error in handler.close(). Handler: {name!r} Error: {ex!r}", file=sys.stderr)
                 self._handlers = handlers
-            
-            elif command is Command.ADD_LEVEL:
-                level = message
-                self.levels[level.no] = level
-                self.levels[level.name] = level
-                self.levels[level] = level
-                logging.addLevelName(level.no, level.name)
             
             elif command is Command.OPTIONS:
                 options = message
                 self._options = options
+            
+            elif command is Command.UPDATE_LEVELS:
+                self._levels = _get_levels()
 
             elif command is Command.EVENT:
                 event = message
@@ -430,13 +403,11 @@ class Logger:
         if level_no < core.min_level_no:
             return
         
-        #current_datetime = datetime.now(timezone.utc)
         current_datetime = get_now_utc()
         elapsed = current_datetime - start_time
 
         _, core_preprocessors, __, core_extra = core._options
         name, preprocessors, processors, extra = self._options
-
 
         log_record = {
             "elapsed": elapsed,
@@ -491,4 +462,4 @@ class Logger:
 
 logger_core = Core()
 atexit.register(logger_core.close)
-logger = Logger(core=logger_core, name="root", preprocessors=None, processors=None, extra={})
+#logger = Logger(core=logger_core, name="root", preprocessors=None, processors=None, extra={})

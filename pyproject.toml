@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "plainlog"
 description = 'Logging made simple and easy.'
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 license = "Apache-2.0 OR MIT"
 license-files = { globs = ["LICENSES/*"] }
 keywords = []
@@ -22,7 +22,6 @@ classifiers = [
   "License :: OSI Approved :: Apache Software License",
   "Operating System :: OS Independent",
   "Programming Language :: Python",
-  "Programming Language :: Python :: 3.7",
   "Programming Language :: Python :: 3.8",
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
@@ -32,6 +31,17 @@ classifiers = [
 ]
 dependencies = []
 dynamic = ["version"]
+
+[project.optional-dependencies]
+rich = [
+  "rich",
+]
+dev = [
+  "pytest",
+  "pytest-cov",
+  "rich",
+]
+
 
 [project.urls]
 Documentation = "https://github.com/tds333/plainlog#readme"
@@ -53,7 +63,7 @@ cov = "pytest --cov-report=term-missing --cov-config=pyproject.toml --cov=src/pl
 no-cov = "cov --no-cov {args}"
 
 [[tool.hatch.envs.test.matrix]]
-python = ["37", "38", "39", "310", "311"]
+python = ["38", "39", "310", "311"]
 
 [tool.coverage.run]
 branch = true

@@ -6,15 +6,23 @@ The plainlog library provides a pre-instanced logger to facilitate dealing with 
 
 Just ``from plainlog import logger``.
 """
-import sys
-from ._logger import logger, logger_core
-from .configure import configure_log_profile, configure_log
+from ._logger import Logger, logger_core
+from .configure import configure_log
 from . import _defaults
+from .processors import DEFAULT_LOGGER_PREPROCESSORS, DEFAULT_LOGGER_PROCESSORS
 
 __version__ = "0.1.0"
 
-__all__ = ["logger", "configure_log", "configure_log_profile"]
+__all__ = ["logger", "logger_core", "configure_log"]
 
 
-if _defaults.PLAINLOG_AUTOINIT and sys.stderr:
-    configure_log_profile(_defaults.PLAINLOG_PROFILE, _defaults.PLAINLOG_LEVEL)
+if _defaults.PLAINLOG_AUTOINIT:
+    configure_log(_defaults.PLAINLOG_PROFILE, _defaults.PLAINLOG_LEVEL)
+
+logger = Logger(
+    core=logger_core,
+    name="root",
+    preprocessors=DEFAULT_LOGGER_PREPROCESSORS,
+    processors=DEFAULT_LOGGER_PROCESSORS,
+    extra={},
+)
