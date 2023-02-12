@@ -9,7 +9,7 @@ from . import logger
 
 
 _warnings_showwarning = None
-_warnings_logger = logger.name("py.warnings")
+_warnings_logger = logger.new("py.warnings")
 
 # mostly copies from Python logging
 

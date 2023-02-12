@@ -237,8 +237,4 @@ class Duration:
 
 # defaults used for core configuration
 DEFAULT_PREPROCESSORS = (preprocess_exc_info,)
-DEFAULT_PROCESSORS = (context_to_extra, kwargs_to_extra, preformat_message)
-
-# defaults used for root logger configuration
-DEFAULT_LOGGER_PREPROCESSORS = None
-DEFAULT_LOGGER_PROCESSORS = (eval_args,)
+DEFAULT_PROCESSORS = (eval_args, context_to_extra, kwargs_to_extra, preformat_message)

@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0 OR MIT
 
 # mostly taken from rich log handler
+# experimental and not ready
 
 from datetime import datetime
 from pathlib import Path

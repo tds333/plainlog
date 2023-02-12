@@ -125,9 +125,10 @@ def _file(level=None, extra=None, **kwargs):
     from .processors import DEFAULT_PROCESSORS, DEFAULT_PREPROCESSORS
 
     filename = kwargs.get("filename", "plainlog.log")
+    watch = True
 
     logger_core.configure(
-        handlers=[{"handler": FileHandler(filename), "level": level}],
+        handlers=[{"handler": FileHandler(filename, watch=watch), "level": level}],
         preprocessors=DEFAULT_PREPROCESSORS,
         processors=DEFAULT_PROCESSORS,
         extra=extra,
@@ -144,7 +145,7 @@ def _fingerscrossed_file(level=None, extra=None, **kwargs):
     reset = kwargs.get("reset")
 
     fc = FingersCrossedHandler(
-        FileHandler(filename),
+        FileHandler(filename, watch=True),
         action_level=action_level,
         reset=reset,
         buffer_size=buffer_size,

@@ -326,10 +326,34 @@ class Logger:
         name = self._options.name
         core = repr(self._core)
         return f"<plainlog.Logger name={name!r} core={core}>"
+    
+    def new(self, name=None, preprocessors=None, processors=None, extra=None):
+        name_, preprocessors_, processors_, extra_ = self._options
+        # special handling to autodetect name, only for empty new
+        if name is None and preprocessors is None and processors is None and extra is None:
+            names = []
+            frame = get_frame(1)
+            with contextlib.suppress(KeyError):
+                module_name = frame.f_globals["__name__"]
+                names.append(module_name)
+                code = frame.f_code
+                qualname = code.co_name
+                with contextlib.suppress(AttributeError):
+                    qualname = code.co_qualname  # from 3.11 on available
+                if qualname and qualname != "<module>":
+                    names.append(qualname)
+            name = ".".join(names)  # TODO: finish impl to handle all cases and asign names correct
+
+        name = name_ if name is None else name
+        preprocessors = preprocessors_ if preprocessors is None else preprocessors
+        processors = processors_ if processors is None else processors
+        extra = extra_ if extra is None else extra
+
+        return self.__class__(self._core, name, preprocessors, processors, extra)
 
     def bind(self, **kwargs):  # noqa: N805
         *options, extra = self._options
-        return Logger(self._core, *options, {**extra, **kwargs})
+        return self.__class__(self._core, *options, {**extra, **kwargs})
 
     def unbind(self, *args):  # noqa: N805
         *options, old_extra = self._options
@@ -337,7 +361,7 @@ class Logger:
         for key in args:
             extra.pop(key, None)
 
-        return Logger(self._core, *options, extra)
+        return self.__class__(self._core, *options, extra)
 
     @contextlib.contextmanager
     def contextualize(__self, **kwargs):  # noqa: N805
@@ -376,35 +400,6 @@ class Logger:
     def reset_context(__self, token):
         global context
         context.reset(token)
-
-    def level(self, level):
-        return self._core.level(level)
-
-    def name(self, name=None):
-        if name is None:
-            name = "root"
-            frame = get_frame(2)
-            try:
-                name = frame.f_globals["__name__"]
-            except KeyError:
-                name = None
-
-        if not isinstance(name, str):
-            raise ValueError("Name must be a string.")
-        options = self._options._replace(name=name)
-        return Logger(self._core, *options)
-
-    def preprocessor(self, *args):
-        options = self._options._replace(preprocessors=args)
-        return Logger(self._core, *options)
-
-    def processor(self, *args):
-        options = self._options._replace(processors=args)
-        return Logger(self._core, *options)
-
-    def extra(self, **kwargs):
-        options = self._options._replace(extra=kwargs)
-        return Logger(self._core, *options)
 
     def _log(self, level, msg, args, kwargs):
         level_no, _ = level
@@ -462,11 +457,11 @@ class Logger:
         self._log(LEVEL_ERROR, msg, args, kwargs)
 
     def log(self, level, msg, *args, **kwargs):  # noqa: N805
-        level = self.level(level)
+        level = self._core.level(level)
         self._log(level, msg, args, kwargs)
 
     def __call__(self, level=LEVEL_DEBUG, msg="", *args, **kwargs):  # noqa: N805
-        level = self.level(level)
+        level = self._core.level(level)
         self._log(level, msg, args, kwargs)
 
 

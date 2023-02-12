@@ -1,16 +1,18 @@
 # SPDX-FileCopyrightText: 2023 Wolfgang Langner <tds333@mailbox.org>
 #
 # SPDX-License-Identifier: Apache-2.0 OR MIT
+import os
+import stat
 import sys
 import logging
 from collections import deque
+import pathlib
 from .formatters import (
     SimpleFormatter,
     ConsoleRenderer,
     JsonFormatter,
     default_formatter,
 )
-from ._file_handler import FileHandler  # noqa
 from ._defaults import PLAINLOG_LEVEL
 
 
@@ -61,15 +63,18 @@ class WrapStandardHandler:
     def __call__(self, record):
         message = str(record.get("message", ""))
         exc = record.get("exception")
+        file_path = record["file"].path if "file" in record else ""
+        # logging.makeLogRecord(dict)
+        # TODO: use log record factory function here
         record = logging.getLogger().makeRecord(
             record["name"],
             record["level"].no,
-            "",  # record["file"].path,
-            0,  # record["line"],
+            file_path,
+            record.get("line", 0),
             message,
             (),
             (exc.type, exc.value, exc.traceback) if exc else None,
-            "",  # record["function"],
+            record.get("function", ""),
             {"extra": record["extra"]},
         )
         if exc:
@@ -136,6 +141,93 @@ class FingersCrossedHandler:
     def __call__(self, record):
         if self.enqueue(record):
             self.rollover()
+
+
+class FileHandler:
+    def __init__(
+        self,
+        path,
+        *,
+        formatter=None,
+        delay=False,
+        watch=False,
+        mode="a",
+        buffering=1,
+        encoding="utf8",
+    ):
+        self._path = pathlib.Path(path)
+        self._formatter = SimpleFormatter() if formatter is None else formatter
+        self._encoding = encoding
+        self._mode = mode
+        self._buffering = buffering
+        self._watch = watch
+
+        self._file = None
+
+        self._file_dev = -1
+        self._file_ino = -1
+        self.terminator = "\n"
+
+        if not delay:
+            self._create_file()
+
+    def __call__(self, record):
+        message = self._formatter(record)
+        self.write(message)
+
+    def write(self, message):
+        if self._file is None:
+            self._create_file()
+
+        if self._watch:
+            self._reopen_if_needed()
+
+        self._file.write(message)
+        self._file.write(self.terminator)
+
+    def close(self):
+        if self._watch:
+            self._reopen_if_needed()
+
+        self._close_file()
+
+    def _create_file(self):
+        self._path.parent.mkdir(parents=True, exist_ok=True)
+        self._file = self._path.open(
+            mode=self._mode, encoding=self._encoding, buffering=self._buffering
+        )
+
+        if self._watch:
+            fileno = self._file.fileno()
+            result = os.stat(fileno)
+            self._file_dev = result[stat.ST_DEV]
+            self._file_ino = result[stat.ST_INO]
+
+    def _close_file(self):
+        if self._file:
+            self._file.flush()
+            self._file.close()
+
+        self._file = None
+        self._file_dev = -1
+        self._file_ino = -1
+
+    def _reopen_if_needed(self):
+        if not self._file:
+            return
+
+        try:
+            result = self._path.stat()
+        except FileNotFoundError:
+            result = None
+
+        if (
+            not result
+            or result[stat.ST_DEV] != self._file_dev
+            or result[stat.ST_INO] != self._file_ino
+        ):
+            self._close_file()
+            self._create_file()
 
 
 DEFAULT_HANDLERS = ({"handler": DefaultHandler(), "level": PLAINLOG_LEVEL},)
