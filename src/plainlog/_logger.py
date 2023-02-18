@@ -15,8 +15,6 @@ import atexit
 import traceback
 from functools import partial
 
-# from time import time_ns
-
 from . import _defaults
 from ._recattrs import Level, HandlerRecord, Options
 from ._frames import get_frame
@@ -365,7 +363,6 @@ class Logger:
 
     @staticmethod
     def context(**kwargs):
-        #global context
         new_context = {**context.get(), **kwargs}
         token = context.set(new_context)
 
@@ -404,7 +401,6 @@ class Logger:
             "message": str(msg),
             "name": name,
             "datetime": current_datetime,
-            # "time_ns": time_ns(),
             "context": {**context.get()},
             "extra": {**core_extra, **extra},
             "args": args,
@@ -413,7 +409,6 @@ class Logger:
 
         stop = False
         for preprocessor in (*preprocessors, *core_preprocessors):
-            # with contextlib.suppress(Exception):
             stop = preprocessor(log_record)
             if stop:
                 return
