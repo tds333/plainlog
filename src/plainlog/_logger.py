@@ -363,43 +363,26 @@ class Logger:
 
         return self.__class__(self._core, *options, extra)
 
-    @contextlib.contextmanager
-    def contextualize(__self, **kwargs):  # noqa: N805
-        global context
-        new_context = {**context.get(), **kwargs}
-        token = context.set(new_context)
-        try:
-            yield
-        finally:
-            context.reset(token)
-
-    def bind_context(__self, **kwargs):
-        global context
+    @staticmethod
+    def context(**kwargs):
+        #global context
         new_context = {**context.get(), **kwargs}
         token = context.set(new_context)
 
         return token
 
-    def unbind_context(__self, *args):
-        global context
-        # context_dict = context.get().copy()
-        context_dict = {**context.get()}
-        for key in args:
-            context_dict.pop(key, None)
-        token = context.set(context_dict)
-
-        return token
-
-    def context(__self, **kwargs):
-        global context
-        new_context = {**kwargs}
-        token = context.set(new_context)
-
-        return token
-
-    def reset_context(__self, token):
-        global context
+    @staticmethod
+    def reset_context(token):
         context.reset(token)
+    
+    @staticmethod
+    @contextlib.contextmanager
+    def contextualize(**kwargs):  # noqa: N805
+        token = Logger.context(**kwargs)
+        try:
+            yield token
+        finally:
+            Logger.reset_context(token)
 
     def _log(self, level, msg, args, kwargs):
         level_no, _ = level
