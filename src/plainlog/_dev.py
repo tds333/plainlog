@@ -13,11 +13,7 @@ from typing import Any, Iterable, TextIO, Type, Union
 
 from ._frames import _format_exception
 
-
-if sys.version_info >= (3, 8):
-    from typing import Protocol
-else:
-    from typing_extensions import Protocol
+from typing import Protocol
 
 try:
     import colorama
@@ -151,28 +147,10 @@ class _PlainStyles:
 
 
 def plain_traceback(sio: TextIO, exc_info) -> None:
-    """
-    "Pretty"-print *exc_info* to *sio* using our own plain formatter.
-
-    To be passed into `ConsoleRenderer`'s ``exception_formatter`` argument.
-
-    Used by default if neither *Rich* not *better-exceptions* are present.
-
-    .. versionadded:: 21.2
-    """
     sio.write("\n" + _format_exception(exc_info))
 
 
 def rich_traceback(sio: TextIO, exc_info) -> None:
-    """
-    Pretty-print *exc_info* to *sio* using the *Rich* package.
-
-    To be passed into `ConsoleRenderer`'s ``exception_formatter`` argument.
-
-    Used by default if *Rich* is installed.
-
-    .. versionadded:: 21.2
-    """
     sio.write("\n")
     Console(file=sio, color_system="truecolor").print(
         Traceback.from_exception(*exc_info, show_locals=True)
@@ -180,15 +158,6 @@ def rich_traceback(sio: TextIO, exc_info) -> None:
 
 
 def better_traceback(sio: TextIO, exc_info) -> None:
-    """
-    Pretty-print *exc_info* to *sio* using the *better-exceptions* package.
-
-    To be passed into `ConsoleRenderer`'s ``exception_formatter`` argument.
-
-    Used by default if *better-exceptions* is installed and *Rich* is absent.
-
-    .. versionadded:: 21.2
-    """
     sio.write("\n" + "".join(better_exceptions.format_exception(*exc_info)))
 
 
@@ -201,44 +170,6 @@ else:
 
 
 class ConsoleRenderer:
-    """
-    Render ``event_dict`` nicely aligned, possibly in colors, and ordered.
-
-    If ``event_dict`` contains a true-ish ``exc_info`` key, it will be
-    rendered *after* the log line. If Rich_ or better-exceptions_ are present,
-    in colors and with extra context.
-
-    :param pad_event: Pad the event to this many characters.
-    :param colors: Use colors for a nicer output. `True` by default. On
-        Windows only if Colorama_ is installed.
-    :param force_colors: Force colors even for non-tty destinations.
-        Use this option if your logs are stored in a file that is meant
-        to be streamed to the console. Only meaningful on Windows.
-    :param repr_native_str: When `True`, `repr` is also applied
-        to native strings (i.e. unicode on Python 3 and bytes on Python 2).
-        Setting this to `False` is useful if you want to have human-readable
-        non-ASCII output on Python 2.  The ``event`` key is *never*
-        `repr` -ed.
-    :param level_styles: When present, use these styles for colors. This
-        must be a dict from level names (strings) to Colorama styles. The
-        default can be obtained by calling
-        `ConsoleRenderer.get_default_level_styles`
-    :param exception_formatter: A callable to render ``exc_infos``. If rich_
-        or better-exceptions_ are installed, they are used for pretty-printing
-        by default (rich_ taking precedence). You can also manually set it to
-        `plain_traceback`, `better_traceback`, `rich_traceback`, or implement
-        your own.
-    :param sort_keys: Whether to sort keys when formatting. `True` by default.
-    :param event_key: The key to look for the main log message. Needed when
-        you rename it e.g. using `structlog.processors.EventRenamer`.
-
-    Requires the Colorama_ package if *colors* is `True` **on Windows**.
-
-    .. _Colorama: https://pypi.org/project/colorama/
-    .. _better-exceptions: https://pypi.org/project/better-exceptions/
-    .. _Rich: https://pypi.org/project/rich/
-
-    """
 
     def __init__(
         self,
@@ -402,17 +333,6 @@ class ConsoleRenderer:
     def get_default_level_styles(colors: bool = True) -> Any:
         """
         Get the default styles for log levels
-
-        This is intended to be used with `ConsoleRenderer`'s ``level_styles``
-        parameter.  For example, if you are adding custom levels in your
-        home-grown :func:`~structlog.stdlib.add_log_level` you could do::
-
-            my_styles = ConsoleRenderer.get_default_level_styles()
-            my_styles["EVERYTHING_IS_ON_FIRE"] = my_styles["critical"]
-            renderer = ConsoleRenderer(level_styles=my_styles)
-
-        :param colors: Whether to use colorful styles. This must match the
-            *colors* parameter to `ConsoleRenderer`. Default: `True`.
         """
         styles: Styles
         if colors:

@@ -251,3 +251,38 @@ class RichHandler:
             link_path=path if self.enable_link_path else None,
         )
         return log_renderable
+
+
+def _rich_profile(level=None, extra=None, **kwargs):
+    from .extensions._rich_handler import RichHandler
+    from .processors import (
+        add_caller_info,
+        Duration,
+        DEFAULT_PROCESSORS,
+        DEFAULT_PREPROCESSORS,
+    )
+
+    preprocessors = (*DEFAULT_PREPROCESSORS, add_caller_info, Duration())
+    processors = DEFAULT_PROCESSORS
+
+    logger_core.configure(
+        handlers=[
+            {
+                "handler": RichHandler(
+                    rich_tracebacks=True,
+                    omit_repeated_times=False,
+                    log_time_format="[%H:%M:%S.%f]",
+                    tracebacks_show_locals=True,
+                    tracebacks_theme="monokai",
+                    show_path=True,
+                ),
+                "level": level,
+            }
+        ],
+        preprocessors=preprocessors,
+        processors=processors,
+        extra=extra,
+    )
+
+from plainlog.configure import add_profile
+add_profile("rich", _rich_profile)

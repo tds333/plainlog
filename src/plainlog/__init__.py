@@ -6,20 +6,11 @@ The plainlog library provides a pre-instanced logger to facilitate dealing with 
 
 Just ``from plainlog import logger``.
 """
-from ._logger import Logger, logger_core
+from ._logger import logger_core, logger
 from .configure import configure_log
-from . import _defaults
+from . import _env
 
 __all__ = ["logger", "logger_core", "configure_log"]
 
 
-if _defaults.PLAINLOG_AUTOINIT:
-    configure_log(_defaults.PLAINLOG_PROFILE, _defaults.PLAINLOG_LEVEL)
-
-logger = Logger(
-    core=logger_core,
-    name="root",
-    preprocessors=None,
-    processors=None,
-    extra={},
-)
+configure_log(_env.PLAINLOG_PROFILE, _env.PLAINLOG_LEVEL)

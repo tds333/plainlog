@@ -13,7 +13,6 @@ from .formatters import (
     JsonFormatter,
     default_formatter,
 )
-from ._defaults import PLAINLOG_LEVEL
 
 
 class StreamHandler:
@@ -54,6 +53,9 @@ class ConsoleHandler(StreamHandler):
 
 
 class WrapStandardHandler:
+
+    factory = logging.getLogRecordFactory()
+
     def __init__(self, handler):
         self._handler = handler
 
@@ -64,9 +66,7 @@ class WrapStandardHandler:
         message = str(record.get("message", ""))
         exc = record.get("exception")
         file_path = record["file"].path if "file" in record else ""
-        # logging.makeLogRecord(dict)
-        # TODO: use log record factory function here
-        record = logging.getLogger().makeRecord(
+        lrecord = self.factory(
             record["name"],
             record["level"].no,
             file_path,
@@ -78,8 +78,8 @@ class WrapStandardHandler:
             {"extra": record["extra"]},
         )
         if exc:
-            record.exc_text = "\n"
-        self._handler.handle(record)
+            lrecord.exc_text = "\n"
+        self._handler.handle(lrecord)
 
     def close(self):
         self._handler.close()
@@ -228,6 +228,3 @@ class FileHandler:
         ):
             self._close_file()
             self._create_file()
-
-
-DEFAULT_HANDLERS = ({"handler": DefaultHandler(), "level": PLAINLOG_LEVEL},)

@@ -25,8 +25,8 @@ STOP_PROCESSING = True
 CONTINUE_PROCESSING = False
 
 
-def add_caller_info(record):
-    frame = get_frame(3)
+def add_caller_info(record, level=3):
+    frame = get_frame(level)
     # name = frame.f_globals["__name__"]
     code = frame.f_code
     file_path = code.co_filename

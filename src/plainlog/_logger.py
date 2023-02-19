@@ -15,7 +15,7 @@ import atexit
 import traceback
 from functools import partial
 
-from . import _defaults
+from . import _env
 from ._recattrs import Level, HandlerRecord, Options
 from ._frames import get_frame
 
@@ -176,7 +176,7 @@ class Core:
             except AttributeError:
                 name = handler.__class__.__name__
 
-        level = _defaults.PLAINLOG_LEVEL if level is None else level
+        level = _env.PLAINLOG_LEVEL if level is None else level
         level = self.level(level)
 
         handler_record = HandlerRecord(name, level, print_errors, handler)
@@ -189,8 +189,7 @@ class Core:
     def remove(self, name=None):
         if not (name is None or isinstance(name, str)):
             raise TypeError(
-                "Invalid handler name, it should be an string "
-                "or None, not: '%s'" % type(name)
+                "Invalid handler name, it should be an string " "or None, not: '%s'" % type(name)
             )
 
         self.put(name, Command.REMOVE_HANDLER)
@@ -324,7 +323,7 @@ class Logger:
         name = self._options.name
         core = repr(self._core)
         return f"<plainlog.Logger name={name!r} core={core}>"
-    
+
     def new(self, name=None, preprocessors=None, processors=None, extra=None):
         name_, preprocessors_, processors_, extra_ = self._options
         # special handling to autodetect name, only for empty new
@@ -336,6 +335,7 @@ class Logger:
                 names.append(module_name)
                 code = frame.f_code
                 qualname = code.co_name
+                file_name = code.co_filename
                 with contextlib.suppress(AttributeError):
                     qualname = code.co_qualname  # from 3.11 on available
                 if qualname and qualname != "<module>":
@@ -371,7 +371,7 @@ class Logger:
     @staticmethod
     def reset_context(token):
         context.reset(token)
-    
+
     @staticmethod
     @contextlib.contextmanager
     def contextualize(**kwargs):  # noqa: N805
@@ -445,3 +445,11 @@ class Logger:
 
 logger_core = Core()
 atexit.register(logger_core.close)
+
+logger = Logger(
+    core=logger_core,
+    name="root",
+    preprocessors=None,
+    processors=None,
+    extra={},
+)

@@ -8,10 +8,10 @@ from ._logger import logger_core
 
 def _default(level=None, extra=None, **kwargs):
     from .processors import DEFAULT_PROCESSORS, DEFAULT_PREPROCESSORS
-    from .handlers import DEFAULT_HANDLERS
+    from .handlers import DefaultHandler
 
     logger_core.configure(
-        handlers=DEFAULT_HANDLERS,
+        handlers=[{"handler": DefaultHandler(), "level": level}],
         preprocessors=DEFAULT_PREPROCESSORS,
         processors=DEFAULT_PROCESSORS,
         extra=extra,
@@ -158,38 +158,6 @@ def _fingerscrossed_file(level=None, extra=None, **kwargs):
     )
 
 
-def _rich(level=None, extra=None, **kwargs):
-    from ._rich_handler import RichHandler
-    from .processors import (
-        add_caller_info,
-        Duration,
-        DEFAULT_PROCESSORS,
-        DEFAULT_PREPROCESSORS,
-    )
-
-    preprocessors = (*DEFAULT_PREPROCESSORS, add_caller_info, Duration())
-    processors = DEFAULT_PROCESSORS
-
-    logger_core.configure(
-        handlers=[
-            {
-                "handler": RichHandler(
-                    rich_tracebacks=True,
-                    omit_repeated_times=False,
-                    log_time_format="[%H:%M:%S.%f]",
-                    tracebacks_show_locals=True,
-                    tracebacks_theme="monokai",
-                    show_path=True,
-                ),
-                "level": level,
-            }
-        ],
-        preprocessors=preprocessors,
-        processors=processors,
-        extra=extra,
-    )
-
-
 def _console_no_color(level=None, extra=None, **kwargs):
     from .handlers import ConsoleHandler
     from .processors import DEFAULT_PROCESSORS, DEFAULT_PREPROCESSORS
@@ -229,8 +197,12 @@ def _fast(level=None, extra=None, **kwargs):
     )
 
 
-def _nothing(level=None, extra=None, **kwargs):
+def _empty(level=None, extra=None, **kwargs):
     logger_core.configure(handlers=[], preprocessors=[], processors=[], extra={})
+
+
+def _no_init(level=None, extra=None, **kwargs):
+    pass
 
 
 _profiles = {
@@ -242,11 +214,16 @@ _profiles = {
     "json": _json,
     "file": _file,
     "fingerscrossed_file": _fingerscrossed_file,
-    "rich": _rich,
     "console_no_color": _console_no_color,
     "fast": _fast,
-    "nothing": _nothing,
+    "empty": _empty,
+    "no_init": _no_init,
 }
+
+def add_profile(name, function):
+    if name in _profiles:
+        return False
+    _profiles[name] = function
 
 
 def configure_log(name=None, level=None, extra=None, **kwargs):
@@ -255,6 +232,7 @@ def configure_log(name=None, level=None, extra=None, **kwargs):
 
     profile = _profiles.get(name)
     if profile is None:
-        raise ValueError(f"Name {name!r} is not a valid log profile.")
+        profile_names = list(_profiles.keys())
+        raise ValueError(f"Name {name!r} is not a valid log profile. Use one of {profile_names!r}")
 
     profile(level, extra, **kwargs)
