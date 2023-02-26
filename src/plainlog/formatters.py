@@ -112,18 +112,20 @@ class JsonFormatter:
             "message": message,
             "name": record["name"],
             "datetime": record["datetime"].isoformat(),
-            "elapsed": {
-                "repr": record["elapsed"],
-                "seconds": record["elapsed"].total_seconds(),
-            },
             "level": {
                 "name": record["level"].name,
                 "no": record["level"].no,
             },
-            "exception": exception,
             "extra": record["extra"],
+            "elapsed": {
+                "repr": record["elapsed"],
+                "seconds": record["elapsed"].total_seconds(),
+            },
+            "process_id": record["process_id"],
+            "process_name": record["process_name"],
             # "time": {"repr": record["time"], "timestamp": record["time"].timestamp()},
         }
+        if exception: serializable["exception"] = exception
         for key in self._additional_keys:
             value = record.get(key)
             if value is not None:

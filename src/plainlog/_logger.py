@@ -14,6 +14,7 @@ from enum import Enum
 import atexit
 import traceback
 from functools import partial
+from multiprocessing import current_process
 
 from . import _env
 from ._recattrs import Level, HandlerRecord, Options
@@ -23,6 +24,7 @@ from ._frames import get_frame
 get_now_utc = partial(datetime.now, timezone.utc)
 start_time = get_now_utc()
 context = ContextVar("plainlog_context", default={})
+logger_process = current_process()
 
 # predefined for performance reason
 LEVEL_DEBUG = Level(logging.DEBUG, "DEBUG")
@@ -401,6 +403,8 @@ class Logger:
             "message": str(msg),
             "name": name,
             "datetime": current_datetime,
+            "process_id" : logger_process.ident,
+            "process_name" : logger_process.name,
             "context": {**context.get()},
             "extra": {**core_extra, **extra},
             "args": args,

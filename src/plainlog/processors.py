@@ -95,9 +95,9 @@ def context_to_extra(record):
 
 def preformat_message(record):
     msg = record.get("msg", "")
-    if msg:
-        args = record.get("args", [])
-        kwargs = record.get("kwargs", {})
+    args = record.get("args", [])
+    kwargs = record.get("kwargs", {})
+    if msg and (args or kwargs):
         with contextlib.suppress(Exception):
             record["message"] = msg.format(*args, **kwargs)
             record["preformatted"] = True
