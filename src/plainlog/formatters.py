@@ -27,9 +27,8 @@ class SimpleFormatter:
         self._fmt = fmt if fmt is not None else self.DEFAULT_FORMAT
 
     def __call__(self, record):
-        message = format_message(record)
         data = record.copy()
-        data["message"] = message
+        data["message"] = format_message(record)
         message = self._fmt.format_map(data)
 
         return message

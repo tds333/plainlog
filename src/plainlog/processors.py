@@ -94,6 +94,9 @@ def context_to_extra(record):
 
 
 def preformat_message(record):
+    preformatted = record.get("preformatted", False)
+    if preformatted:
+        return
     msg = record.get("msg", "")
     args = record.get("args", [])
     kwargs = record.get("kwargs", {})

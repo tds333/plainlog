@@ -93,7 +93,7 @@ def _get_levels():
 class Core:
     def __init__(self):
         self._max_level_no = sys.maxsize
-        self.min_level_no = self._max_level_no
+        self._min_level_no = self._max_level_no
         self._levels = _get_levels()
         self._handlers = {}
         self._options = Options("CORE", (), (), {})
@@ -104,15 +104,26 @@ class Core:
     def __getstate__(self):
         state = self.__dict__.copy()
         state["_queue"] = None
+        state["_thread"] = None
         return state
 
     def __setstate__(self, state):
         self.__dict__.update(state)
         self._queue = SimpleQueue()
+        self._thread = Thread(target=self._worker, daemon=True, name="plainlog-worker")
+        self._thread.start()
 
     def __repr__(self):
         handlers = list(self._handlers.values())
         return f"<plainlog.Core handlers={handlers!r}>"
+
+    @property
+    def options(self):
+        return self._options
+    
+    @property
+    def min_level_no(self):
+        return self._min_level_no
 
     def put(self, message, command=Command.LOG):
         self._queue.put((command, message))
@@ -196,6 +207,9 @@ class Core:
 
         self.put(name, Command.REMOVE_HANDLER)
         self.wait_for_processed()
+    
+    def has_handlers(self):
+        return bool(self._handlers)
 
     def close(self):
         if self.is_alive():
@@ -241,7 +255,7 @@ class Core:
                 name = handler_record.name
                 if name not in self._handlers:
                     handlers[name] = handler_record
-                    self.min_level_no = min(self.min_level_no, handler_record.level.no)
+                    self._min_level_no = min(self._min_level_no, handler_record.level.no)
                     self._handlers = handlers
 
             elif command is Command.REMOVE_HANDLER:
@@ -260,8 +274,7 @@ class Core:
                         continue
 
                     levelnos = (h.level.no for h in handlers.values())
-                    self.min_level_no = min(levelnos, default=self._max_level_no)
-                    # self._handlers = handlers
+                    self._min_level_no = min(levelnos, default=self._max_level_no)
 
                     if hasattr(handler, "close") and callable(handler.close):
                         try:
@@ -393,7 +406,7 @@ class Logger:
         current_datetime = get_now_utc()
         elapsed = current_datetime - start_time
 
-        _, core_preprocessors, __, core_extra = core._options
+        _, core_preprocessors, __, core_extra = core.options
         name, preprocessors, processors, extra = self._options
 
         log_record = {

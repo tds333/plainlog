@@ -266,7 +266,8 @@ class ConsoleRenderer:
                     + self._styles.reset
                 )
 
-        event = record.get("message", "")
+        msg = record.get("msg", "")
+        event = record.get("message", msg)
         # event = record.get("message_fmt", event)
         if not isinstance(event, str):
             event = str(event)
