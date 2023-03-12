@@ -74,28 +74,6 @@ class PlainlogStdLogger(logging.Logger):
     def handle(self, record):
         pass
 
-    def addHandler(self, hdlr):
-        """
-        Add the specified handler to this logger.
-        """
-        _acquireLock()
-        try:
-            if not (hdlr in self.handlers):
-                self.handlers.append(hdlr)
-        finally:
-            _releaseLock()
-
-    def removeHandler(self, hdlr):
-        """
-        Remove the specified handler from this logger.
-        """
-        _acquireLock()
-        try:
-            if hdlr in self.handlers:
-                self.handlers.remove(hdlr)
-        finally:
-            _releaseLock()
-
     def hasHandlers(self):
         return self._core.has_handlers()
 

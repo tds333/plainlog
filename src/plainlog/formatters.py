@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0 OR MIT
 import json
-from ._dev import ConsoleRenderer
+from ._dev import ConsoleRenderer  # noqa
 
 
 def format_message(record):

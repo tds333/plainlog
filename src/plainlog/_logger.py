@@ -350,7 +350,7 @@ class Logger:
                 names.append(module_name)
                 code = frame.f_code
                 qualname = code.co_name
-                file_name = code.co_filename
+                #file_name = code.co_filename
                 with contextlib.suppress(AttributeError):
                     qualname = code.co_qualname  # from 3.11 on available
                 if qualname and qualname != "<module>":
