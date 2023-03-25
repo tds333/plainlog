@@ -27,13 +27,13 @@ ruff:
 
 ## Format files using black
 format:
-	ruff . --fix
-	black .
+	ruff ./src/plainlog --fix
+	black ./src/plainlog
 
 ## Run checks (ruff + test)
 check:
-	ruff check .
-	black --check .
+	ruff check ./src/plainlog
+	black --check ./src/plainlog
 
 ## Run hatch shell
 shell:

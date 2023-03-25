@@ -170,7 +170,6 @@ else:
 
 
 class ConsoleRenderer:
-
     def __init__(
         self,
         pad_event: int = _EVENT_WIDTH,

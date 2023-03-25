@@ -220,6 +220,7 @@ _profiles = {
     "no_init": _no_init,
 }
 
+
 def add_profile(name, function):
     if name in _profiles:
         return False

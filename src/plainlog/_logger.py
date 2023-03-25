@@ -120,7 +120,7 @@ class Core:
     @property
     def options(self):
         return self._options
-    
+
     @property
     def min_level_no(self):
         return self._min_level_no
@@ -207,7 +207,7 @@ class Core:
 
         self.put(name, Command.REMOVE_HANDLER)
         self.wait_for_processed()
-    
+
     def has_handlers(self):
         return bool(self._handlers)
 
@@ -350,7 +350,7 @@ class Logger:
                 names.append(module_name)
                 code = frame.f_code
                 qualname = code.co_name
-                #file_name = code.co_filename
+                # file_name = code.co_filename
                 with contextlib.suppress(AttributeError):
                     qualname = code.co_qualname  # from 3.11 on available
                 if qualname and qualname != "<module>":
@@ -416,8 +416,8 @@ class Logger:
             "message": str(msg),
             "name": name,
             "datetime": current_datetime,
-            "process_id" : logger_process.ident,
-            "process_name" : logger_process.name,
+            "process_id": logger_process.ident,
+            "process_name": logger_process.name,
             "context": {**context.get()},
             "extra": {**core_extra, **extra},
             "args": args,

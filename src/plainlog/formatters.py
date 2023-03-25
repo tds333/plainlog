@@ -124,7 +124,8 @@ class JsonFormatter:
             "process_name": record["process_name"],
             # "time": {"repr": record["time"], "timestamp": record["time"].timestamp()},
         }
-        if exception: serializable["exception"] = exception
+        if exception:
+            serializable["exception"] = exception
         for key in self._additional_keys:
             value = record.get(key)
             if value is not None:
