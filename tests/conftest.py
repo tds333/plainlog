@@ -19,24 +19,40 @@ import plainlog
 #     yield
 #     reset()
 
+class DummyHandler:
+
+    def __init__(self):
+        self._records = []
+
+    def __call__(self, record):
+        self._records.append(record)
+
+    @property
+    def records(self):
+        plainlog.logger_core.wait_for_processed() 
+        return self._records
+        
+
+    def first(self):
+        plainlog.logger_core.wait_for_processed()
+        return self._records[0]
+
+    def clear(self):
+        self._records.clear()
+
 
 @pytest.fixture
-def writer():
-    records = []
-    
-    def w(record):
-        records.append(record)
+def thandler():
+    dh = DummyHandler()
+    name = "testhandler"
 
-    w.records = records
-    w.first = lambda: records[0]
-    w.clear = lambda: records.clear()
+    plainlog.logger_core.configure(handlers=[dict(handler=dh, name=name)])
+    #plainlog.logger_core.add(dh, name="writer")
 
-    plainlog.logger_core.add(w, name="writer")
+    yield dh
 
-    yield w
-
-    plainlog.logger_core.remove("writer")
-    del records
+    plainlog.logger_core.remove(name)
+    dh.clear()
 
 
 @contextlib.contextmanager

@@ -17,21 +17,18 @@ class Level(NamedTuple):
         return self.name.__format__(spec)
 
 
-#HandlerRecord = namedtuple("HandlerRecord", ["name", "level", "print_errors", "handler"])
 class HandlerRecord(NamedTuple):
     name: str
     level: Level
     print_errors: bool
     handler: Callable
 
-#Options = namedtuple("Options", ["name", "preprocessors", "processors", "extra"])
+
 class Options(NamedTuple):
     name: str
     preprocessors: tuple[Callable, ...]
     processors: tuple[Callable, ...]
     extra: dict[str, Any]
-
-
 
 
 class RecordException(namedtuple("RecordException", ("type", "value", "traceback"))):

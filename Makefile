@@ -1,4 +1,4 @@
-.PHONY: build test tests clean lint format 
+.PHONY: build test tests clean lint format help
 
 ## Build
 build:
@@ -30,8 +30,9 @@ format:
 	ruff ./src/plainlog --fix
 	black ./src/plainlog
 
-## Run checks (ruff + test)
+## Run checks 
 check:
+	-mypy ./src/plainlog
 	ruff check ./src/plainlog
 	black --check ./src/plainlog
 

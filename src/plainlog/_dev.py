@@ -18,7 +18,7 @@ from typing import Protocol
 try:
     import colorama
 except ImportError:
-    colorama = None # type: ignore[assignment]
+    colorama = None  # type: ignore[assignment]
 
 try:
     import rich
@@ -147,7 +147,7 @@ def plain_traceback(sio: TextIO, exc_info) -> None:
 def rich_traceback(sio: TextIO, exc_info) -> None:
     sio.write("\n")
     Console(file=sio, color_system="truecolor").print(
-        Traceback.from_exception(*exc_info, show_locals=True) # noqa
+        Traceback.from_exception(*exc_info, show_locals=True)  # noqa
     )
 
 

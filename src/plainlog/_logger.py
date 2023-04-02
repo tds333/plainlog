@@ -179,9 +179,15 @@ class Core:
         options = Options("CORE", preprocessors, processors, extra)
         self._put(Command.OPTIONS, options)
 
-        return [self.add(**params) for params in handlers]
+        added = []
+        for params in handlers:
+            added.append(self.add(**params))
+        if not added:
+            self.wait_for_processed()
 
-    def wait_for_processed(self, timeout: Optional[float] = None):
+        return added
+
+    def wait_for_processed(self, timeout: Optional[float] = None) -> None:
         event = Event()
         self._put(Command.EVENT, event)
         event.wait(timeout)
@@ -238,8 +244,8 @@ class Core:
         queue = self._queue
 
         while True:
-            #command, message = None, None
-            #with contextlib.suppress(Exception):
+            # command, message = None, None
+            # with contextlib.suppress(Exception):
             try:
                 command, message = queue.get()
             except Exception:
@@ -289,7 +295,7 @@ class Core:
                     if handler_name not in handlers:
                         continue
                     else:
-                        name, level, print_erros, handler = handlers[handler_name]
+                        name, level, print_erros, handler = handlers.pop(handler_name)
 
                     levelnos = (h.level.no for h in handlers.values())
                     self._min_level_no = min(levelnos, default=self._max_level_no)
