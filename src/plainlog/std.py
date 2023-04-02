@@ -169,4 +169,4 @@ class StdInterceptHandler(logging.Handler):
             if stop:
                 return
 
-        core.put((log_record, []))
+        core.log(log_record, processors=[])

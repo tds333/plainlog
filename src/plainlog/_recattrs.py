@@ -3,19 +3,35 @@
 # SPDX-License-Identifier: Apache-2.0 OR MIT
 import pickle
 from collections import namedtuple
+from typing import NamedTuple, Callable, Any
 
 
-HandlerRecord = namedtuple("HandlerRecord", ["name", "level", "print_errors", "handler"])
+class Level(NamedTuple):
+    no: int
+    name: str
 
-Options = namedtuple("Options", ["name", "preprocessors", "processors", "extra"])
-
-
-class Level(namedtuple("Level", ["no", "name"])):
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "(no=%r, name=%r)" % (self.no, self.name)
 
     def __format__(self, spec):
         return self.name.__format__(spec)
+
+
+#HandlerRecord = namedtuple("HandlerRecord", ["name", "level", "print_errors", "handler"])
+class HandlerRecord(NamedTuple):
+    name: str
+    level: Level
+    print_errors: bool
+    handler: Callable
+
+#Options = namedtuple("Options", ["name", "preprocessors", "processors", "extra"])
+class Options(NamedTuple):
+    name: str
+    preprocessors: tuple[Callable, ...]
+    processors: tuple[Callable, ...]
+    extra: dict[str, Any]
+
+
 
 
 class RecordException(namedtuple("RecordException", ("type", "value", "traceback"))):

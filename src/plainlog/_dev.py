@@ -18,12 +18,7 @@ from typing import Protocol
 try:
     import colorama
 except ImportError:
-    colorama = None
-
-try:
-    import better_exceptions
-except ImportError:
-    better_exceptions = None
+    colorama = None # type: ignore[assignment]
 
 try:
     import rich
@@ -38,7 +33,6 @@ __all__ = [
     "ConsoleRenderer",
     "plain_traceback",
     "rich_traceback",
-    "better_traceback",
 ]
 
 _IS_WINDOWS = sys.platform == "win32"
@@ -153,18 +147,12 @@ def plain_traceback(sio: TextIO, exc_info) -> None:
 def rich_traceback(sio: TextIO, exc_info) -> None:
     sio.write("\n")
     Console(file=sio, color_system="truecolor").print(
-        Traceback.from_exception(*exc_info, show_locals=True)
+        Traceback.from_exception(*exc_info, show_locals=True) # noqa
     )
-
-
-def better_traceback(sio: TextIO, exc_info) -> None:
-    sio.write("\n" + "".join(better_exceptions.format_exception(*exc_info)))
 
 
 if rich is not None:
     default_exception_formatter = rich_traceback
-elif better_exceptions is not None:
-    default_exception_formatter = better_traceback
 else:
     default_exception_formatter = plain_traceback
 
