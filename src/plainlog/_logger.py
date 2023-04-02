@@ -5,7 +5,7 @@ import contextlib
 import logging
 import sys
 import collections.abc
-from contextvars import ContextVar, Token
+from contextvars import ContextVar
 from copy import deepcopy
 from datetime import datetime, timezone
 from threading import Thread, Event
@@ -15,7 +15,7 @@ import atexit
 import traceback
 from functools import partial
 from multiprocessing import current_process
-from typing import Union, Optional, Callable, Iterable, Any, Generator
+from typing import Union, Optional, Callable, Iterable, Any, Generator, Tuple, Dict
 
 from . import _env
 from ._recattrs import Level, HandlerRecord, Options
@@ -46,13 +46,13 @@ class Command(str, Enum):
 
 
 LevelInput = Union[int, str, Level]
-Levels = dict[LevelInput, Level]
+Levels = Dict[LevelInput, Level]
 Callables = Union[Callable, Iterable[Callable]]
 
 
 def _validate_callables(
     callables: Optional[Union[Callable, Iterable[Callable]]], name: str = "Callable"
-) -> tuple[Callable, ...]:
+) -> Tuple[Callable, ...]:
     if callables is not None:
         if isinstance(callables, collections.abc.Iterable):
             callables = tuple(callables)
@@ -68,7 +68,7 @@ def _validate_callables(
     return callables
 
 
-def _validate_extra(extra: Optional[dict[str, Any]]) -> dict[str, Any]:
+def _validate_extra(extra: Optional[Dict[str, Any]]) -> Dict[str, Any]:
     if extra is None:
         extra = {}
     else:
@@ -103,7 +103,7 @@ class Core:
         self._max_level_no: int = sys.maxsize
         self._min_level_no: int = self._max_level_no
         self._levels: Levels = _get_levels()
-        self._handlers: dict[str, HandlerRecord] = {}
+        self._handlers: Dict[str, HandlerRecord] = {}
         self._options: Options = Options("CORE", (), (), {})
         self._queue: SimpleQueue = SimpleQueue()
         self._thread: Thread = Thread(target=self._worker, daemon=True, name="plainlog-worker")
@@ -136,7 +136,7 @@ class Core:
     def _put(self, command: Command, message: Any = None):
         self._queue.put((command, message))
 
-    def log(self, log_record: dict[str, Any], processors: Callables) -> None:
+    def log(self, log_record: Dict[str, Any], processors: Callables) -> None:
         self._queue.put((Command.LOG, (log_record, processors)))
 
     def stop(self) -> None:
@@ -160,7 +160,7 @@ class Core:
         self,
         *,
         handlers=None,
-        extra: Optional[dict[str, Any]] = None,
+        extra: Optional[Dict[str, Any]] = None,
         preprocessors: Optional[Callables] = None,
         processors: Optional[Callables] = None,
         update_levels: bool = False,
@@ -356,7 +356,7 @@ class Logger:
         name: str,
         preprocessors: Optional[Callables],
         processors: Optional[Callables],
-        extra: Optional[dict[str, Any]],
+        extra: Optional[Dict[str, Any]],
     ):
         self._core = core
         name = _validate_name(name)
@@ -401,33 +401,33 @@ class Logger:
 
     def unbind(self, *args) -> "Logger":
         name, preprocessors, processors, old_extra = self._options
-        extra: dict[str, Any] = old_extra.copy()
+        extra: Dict[str, Any] = old_extra.copy()
         for key in args:
             extra.pop(key, None)
 
         return self.__class__(self._core, name, preprocessors, processors, extra)
 
     @staticmethod
-    def context(**kwargs) -> Token[Any]:
+    def context(**kwargs):
         new_context = {**context.get(), **kwargs}
         token = context.set(new_context)
 
         return token
 
     @staticmethod
-    def reset_context(token: Token[Any]) -> None:
+    def reset_context(token) -> None:
         context.reset(token)
 
     @staticmethod
     @contextlib.contextmanager
     def contextualize(**kwargs) -> Generator:  # noqa: N805
-        token: Token[Any] = Logger.context(**kwargs)
+        token = Logger.context(**kwargs)
         try:
             yield token
         finally:
             Logger.reset_context(token)
 
-    def _log(self, level: Level, msg: str, args: tuple[Any, ...], kwargs: dict) -> None:
+    def _log(self, level: Level, msg: str, args: Tuple[Any, ...], kwargs: dict) -> None:
         level_no, _ = level
         core = self._core
 

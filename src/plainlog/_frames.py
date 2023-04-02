@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import sys
 import traceback
+from typing import Tuple
 
 from io import StringIO
 from types import FrameType
@@ -50,7 +51,7 @@ def _format_exception(exc_info):
 
 def _find_first_app_frame_and_name(
     additional_ignores: list[str] | None = None,
-) -> tuple[FrameType, str]:
+) -> Tuple[FrameType, str]:
     """
     Remove all intra-plainlog calls and return the relevant app frame.
 

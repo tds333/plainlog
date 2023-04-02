@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0 OR MIT
 import pickle
 from collections import namedtuple
-from typing import NamedTuple, Callable, Any
+from typing import NamedTuple, Callable, Any, Tuple, Dict
 
 
 class Level(NamedTuple):
@@ -26,9 +26,9 @@ class HandlerRecord(NamedTuple):
 
 class Options(NamedTuple):
     name: str
-    preprocessors: tuple[Callable, ...]
-    processors: tuple[Callable, ...]
-    extra: dict[str, Any]
+    preprocessors: Tuple[Callable, ...]
+    processors: Tuple[Callable, ...]
+    extra: Dict[str, Any]
 
 
 class RecordException(namedtuple("RecordException", ("type", "value", "traceback"))):
