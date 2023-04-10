@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0 OR MIT
 import json
-from ._dev import ConsoleRenderer  # noqa
+from ._utils import eval_format
 
 
 def format_message(record):
@@ -14,13 +14,12 @@ def format_message(record):
     args = record.get("args", [])
     kwargs = record.get("kwargs", {})
     if msg and (args or kwargs):
-        message = msg.format(*args, **kwargs)
+        message = eval_format(msg, args, kwargs)
 
     return message
 
 
 class SimpleFormatter:
-
     DEFAULT_FORMAT = "{datetime} {level.name:<8} [{name}] {message}"
 
     def __init__(self, fmt=None):
@@ -35,7 +34,6 @@ class SimpleFormatter:
 
 
 class DefaultFormatter:
-
     DEFAULT_FORMAT = "{datetime:%H:%M:%S.%f} {level.name:<8} [{name}] {message} {extra}"
 
     def __init__(self):
@@ -70,7 +68,6 @@ def default_formatter(record, fmt=_DEFAULT_FORMAT):
 
 
 class JsonFormatter:
-
     DEFAULT_ADDITIONAL_KEYS = (
         "file_name",
         "file_path",
@@ -111,18 +108,12 @@ class JsonFormatter:
             "message": message,
             "name": record["name"],
             "datetime": record["datetime"].isoformat(),
-            "level": {
-                "name": record["level"].name,
-                "no": record["level"].no,
-            },
+            "timestamp": record["datetime"].timestamp(),
+            "level_name": record["level"].name,
+            "level_no": record["level"].no,
             "extra": record["extra"],
-            "elapsed": {
-                "repr": record["elapsed"],
-                "seconds": record["elapsed"].total_seconds(),
-            },
             "process_id": record["process_id"],
             "process_name": record["process_name"],
-            # "time": {"repr": record["time"], "timestamp": record["time"].timestamp()},
         }
         if exception:
             serializable["exception"] = exception

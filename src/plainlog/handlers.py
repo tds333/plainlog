@@ -5,14 +5,23 @@ import os
 import stat
 import sys
 import logging
+import asyncio
 from collections import deque
 import pathlib
+from typing import Protocol, Dict, Any
+
 from .formatters import (
     SimpleFormatter,
-    ConsoleRenderer,
     JsonFormatter,
     default_formatter,
 )
+from . import _env
+from ._dev import ConsoleRenderer
+
+
+class HandlerProtocol(Protocol):
+    def __call__(self, record: Dict[str, Any]) -> None:
+        ...
 
 
 class StreamHandler:
@@ -53,7 +62,6 @@ class ConsoleHandler(StreamHandler):
 
 
 class WrapStandardHandler:
-
     factory = logging.getLogRecordFactory()
 
     def __init__(self, handler):
@@ -228,3 +236,26 @@ class FileHandler:
         ):
             self._close_file()
             self._create_file()
+
+
+class AsyncHandler:
+    def __init__(self, loop=None, formatter=None):
+        self.loop = asyncio.get_running_loop() if loop is None else loop
+        self._formatter = SimpleFormatter() if formatter is None else formatter
+        self.terminator = "\n"
+        self.last_future = None
+
+    def __call__(self, record):
+        message = self._formatter(record)
+        if self.loop.is_running():
+            self.last_future = asyncio.run_coroutine_threadsafe(self.write(message), self.loop)
+
+    async def write(self, message):
+        pass
+
+    def close(self):
+        if self.last_future is not None:
+            self.last_future.result(_env.DEFAULT_WAIT_TIMEOUT)
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}(formatter={self._formatter.__class__.__name__})"

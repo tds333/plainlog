@@ -6,7 +6,7 @@ import logging
 import contextlib
 from datetime import datetime, timezone
 
-from plainlog._logger import logger_core, Options, Logger, get_now_utc, start_time, context
+from plainlog._logger import logger_core, Options, Logger, get_now_utc, context
 
 
 def percent_preformat(record):
@@ -94,7 +94,6 @@ class PlainlogStdLogger(logging.Logger):
 
 
 class StdInterceptHandler(logging.Handler):
-
     _core = logger_core
     _known_keys = {
         "args",
@@ -128,7 +127,6 @@ class StdInterceptHandler(logging.Handler):
             return
 
         current_datetime = get_now_utc()
-        elapsed = current_datetime - start_time
 
         _, core_preprocessors, __, core_extra = core.options
         kwargs = {}
@@ -137,9 +135,7 @@ class StdInterceptHandler(logging.Handler):
             if key not in self._known_keys:
                 extra[key] = value
 
-        #    "elapsed": record.relativeCreated,
         log_record = {
-            "elapsed": elapsed,
             "level": level,
             "msg": record.msg,  # raw message as in std logging
             "message": record.getMessage(),

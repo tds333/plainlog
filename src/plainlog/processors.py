@@ -15,14 +15,24 @@ from multiprocessing import current_process
 from os.path import basename, splitext
 from pathlib import Path
 import time
+from datetime import datetime, timezone
 from functools import lru_cache
+from typing import Protocol, Dict, Any, Optional
 
 from ._recattrs import RecordException
 from ._frames import get_frame
+from ._utils import eval_lambda_dict, eval_lambda_list, eval_dict, eval_list, eval_format
 
 
 STOP_PROCESSING = True
 CONTINUE_PROCESSING = False
+
+start_time = datetime.now(timezone.utc)
+
+
+class ProcessorProtocol(Protocol):
+    def __call__(self, record: Dict[str, Any]) -> Optional[bool]:
+        ...
 
 
 def add_caller_info(record, level=3):
@@ -53,20 +63,26 @@ def dynamic_name(record):
 
 
 def eval_args(record):
-    eval_args = []
     args = record.get("args", [])
+    record["args"] = eval_list(args)
+
+
+def eval_kwargs(record):
     kwargs = record.get("kwargs", {})
-    for arg in args:
-        if callable(arg):
-            with contextlib.suppress(Exception):
-                arg_result = arg()
-                eval_args.append(arg_result)
-                func_name = arg.__name__
-                if func_name != "<lambda>" and func_name not in kwargs:
-                    kwargs[func_name] = arg_result
-        else:
-            eval_args.append(arg)
-    record["args"] = eval_args
+    eval_dict(kwargs)
+
+
+def eval_lambda(record):
+    args = record.get("args", [])
+    record["args"] = eval_lambda_list(args)
+
+    kwargs = record.get("kwargs", {})
+    eval_lambda_dict(kwargs)
+
+
+def eval_extra(record):
+    extra = record.get("extra", {})
+    eval_lambda_dict(extra)
 
 
 def preprocess_exc_info(record):
@@ -102,7 +118,7 @@ def preformat_message(record):
     kwargs = record.get("kwargs", {})
     if msg and (args or kwargs):
         with contextlib.suppress(Exception):
-            record["message"] = msg.format(*args, **kwargs)
+            record["message"] = eval_format(msg, args, kwargs)
             record["preformatted"] = True
 
 
@@ -238,6 +254,11 @@ class Duration:
                     record["message"] = message
 
 
+def elapsed(record):
+    record["elapsed"] = datetime.now(timezone.utc) - start_time
+
+
 # defaults used for core configuration
 DEFAULT_PREPROCESSORS = (preprocess_exc_info,)
-DEFAULT_PROCESSORS = (eval_args, context_to_extra, kwargs_to_extra, preformat_message)
+# DEFAULT_PROCESSORS = (eval_lambda, context_to_extra, kwargs_to_extra, preformat_message)
+DEFAULT_PROCESSORS = (context_to_extra, kwargs_to_extra, eval_extra)

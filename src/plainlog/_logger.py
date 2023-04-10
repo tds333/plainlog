@@ -23,7 +23,6 @@ from ._frames import get_frame
 
 
 get_now_utc = partial(datetime.now, timezone.utc)
-start_time = get_now_utc()
 context: ContextVar = ContextVar("plainlog_context", default={})
 logger_process = current_process()
 
@@ -183,7 +182,7 @@ class Core:
         for params in handlers:
             added.append(self.add(**params))
         if not added:
-            self.wait_for_processed()
+            self.wait_for_processed(_env.DEFAULT_WAIT_TIMEOUT)
 
         return added
 
@@ -199,7 +198,6 @@ class Core:
         level: Optional[Union[str, int, Level]] = None,
         print_errors: bool = True,
     ) -> HandlerRecord:
-
         if not callable(handler):
             raise TypeError(
                 "Cannot log to objects of type '%s'. Object must be a callable."
@@ -218,7 +216,7 @@ class Core:
         handler_record = HandlerRecord(name, level, print_errors, handler)
 
         self._put(Command.ADD_HANDLER, handler_record)
-        self.wait_for_processed()
+        self.wait_for_processed(_env.DEFAULT_WAIT_TIMEOUT)
 
         return handler_record
 
@@ -229,13 +227,14 @@ class Core:
             )
 
         self._put(Command.REMOVE_HANDLER, name)
-        self.wait_for_processed()
+        self.wait_for_processed(_env.DEFAULT_WAIT_TIMEOUT)
 
     def has_handlers(self) -> bool:
         return bool(self._handlers)
 
     def close(self) -> None:
         if self.is_alive():
+            self.wait_for_processed(_env.DEFAULT_WAIT_TIMEOUT)
             self.remove()
             self.stop()
             self.join()
@@ -348,7 +347,6 @@ class Core:
 
 
 class Logger:
-
     # core should be the same for every logger, options change per logger
     def __init__(
         self,
@@ -435,13 +433,11 @@ class Logger:
             return
 
         current_datetime = get_now_utc()
-        elapsed = current_datetime - start_time
 
         _, core_preprocessors, __, core_extra = core.options
         name, preprocessors, processors, extra = self._options
 
         log_record = {
-            "elapsed": elapsed,
             "level": level,
             "msg": msg,  # raw message as in std logging
             "message": str(msg),

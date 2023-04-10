@@ -12,6 +12,10 @@ test:
 tests:
 	hatch run test:tests
 
+## Run tests with coverage
+cov:
+	hatch run cov
+
 ## Delete all temporary files
 clean:
 	rm -rf .pytest_cache

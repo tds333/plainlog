@@ -12,6 +12,7 @@ from io import StringIO
 from typing import Any, Iterable, TextIO, Type, Union
 
 from ._frames import _format_exception
+from .formatters import format_message
 
 from typing import Protocol
 
@@ -226,7 +227,6 @@ class ConsoleRenderer:
             return repr(val)
 
     def __call__(self, record) -> str:
-
         sio = StringIO()
 
         ts = record.get("datetime", None)
@@ -253,9 +253,7 @@ class ConsoleRenderer:
                     + self._styles.reset
                 )
 
-        msg = record.get("msg", "")
-        event = record.get("message", msg)
-        # event = record.get("message_fmt", event)
+        event = format_message(record)
         if not isinstance(event, str):
             event = str(event)
 
