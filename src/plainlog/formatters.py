@@ -80,9 +80,7 @@ class JsonFormatter:
         "thread_name",
     )
 
-    def __init__(
-        self, converter=None, indent=None, separators=None, sort_keys=False, additional_keys=None
-    ):
+    def __init__(self, converter=None, indent=None, separators=None, sort_keys=False, additional_keys=None):
         if converter is None:
             converter = str
         self._converter = converter

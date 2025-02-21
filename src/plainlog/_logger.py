@@ -199,10 +199,7 @@ class Core:
         print_errors: bool = True,
     ) -> HandlerRecord:
         if not callable(handler):
-            raise TypeError(
-                "Cannot log to objects of type '%s'. Object must be a callable."
-                % type(handler).__name__
-            )
+            raise TypeError("Cannot log to objects of type '%s'. Object must be a callable." % type(handler).__name__)
 
         if name is None:
             try:
@@ -222,9 +219,7 @@ class Core:
 
     def remove(self, name: Optional[str] = None) -> None:
         if not (name is None or isinstance(name, str)):
-            raise TypeError(
-                "Invalid handler name, it should be an string " "or None, not: '%s'" % type(name)
-            )
+            raise TypeError("Invalid handler name, it should be an string or None, not: '%s'" % type(name))
 
         self._put(Command.REMOVE_HANDLER, name)
         self.wait_for_processed(_env.DEFAULT_WAIT_TIMEOUT)

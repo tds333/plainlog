@@ -6,6 +6,7 @@ The plainlog library provides a pre-instanced logger to facilitate dealing with 
 
 Just ``from plainlog import logger``.
 """
+
 from ._logger import logger_core, logger
 from .configure import configure_log
 from . import _env

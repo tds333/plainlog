@@ -26,19 +26,17 @@ clean:
 	rm -rf dist
 
 ## Lint using ruff
-ruff:
-	ruff .
+ruff-check:
+	ruff check ./src/plainlog
 
 ## Format files using black
 format:
-	ruff ./src/plainlog --fix
-	black ./src/plainlog
+	ruff format ./src/plainlog
 
 ## Run checks 
 check:
 	-mypy ./src/plainlog
 	ruff check ./src/plainlog
-	black --check ./src/plainlog
 
 ## Run hatch shell
 shell:

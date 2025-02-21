@@ -20,8 +20,7 @@ from ._dev import ConsoleRenderer
 
 
 class HandlerProtocol(Protocol):
-    def __call__(self, record: Dict[str, Any]) -> None:
-        ...
+    def __call__(self, record: Dict[str, Any]) -> None: ...
 
 
 class StreamHandler:
@@ -201,9 +200,7 @@ class FileHandler:
 
     def _create_file(self):
         self._path.parent.mkdir(parents=True, exist_ok=True)
-        self._file = self._path.open(
-            mode=self._mode, encoding=self._encoding, buffering=self._buffering
-        )
+        self._file = self._path.open(mode=self._mode, encoding=self._encoding, buffering=self._buffering)
 
         if self._watch:
             fileno = self._file.fileno()
@@ -229,11 +226,7 @@ class FileHandler:
         except FileNotFoundError:
             result = None
 
-        if (
-            not result
-            or result[stat.ST_DEV] != self._file_dev
-            or result[stat.ST_INO] != self._file_ino
-        ):
+        if not result or result[stat.ST_DEV] != self._file_dev or result[stat.ST_INO] != self._file_ino:
             self._close_file()
             self._create_file()
 

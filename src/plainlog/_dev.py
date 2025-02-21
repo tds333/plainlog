@@ -233,24 +233,17 @@ class ConsoleRenderer:
         if ts is not None:
             sio.write(
                 # can be a number if timestamp is UNIXy
-                self._styles.timestamp
-                + ts.astimezone().strftime("%H:%M:%S.%f")
-                + self._styles.reset
-                + " "
+                self._styles.timestamp + ts.astimezone().strftime("%H:%M:%S.%f") + self._styles.reset + " "
             )
         level = record.get("level", None)
         if level is not None:
             if self._shoert_level:
                 level = level.name
-                sio.write(
-                    self._level_to_color.get(level, "") + "[" + level[0] + "] " + self._styles.reset
-                )
+                sio.write(self._level_to_color.get(level, "") + "[" + level[0] + "] " + self._styles.reset)
             else:
                 level = level.name
                 sio.write(
-                    self._level_to_color.get(level, "")
-                    + _pad(level, self._longest_level + 1)
-                    + self._styles.reset
+                    self._level_to_color.get(level, "") + _pad(level, self._longest_level + 1) + self._styles.reset
                 )
 
         event = format_message(record)

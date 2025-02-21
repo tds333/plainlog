@@ -31,8 +31,7 @@ start_time = datetime.now(timezone.utc)
 
 
 class ProcessorProtocol(Protocol):
-    def __call__(self, record: Dict[str, Any]) -> Optional[bool]:
-        ...
+    def __call__(self, record: Dict[str, Any]) -> Optional[bool]: ...
 
 
 def add_caller_info(record, level=3):

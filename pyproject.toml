@@ -26,6 +26,8 @@ classifiers = [
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
@@ -52,6 +54,7 @@ Source = "https://github.com/tds333/plainlog"
 path = "src/plainlog/__version__.py"
 
 [tool.hatch.envs.default]
+installer = "uv"
 dependencies = [
   "pytest",
   "pytest-cov",
@@ -63,7 +66,7 @@ cov = "pytest --cov-report=term-missing --cov-config=pyproject.toml --cov=src/pl
 no-cov = "cov --no-cov {args}"
 
 [[tool.hatch.envs.test.matrix]]
-python = ["38", "39", "310", "311"]
+python = ["38", "39", "310", "311", "312", "313"]
 
 [tool.coverage.run]
 branch = true
@@ -97,6 +100,9 @@ extend-exclude = '''
 '''
 
 [tool.ruff]
+exclude = [".env", ".venv", "venv"]
+line-length = 120
+[tool.ruff.lint]
 select = [
     "E",  # pycodestyle errors
     "W",  # pycodestyle warnings
@@ -110,5 +116,12 @@ ignore = [
     "B008",  # do not perform function calls in argument defaults
     "C901",  # too complex
 ]
-exclude = [".env", ".venv", "venv"]
+
+[dependency-groups]
+dev = [
+    "hatch>=1.14.0",
+    "pytest",
+    "pytest-cov",
+    "rich",
+]
 #show-source = true
