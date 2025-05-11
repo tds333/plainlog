@@ -1,23 +1,25 @@
-.PHONY: build test tests clean lint format help
+.DEFAULT_GOAL := help
 
-## Build
-build:
+##@ CI/CD
+.PHONY: build
+build: ## Build
 	hatch build
 
-## Run tests in current Python
-test:
-	hatch run tests
-
-## Run tests in all supporte Python versions
-tests:
-	hatch run test:tests
-
-## Run tests with coverage
-cov:
+.PHONY: cov
+cov: ## Run tests with coverage
 	hatch run cov
 
-## Delete all temporary files
-clean:
+##@ Utility
+.PHONY: test
+test: ## Run tests in current Python
+	hatch run tests
+
+.PHONY: tests
+tests: ## Run tests in all supporte Python versions
+	hatch run test:tests
+
+.PHONY: clean
+clean: ## Delete all temporary files
 	rm -rf .pytest_cache
 	rm -rf **/.pytest_cache
 	rm -rf __pycache__
@@ -25,66 +27,31 @@ clean:
 	rm -rf build
 	rm -rf dist
 
-## Lint using ruff
-ruff-check:
+.PHONY: ruff-check
+ruff-check: ## Lint using ruff
 	ruff check ./src/plainlog
 
-## Format files using black
-format:
+.PHONY: ty-check
+ty-check: ## Type check with ty (experimental)
+	ty check ./src/plainlog
+
+.PHONY: format
+format: ## Format files using black
 	ruff format ./src/plainlog
 
-## Run checks 
-check:
+.PHONY: check
+check: ## Run checks 
 	-mypy ./src/plainlog
 	ruff check ./src/plainlog
 
-## Run hatch shell
-shell:
+.PHONY: shell
+shell: ## Run hatch shell
 	hatch shell
 
+.PHONY: install
+install: ## Install virtual environment
+	uv sync
 
-#################################################################################
-# Self Documenting Commands                                                     #
-#################################################################################
-
-.DEFAULT_GOAL := help
-
-# Inspired by <http://marmelab.com/blog/2016/02/29/auto-documented-makefile.html>
 .PHONY: help
-help:
-	@echo "$$(tput bold)Available commands:$$(tput sgr0)"
-	@sed -n -e "/^## / { \
-		h; \
-		s/.*//; \
-		:doc" \
-		-e "H; \
-		n; \
-		s/^## //; \
-		t doc" \
-		-e "s/:.*//; \
-		G; \
-		s/\\n## /---/; \
-		s/\\n/ /g; \
-		p; \
-	}" ${MAKEFILE_LIST} \
-	| awk -F '---' \
-		-v ncol=$$(tput cols) \
-		-v indent=19 \
-		-v col_on="$$(tput setaf 6)" \
-		-v col_off="$$(tput sgr0)" \
-	'{ \
-		printf "%s%*s%s ", col_on, -indent, $$1, col_off; \
-		n = split($$2, words, " "); \
-		line_length = ncol - indent; \
-		for (i = 1; i <= n; i++) { \
-			line_length -= length(words[i]) + 1; \
-			if (line_length <= 0) { \
-				line_length = ncol - indent - length(words[i]) - 1; \
-				printf "\n%*s ", -indent, " "; \
-			} \
-			printf "%s ", words[i]; \
-		} \
-		printf "\n"; \
-	}' \
-	| more $(shell test $(shell uname) = Darwin && echo '--no-init --raw-control-chars')
-
+help:  ## Display this help
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make <target>\033[36m\033[0m\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
