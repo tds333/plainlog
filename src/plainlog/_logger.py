@@ -289,7 +289,7 @@ class Core:
                     if handler_name not in handlers:
                         continue
                     else:
-                        name, level, print_erros, handler = handlers.pop(handler_name)
+                        name, level, print_errors, handler = handlers.pop(handler_name)
 
                     levelnos = (h.level.no for h in handlers.values())
                     self._min_level_no = min(levelnos, default=self._max_level_no)
