@@ -88,6 +88,9 @@ ignore = [
   "C901", # too complex
 ]
 
+[tool.ty.rules]
+#division-by-zero = "ignore"
+
 [dependency-groups]
 dev = ["hatch>=1.14.0", "pytest", "pytest-cov", "rich"]
 #show-source = true

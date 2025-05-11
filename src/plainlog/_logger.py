@@ -23,7 +23,7 @@ from ._frames import get_frame
 
 
 get_now_utc = partial(datetime.now, timezone.utc)
-context: ContextVar = ContextVar("plainlog_context", default={})
+context: ContextVar[dict] = ContextVar("plainlog_context")
 logger_process = current_process()
 
 # predefined for performance reason
@@ -402,7 +402,7 @@ class Logger:
 
     @staticmethod
     def context(**kwargs):
-        new_context = {**context.get(), **kwargs}
+        new_context = {**context.get({}), **kwargs}
         token = context.set(new_context)
 
         return token
@@ -440,7 +440,7 @@ class Logger:
             "datetime": current_datetime,
             "process_id": logger_process.ident,
             "process_name": logger_process.name,
-            "context": {**context.get()},
+            "context": {**context.get({})},
             "extra": {**core_extra, **extra},
             "args": args,
             "kwargs": kwargs,

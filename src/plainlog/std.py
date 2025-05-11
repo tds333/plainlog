@@ -6,7 +6,7 @@ import logging
 import contextlib
 from datetime import datetime, timezone
 
-from plainlog._logger import logger_core, Options, Logger, get_now_utc, context
+from plainlog._logger import logger_core, Options, Logger, context
 
 
 def percent_preformat(record):
@@ -125,8 +125,6 @@ class StdInterceptHandler(logging.Handler):
 
         if level_no < core.min_level_no:
             return
-
-        current_datetime = get_now_utc()
 
         _, core_preprocessors, __, core_extra = core.options
         kwargs = {}

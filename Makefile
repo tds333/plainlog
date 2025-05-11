@@ -9,7 +9,7 @@ build: ## Build
 cov: ## Run tests with coverage
 	hatch run cov
 
-##@ Utility
+##@ Quality
 .PHONY: test
 test: ## Run tests in current Python
 	hatch run tests
@@ -18,14 +18,10 @@ test: ## Run tests in current Python
 tests: ## Run tests in all supporte Python versions
 	hatch run test:tests
 
-.PHONY: clean
-clean: ## Delete all temporary files
-	rm -rf .pytest_cache
-	rm -rf **/.pytest_cache
-	rm -rf __pycache__
-	rm -rf **/__pycache__
-	rm -rf build
-	rm -rf dist
+.PHONY: check
+check: ## Run all checks 
+	-mypy ./src/plainlog
+	ruff check ./src/plainlog
 
 .PHONY: ruff-check
 ruff-check: ## Lint using ruff
@@ -39,10 +35,16 @@ ty-check: ## Type check with ty (experimental)
 format: ## Format files using black
 	ruff format ./src/plainlog
 
-.PHONY: check
-check: ## Run checks 
-	-mypy ./src/plainlog
-	ruff check ./src/plainlog
+##@ Utility
+.PHONY: clean
+clean: ## Delete all temporary files
+	rm -rf .pytest_cache
+	rm -rf **/.pytest_cache
+	rm -rf __pycache__
+	rm -rf **/__pycache__
+	rm -rf build
+	rm -rf dist
+
 
 .PHONY: shell
 shell: ## Run hatch shell
