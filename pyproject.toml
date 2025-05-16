@@ -28,13 +28,8 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
-dependencies = ["uv>=0.7.2"]
+dependencies = []
 dynamic = ["version"]
-
-[project.optional-dependencies]
-rich = ["rich"]
-dev = ["pytest", "pytest-cov", "rich"]
-
 
 [project.urls]
 Documentation = "https://github.com/tds333/plainlog#readme"
@@ -46,7 +41,7 @@ path = "src/plainlog/__version__.py"
 
 [tool.hatch.envs.default]
 installer = "uv"
-dependencies = ["pytest", "pytest-cov", "rich"]
+dependencies = ["pytest", "pytest-cov"]
 [tool.hatch.envs.default.scripts]
 tests = "pytest {args}"
 cov = "pytest --cov-report=term-missing --cov-config=pyproject.toml --cov=src/plainlog --cov=tests {args}"
@@ -92,5 +87,5 @@ ignore = [
 #division-by-zero = "ignore"
 
 [dependency-groups]
-dev = ["hatch>=1.14.0", "pytest", "pytest-cov", "rich"]
+dev = ["hatch>=1.14.0", "pytest", "pytest-cov"]
 #show-source = true

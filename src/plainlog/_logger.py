@@ -23,7 +23,7 @@ from ._frames import get_frame
 
 
 get_now_utc = partial(datetime.now, timezone.utc)
-context: ContextVar[dict] = ContextVar("plainlog_context")
+plainlog_context: ContextVar[dict] = ContextVar("plainlog_context")
 logger_process = current_process()
 
 # predefined for performance reason
@@ -203,7 +203,7 @@ class Core:
 
         if name is None:
             try:
-                name = handler.__name__
+                name = handler.__name__  # type: ignore
             except AttributeError:
                 name = handler.__class__.__name__
 
@@ -402,14 +402,14 @@ class Logger:
 
     @staticmethod
     def context(**kwargs):
-        new_context = {**context.get({}), **kwargs}
-        token = context.set(new_context)
+        new_context = {**plainlog_context.get({}), **kwargs}
+        token = plainlog_context.set(new_context)
 
         return token
 
     @staticmethod
     def reset_context(token) -> None:
-        context.reset(token)
+        plainlog_context.reset(token)
 
     @staticmethod
     @contextlib.contextmanager
@@ -440,7 +440,7 @@ class Logger:
             "datetime": current_datetime,
             "process_id": logger_process.ident,
             "process_name": logger_process.name,
-            "context": {**context.get({})},
+            "context": {**plainlog_context.get({})},
             "extra": {**core_extra, **extra},
             "args": args,
             "kwargs": kwargs,

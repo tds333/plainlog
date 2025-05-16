@@ -16,24 +16,10 @@ from .formatters import format_message
 
 from typing import Protocol
 
-try:
-    import colorama
-except ImportError:
-    colorama = None  # type: ignore[assignment]
-
-try:
-    import rich
-
-    from rich.console import Console
-    from rich.traceback import Traceback
-except ImportError:
-    rich = None  # type: ignore[assignment]
-
 
 __all__ = [
     "ConsoleRenderer",
     "plain_traceback",
-    "rich_traceback",
 ]
 
 _IS_WINDOWS = sys.platform == "win32"
@@ -51,36 +37,20 @@ def _pad(s: str, length: int) -> str:
     return s + " " * (missing if missing > 0 else 0)
 
 
-if colorama is not None:
-    RESET_ALL = colorama.Style.RESET_ALL
-    BRIGHT = colorama.Style.BRIGHT
-    DIM = colorama.Style.DIM
-    RED = colorama.Fore.RED
-    BLUE = colorama.Fore.BLUE
-    CYAN = colorama.Fore.CYAN
-    MAGENTA = colorama.Fore.MAGENTA
-    YELLOW = colorama.Fore.YELLOW
-    GREEN = colorama.Fore.GREEN
-    RED_BACK = colorama.Back.RED
-else:
-    # These are the same values as the Colorama color codes. Redefining them
-    # here allows users to specify that they want color without having to
-    # install Colorama, which is only supposed to be necessary in Windows.
-    RESET_ALL = "\033[0m"
-    BRIGHT = "\033[1m"
-    DIM = "\033[2m"
-    RED = "\033[31m"
-    BLUE = "\033[34m"
-    CYAN = "\033[36m"
-    MAGENTA = "\033[35m"
-    YELLOW = "\033[33m"
-    GREEN = "\033[32m"
-    RED_BACK = "\033[41m"
+RESET_ALL = "\033[0m"
+BRIGHT = "\033[1m"
+DIM = "\033[2m"
+RED = "\033[31m"
+BLUE = "\033[34m"
+CYAN = "\033[36m"
+MAGENTA = "\033[35m"
+YELLOW = "\033[33m"
+GREEN = "\033[32m"
+RED_BACK = "\033[41m"
 
 
 if _IS_WINDOWS:  # pragma: no cover
-    # On Windows, use colors by default only if Colorama is installed.
-    _use_colors = colorama is not None
+    _use_colors = False
 else:
     # On other OSes, use colors by default.
     _use_colors = True
@@ -145,17 +115,7 @@ def plain_traceback(sio: TextIO, exc_info) -> None:
     sio.write("\n" + _format_exception(exc_info))
 
 
-def rich_traceback(sio: TextIO, exc_info) -> None:
-    sio.write("\n")
-    Console(file=sio, color_system="truecolor").print(
-        Traceback.from_exception(*exc_info, show_locals=True)  # noqa
-    )
-
-
-if rich is not None:
-    default_exception_formatter = rich_traceback
-else:
-    default_exception_formatter = plain_traceback
+default_exception_formatter = plain_traceback
 
 
 class ConsoleRenderer:
@@ -173,24 +133,6 @@ class ConsoleRenderer:
     ):
         styles: Styles
         if colors:
-            if _IS_WINDOWS:  # pragma: no cover
-                # On Windows, we can't do colorful output without colorama.
-                if colorama is None:
-                    classname = self.__class__.__name__
-                    raise SystemError(
-                        _MISSING.format(
-                            who=classname + " with `colors=True`",
-                            package="colorama",
-                        )
-                    )
-                # Colorama must be init'd on Windows, but must NOT be
-                # init'd on other OSes, because it can break colors.
-                if force_colors:
-                    colorama.deinit()
-                    colorama.init(strip=False)
-                else:
-                    colorama.init()
-
             styles = _ColorfulStyles
         else:
             styles = _PlainStyles
@@ -199,9 +141,9 @@ class ConsoleRenderer:
         self._pad_event = pad_event
 
         if level_styles is None:
-            self._level_to_color = self.get_default_level_styles(colors)
+            self._level_to_color: dict = self.get_default_level_styles(colors)
         else:
-            self._level_to_color = level_styles
+            self._level_to_color: dict = level_styles
 
         for key in self._level_to_color.keys():
             self._level_to_color[key] += styles.bright
@@ -309,7 +251,7 @@ class ConsoleRenderer:
         return sio.getvalue()
 
     @staticmethod
-    def get_default_level_styles(colors: bool = True) -> Any:
+    def get_default_level_styles(colors: bool = True) -> dict:
         """
         Get the default styles for log levels
         """

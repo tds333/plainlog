@@ -11,7 +11,7 @@ from io import StringIO
 from types import FrameType
 
 
-def get_frame_fallback(n):
+def get_frame_fallback(n) -> FrameType:
     try:
         raise Exception
     except Exception:

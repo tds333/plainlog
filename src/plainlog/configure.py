@@ -198,7 +198,7 @@ def _fast(level=None, extra=None, **kwargs):
 
 
 def _empty(level=None, extra=None, **kwargs):
-    logger_core.configure(handlers=[], preprocessors=[], processors=[], extra={})
+    logger_core.configure(handlers=[], preprocessors=(), processors=(), extra={})
 
 
 def _no_init(level=None, extra=None, **kwargs):

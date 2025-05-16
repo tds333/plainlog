@@ -6,7 +6,7 @@ import logging
 import contextlib
 from datetime import datetime, timezone
 
-from plainlog._logger import logger_core, Options, Logger, context
+from plainlog._logger import logger_core, Options, Logger, plainlog_context
 
 
 def percent_preformat(record):
@@ -26,7 +26,7 @@ class PlainlogStdLogger(logging.Logger):
     def __init__(self, name, level=logging.NOTSET):
         super().__init__(name, level)
         self._core = logger_core
-        self._options = Options(name, preprocessors=[], processors=[percent_preformat], extra={})
+        self._options = Options(name, preprocessors=(), processors=(percent_preformat,), extra={})
 
     _plain_log = Logger._log
 
@@ -116,6 +116,7 @@ class StdInterceptHandler(logging.Handler):
         "stack_info",
         "thread",
         "threadName",
+        "taskName",
     }
 
     def emit(self, record):
@@ -141,7 +142,7 @@ class StdInterceptHandler(logging.Handler):
             "datetime": datetime.fromtimestamp(record.created, tz=timezone.utc),
             "process_id": record.process,
             "process_name": record.processName,
-            "context": {**context.get()},
+            "context": {**plainlog_context.get({})},
             "extra": {**core_extra, **extra},
             "args": record.args,
             "kwargs": kwargs,
@@ -152,6 +153,7 @@ class StdInterceptHandler(logging.Handler):
             "path": record.pathname,
             "thread_id": record.thread,
             "thread_name": record.threadName,
+            # "task_name": record.taskName, # since Python 3.12
             "stack_info": record.stack_info,
             "exc_text": record.exc_text,
             "exc_info": record.exc_info,
@@ -163,4 +165,4 @@ class StdInterceptHandler(logging.Handler):
             if stop:
                 return
 
-        core.log(log_record, processors=[])
+        core.log(log_record, processors=())

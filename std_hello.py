@@ -1,3 +1,5 @@
+# type: ignore
+# ruff: noqa
 import sys
 
 sys.path.append("src")
@@ -5,14 +7,14 @@ import plainlog.std
 import logging
 
 
-#logging.setLoggerClass(plainlog.std.PlainlogStdLogger)
+# logging.setLoggerClass(plainlog.std.PlainlogStdLogger)
 
 
 def main():
     logging.setLoggerClass(plainlog.std.PlainlogStdLogger)
     log = logging.getLogger("bla")
     try:
-        1/0
+        1 / 0
     except Exception:
         log.exception("Got an error")
         pass
@@ -35,7 +37,7 @@ def main2():
     root.addHandler(plainlog.std.StdInterceptHandler())
     log = logging.getLogger("bla")
     try:
-        1/0
+        1 / 0
     except Exception:
         log.exception("Got an error")
         pass
@@ -45,7 +47,7 @@ def main2():
 
     log.error("This is an error %s", "special error")
     log.warning("warning")
-    #log.warning("with extra", somevar="somevar", second_extr=10)
+    # log.warning("with extra", somevar="somevar", second_extr=10)
 
     bluff_log = logging.getLogger("bluff")
     bluff_log.debug("other logger")
@@ -55,5 +57,5 @@ def main2():
 
 
 if __name__ == "__main__":
-    #main()
+    # main()
     main2()
