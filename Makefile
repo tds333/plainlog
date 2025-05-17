@@ -22,7 +22,10 @@ tests: ## Run tests in all supporte Python versions
 	uv run --isolated -p 3.12 pytest
 	uv run --isolated -p 3.13 pytest
 	uv run --isolated -p 3.14 pytest
-	uv run --isolated -p pypy pytest
+	uv run --isolated -p pypy@3.9 pytest
+	uv run --isolated -p pypy@3.10 pytest
+	uv run --isolated -p pypy@3.11 pytest
+	uv run --isolated -p graalpy pytest
 
 .PHONY: check
 check: ## Run all checks 
@@ -46,10 +49,13 @@ format: ## Format files using black
 clean: ## Delete all temporary files
 	rm -rf .pytest_cache
 	rm -rf **/.pytest_cache
+	rm -rf .mypy_cache
+	rm -rf .ruff_cache
 	rm -rf __pycache__
 	rm -rf **/__pycache__
 	rm -rf build
 	rm -rf dist
+	rm -f .coverage
 
 .PHONY: install
 install: ## Install virtual environment
