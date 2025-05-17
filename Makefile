@@ -3,20 +3,26 @@
 ##@ CI/CD
 .PHONY: build
 build: ## Build
-	hatch build
+	uv build
 
 .PHONY: cov
 cov: ## Run tests with coverage
-	hatch run cov
+	uv run pytest --cov-report=term-missing --cov-config=pyproject.toml --cov=src/plainlog --cov=tests
 
 ##@ Quality
 .PHONY: test
 test: ## Run tests in current Python
-	hatch run tests
+	uv run pytest
 
 .PHONY: tests
 tests: ## Run tests in all supporte Python versions
-	hatch run test:tests
+	uv run --isolated -p 3.9 pytest
+	uv run --isolated -p 3.10 pytest
+	uv run --isolated -p 3.11 pytest
+	uv run --isolated -p 3.12 pytest
+	uv run --isolated -p 3.13 pytest
+	uv run --isolated -p 3.14 pytest
+	uv run --isolated -p pypy pytest
 
 .PHONY: check
 check: ## Run all checks 
@@ -44,11 +50,6 @@ clean: ## Delete all temporary files
 	rm -rf **/__pycache__
 	rm -rf build
 	rm -rf dist
-
-
-.PHONY: shell
-shell: ## Run hatch shell
-	hatch shell
 
 .PHONY: install
 install: ## Install virtual environment
