@@ -7,7 +7,7 @@ build: ## Build
 
 .PHONY: cov
 cov: ## Run tests with coverage
-	uv run pytest --cov-report=term-missing --cov-config=pyproject.toml --cov=src/plainlog --cov=tests
+	uv run pytest --cov-report=term-missing --cov-config=pyproject.toml --cov=src/plainlog
 
 ##@ Quality
 .PHONY: test

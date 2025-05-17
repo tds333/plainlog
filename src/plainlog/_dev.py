@@ -24,7 +24,6 @@ __all__ = [
 
 _IS_WINDOWS = sys.platform == "win32"
 
-_MISSING = "{who} requires the {package} package installed.  "
 _EVENT_WIDTH = 40  # pad the event name to so many characters
 
 

@@ -39,17 +39,6 @@ Source = "https://github.com/tds333/plainlog"
 [tool.hatch.version]
 path = "src/plainlog/__version__.py"
 
-# [tool.hatch.envs.default]
-# installer = "uv"
-# dependencies = ["pytest", "pytest-cov"]
-# [tool.hatch.envs.default.scripts]
-# tests = "pytest {args}"
-# cov = "pytest --cov-report=term-missing --cov-config=pyproject.toml --cov=src/plainlog --cov=tests {args}"
-# no-cov = "cov --no-cov {args}"
-
-# [[tool.hatch.envs.test.matrix]]
-# python = ["39", "310", "311", "312", "313"]
-
 [tool.coverage.run]
 branch = true
 parallel = true
@@ -87,6 +76,5 @@ ignore = [
 #division-by-zero = "ignore"
 
 [dependency-groups]
-#dev = ["hatch>=1.14.0", "pytest", "pytest-cov"]
 dev = ["pytest", "pytest-cov"]
 #show-source = true
