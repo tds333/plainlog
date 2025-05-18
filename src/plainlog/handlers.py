@@ -116,7 +116,7 @@ class FingersCrossedHandler:
     def __init__(self, handler, action_level=None, buffer_size=None, reset=None):
         self._handler = handler
         action_level = 40 if action_level is None else action_level  # default action_level ERROR
-        self._level = logging._checkLevel(action_level)
+        self._level = logging._checkLevel(action_level)  # type: ignore
         buffer_size = 1 if buffer_size is None else int(buffer_size)
         self.buffered_records = deque(maxlen=buffer_size)
         self._action_triggered = False

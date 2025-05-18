@@ -5,7 +5,7 @@
 # Mostly copied from structlog.
 
 from __future__ import annotations
-
+import traceback
 import sys
 
 from io import StringIO
@@ -19,7 +19,6 @@ from typing import Protocol
 
 __all__ = [
     "ConsoleRenderer",
-    "plain_traceback",
 ]
 
 _IS_WINDOWS = sys.platform == "win32"
@@ -110,11 +109,10 @@ class _PlainStyles:
     kv_value = ""
 
 
-def plain_traceback(sio: TextIO, exc_info) -> None:
-    sio.write("\n" + _format_exception(exc_info))
-
-
-default_exception_formatter = plain_traceback
+def default_exception_formatter(sio: TextIO, exc_info) -> None:
+    # sio.write("\n" + _format_exception(exc_info))
+    sio.write("\n")
+    traceback.print_exception(exc_info[0], exc_info[1], exc_info[2], None, sio)
 
 
 class ConsoleRenderer:
