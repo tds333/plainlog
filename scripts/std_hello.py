@@ -34,6 +34,9 @@ def main2():
     root = logging.getLogger("root")
     root.setLevel("DEBUG")
     root.addHandler(plainlog.std.StdInterceptHandler())
+    root = logging.getLogger("root")
+    root.setLevel("DEBUG")
+    root.addHandler(plainlog.std.StdInterceptHandler())
     log = logging.getLogger("bla")
     try:
         1 / 0

@@ -13,7 +13,7 @@ from typing import Protocol, Dict, Any
 from .formatters import (
     SimpleFormatter,
     JsonFormatter,
-    default_formatter,
+    DefaultFormatter,
 )
 from . import _env
 from ._dev import ConsoleRenderer
@@ -50,7 +50,7 @@ class DefaultHandler(StreamHandler):
     def __init__(self, stream=None):
         if stream is None:
             stream = sys.stdout
-        super().__init__(stream, default_formatter)
+        super().__init__(stream, DefaultFormatter())
 
 
 class ConsoleHandler(StreamHandler):

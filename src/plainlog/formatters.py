@@ -51,22 +51,6 @@ class DefaultFormatter:
         return message
 
 
-_DEFAULT_FORMAT = "{datetime:%H:%M:%S.%f} {level.name:<8} [{name}] {message} {extra}"
-
-
-def default_formatter(record, fmt=_DEFAULT_FORMAT):
-    message = format_message(record)
-    data = record.copy()
-    extra = data.get("extra", {})
-    if not extra:
-        data["extra"] = ""
-    data["message"] = message
-    # message = _DEFAULT_FORMAT.format_map(data)
-    message = fmt.format_map(data)
-
-    return message
-
-
 class JsonFormatter:
     DEFAULT_ADDITIONAL_KEYS = (
         "file_name",
