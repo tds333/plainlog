@@ -6,7 +6,7 @@ import logging
 import contextlib
 from datetime import datetime, timezone
 
-from plainlog._logger import logger_core, Options, Logger, plainlog_context
+from ._logger import logger_core, Options, Logger, plainlog_context
 
 
 def percent_preformat(record):
@@ -166,3 +166,12 @@ class StdInterceptHandler(logging.Handler):
                 return
 
         core.log(log_record, processors=())
+
+
+def set_as_std_logger_class():
+    logging.setLoggerClass(PlainlogStdLogger)
+
+
+def set_as_root_handler():
+    root = logging.getLogger(name="root")
+    root.addHandler(StdInterceptHandler())

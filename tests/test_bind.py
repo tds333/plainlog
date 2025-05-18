@@ -35,7 +35,7 @@ def test_add_using_bound(thandler):
 
     assert record["extra"].get("a") == -1
     assert record["msg"] == "A"
-    
+
     record = thandler.records[1]
 
     assert record["extra"].get("a") == 0
@@ -47,12 +47,12 @@ def test_unbind(thandler):
     lb.debug("A")
     lb = lb.unbind("a")
     lb.debug("B")
-    
+
     assert thandler.records
     record = thandler.records[0]
     assert record["extra"].get("a") == 0
     assert record["msg"] == "A"
-    
+
     record = thandler.records[1]
     assert record["extra"].get("a") == None
     assert record["msg"] == "B"

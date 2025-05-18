@@ -400,6 +400,9 @@ class Logger:
 
         return self.__class__(self._core, name, preprocessors, processors, extra)
 
+    def get_core(self) -> Core:
+        return self._core
+
     @staticmethod
     def context(**kwargs):
         new_context = {**plainlog_context.get({}), **kwargs}
