@@ -29,20 +29,20 @@ tests: ## Run tests in all supporte Python versions
 
 .PHONY: check
 check: ## Run all checks 
-	-mypy ./src/plainlog
-	ruff check ./src/plainlog
+	-uvx mypy ./src/plainlog
+	uvx ruff check ./src/plainlog
 
 .PHONY: ruff-check
 ruff-check: ## Lint using ruff
-	ruff check ./src/plainlog
+	uvx ruff check ./src/plainlog
 
 .PHONY: ty-check
 ty-check: ## Type check with ty (experimental)
-	ty check ./src/plainlog
+	uvx ty check ./src/plainlog
 
 .PHONY: format
 format: ## Format files using black
-	ruff format ./src/plainlog
+	uvx ruff format ./src/plainlog
 
 ##@ Utility
 .PHONY: clean
