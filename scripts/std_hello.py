@@ -1,3 +1,4 @@
+#!/usr/bin/env -S uv run --script
 # ruff: noqa
 # type: ignore
 import sys
@@ -5,6 +6,7 @@ import sys
 import plainlog.std
 import logging
 
+print(sys.path)
 
 # logging.setLoggerClass(plainlog.std.PlainlogStdLogger)
 

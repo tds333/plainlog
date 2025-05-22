@@ -36,12 +36,13 @@ check: ## Run all checks
 ruff-check: ## Lint using ruff
 	uvx ruff check ./src/plainlog
 
-.PHONY: ty-check
-ty-check: ## Type check with ty (experimental)
-	uvx ty check ./src/plainlog
+.PHONY: type-check
+type-check: ## Type check with
+	-uvx ty check ./src/plainlog
+	uvx pyrefly check ./src/plainlog
 
 .PHONY: format
-format: ## Format files using black
+format: ## Format files using ruff format
 	uvx ruff format ./src/plainlog
 
 ##@ Utility
@@ -58,8 +59,16 @@ clean: ## Delete all temporary files
 	rm -f .coverage
 
 .PHONY: install
-install: ## Install virtual environment
-	uv sync
+install: install-uv ## Install virtual environment
+	uv sync --frozen
+
+.PHONY: install-uv
+install-uv: ## Install uv
+	@command -v uv >/dev/null 2>&1 || curl -LsSf https://astral.sh/uv/install.sh | sh
+
+.PHONY: update-uv
+update-uv: ## Update uv
+	uv self update
 
 .PHONY: help
 help:  ## Display this help
