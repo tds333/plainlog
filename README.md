@@ -25,8 +25,9 @@ uv sync
 
 ## Installation for development
 
-You need `uv` as package and environment manager, see [uv installation](https://docs.astral.sh/uv/getting-started/installation/).
-Than `make install`. Now you can use the make commands, see `make help`.
+Execute `make install`, this installs uv and creates the virtual environment for development.
+Now you can use the make commands, see `make help`.
+You need `make` and `uv` as package and environment manager, for more information see [uv installation](https://docs.astral.sh/uv/getting-started/installation/).
 
 ## Idea
 

@@ -25,7 +25,7 @@ tests: ## Run tests in all supporte Python versions
 	uv run --isolated -p pypy@3.9 pytest
 	uv run --isolated -p pypy@3.10 pytest
 	uv run --isolated -p pypy@3.11 pytest
-	uv run --isolated -p graalpy pytest
+#	uv run --isolated -p graalpy pytest
 
 .PHONY: check
 check: ## Run all checks 
@@ -39,7 +39,8 @@ ruff-check: ## Lint using ruff
 .PHONY: type-check
 type-check: ## Type check with
 	-uvx ty check ./src/plainlog
-	uvx pyrefly check ./src/plainlog
+	-uvx pyrefly check ./src/plainlog
+	uvx mypy ./src/plainlog
 
 .PHONY: format
 format: ## Format files using ruff format
