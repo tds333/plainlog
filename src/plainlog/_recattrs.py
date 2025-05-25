@@ -2,8 +2,8 @@
 #
 # SPDX-License-Identifier: Apache-2.0 OR MIT
 import pickle
-from collections import namedtuple
-from typing import NamedTuple, Callable, Any, Tuple, Dict
+from types import TracebackType
+from typing import NamedTuple, Callable, Any, Tuple, Dict, Optional
 
 
 class Level(NamedTuple):
@@ -31,7 +31,11 @@ class Options(NamedTuple):
     extra: Dict[str, Any]
 
 
-class RecordException(namedtuple("RecordException", ("type", "value", "traceback"))):
+class RecordException(NamedTuple):
+    type: Optional[type[BaseException]]
+    value: Optional[BaseException]
+    traceback: Optional[TracebackType]
+
     def __repr__(self):
         return "(type=%r, value=%r, traceback=%r)" % (self.type, self.value, self.traceback)
 
