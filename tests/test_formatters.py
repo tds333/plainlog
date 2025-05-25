@@ -23,6 +23,17 @@ class TestFormatMessage:
         assert result == "my message one"
 
 
+class TestDefaultFormatter:
+    def test_call(self):
+        df = DefaultFormatter()
+        log_record = make_record("default message")
+        result = df(log_record)
+        # Check that the output contains expected log parts
+        assert "DEBUG" in result
+        assert "[root]" in result
+        assert "default message" in result
+
+
 class TestSimpleFormatter:
     def test_call(self):
         sf = SimpleFormatter()
