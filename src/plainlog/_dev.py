@@ -120,9 +120,8 @@ class ConsoleRenderer:
         self,
         pad_event: int = _EVENT_WIDTH,
         colors: bool = _use_colors,
-        force_colors: bool = False,
         repr_native_str: bool = False,
-        level_styles: Styles | None = None,
+        level_styles: dict | None = None,
         exception_formatter=default_exception_formatter,
         sort_keys: bool = True,
         short_level: bool = True,
@@ -171,7 +170,7 @@ class ConsoleRenderer:
         ts = record.get("datetime", None)
         if ts is not None:
             sio.write(
-                # can be a number if timestamp is UNIXy
+                # can be a number if timestamp is UNIX
                 self._styles.timestamp + ts.astimezone().strftime("%H:%M:%S.%f") + self._styles.reset + " "
             )
         level = record.get("level", None)

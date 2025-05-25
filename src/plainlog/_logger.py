@@ -108,18 +108,6 @@ class Core:
         self._thread: Thread = Thread(target=self._worker, daemon=True, name="plainlog-worker")
         self._thread.start()
 
-    def __getstate__(self):
-        state = self.__dict__.copy()
-        state["_queue"] = None
-        state["_thread"] = None
-        return state
-
-    def __setstate__(self, state):
-        self.__dict__.update(state)
-        self._queue = SimpleQueue()
-        self._thread = Thread(target=self._worker, daemon=True, name="plainlog-worker")
-        self._thread.start()
-
     def __repr__(self) -> str:
         handlers = list(self._handlers.values())
         return f"<plainlog.Core handlers={handlers!r}>"
@@ -342,6 +330,8 @@ class Core:
 
 
 class Logger:
+    __slots__ = ("_core", "_options")
+
     # core should be the same for every logger, options change per logger
     def __init__(
         self,
@@ -388,6 +378,14 @@ class Logger:
 
         return self.__class__(self._core, name, preprocessors, processors, extra)
 
+    def __getstate__(self) -> object:
+        return self._options
+
+    def __setstate__(self, state):
+        global logger_core
+        self._options = state
+        self._core = logger_core
+
     def bind(self, **kwargs) -> "Logger":
         name, preprocessors, processors, extra = self._options
         return self.__class__(self._core, name, preprocessors, processors, {**extra, **kwargs})
@@ -423,12 +421,12 @@ class Logger:
         finally:
             Logger.reset_context(token)
 
-    def _log(self, level: Level, msg: str, args: Tuple[Any, ...], kwargs: dict) -> None:
+    def _log(self, level: Level, msg: str, args: Tuple[Any, ...], kwargs: dict) -> Optional[dict]:
         level_no, _ = level
         core = self._core
 
         if level_no < core.min_level_no:
-            return
+            return None
 
         current_datetime = get_now_utc()
 
@@ -453,9 +451,11 @@ class Logger:
         for preprocessor in (*preprocessors, *core_preprocessors):
             stop = preprocessor(log_record)
             if stop:
-                return
+                return None
 
         core.log(log_record, processors)
+
+        return log_record
 
     def debug(self, msg: str, *args, **kwargs) -> None:  # noqa: N805
         self._log(LEVEL_DEBUG, msg, args, kwargs)
@@ -480,9 +480,9 @@ class Logger:
         level = self._core.level(level)
         self._log(level, msg, args, kwargs)
 
-    def __call__(self, level: LevelInput = LEVEL_DEBUG, msg="", *args, **kwargs) -> None:
+    def __call__(self, level: LevelInput = LEVEL_DEBUG, msg="", *args, **kwargs) -> Optional[dict]:
         level = self._core.level(level)
-        self._log(level, msg, args, kwargs)
+        return self._log(level, msg, args, kwargs)
 
 
 logger_core = Core()
