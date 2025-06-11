@@ -99,8 +99,7 @@ def _get_levels() -> Levels:
 
 class Core:
     def __init__(self) -> None:
-        self._max_level_no: int = sys.maxsize
-        self._min_level_no: int = self._max_level_no
+        self._min_level_no: int = sys.maxsize
         self._levels: Levels = _get_levels()
         self._handlers: Dict[str, HandlerRecord] = {}
         self._options: Options = Options("CORE", (), (), {})
@@ -280,7 +279,7 @@ class Core:
                         name, level, print_errors, handler = handlers.pop(handler_name)
 
                     levelnos = (h.level.no for h in handlers.values())
-                    self._min_level_no = min(levelnos, default=self._max_level_no)
+                    self._min_level_no = min(levelnos, default=sys.maxsize)
 
                     if hasattr(handler, "close") and callable(handler.close):
                         try:

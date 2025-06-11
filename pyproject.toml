@@ -77,5 +77,8 @@ ignore = [
 #division-by-zero = "ignore"
 
 [dependency-groups]
-dev = ["pytest", "pytest-cov"]
+dev = [
+    "pytest",
+    "pytest-cov",
+]
 #show-source = true

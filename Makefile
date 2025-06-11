@@ -1,4 +1,5 @@
 .DEFAULT_GOAL := help
+export UV_MANAGED_PYTHON ?= 1
 
 ##@ CI/CD
 .PHONY: build
@@ -22,6 +23,8 @@ tests: ## Run tests in all supporte Python versions
 	uv run --isolated -p 3.12 pytest
 	uv run --isolated -p 3.13 pytest
 	uv run --isolated -p 3.14 pytest
+	uv run --isolated -p 3.13t pytest
+	uv run --isolated -p 3.14t pytest
 	uv run --isolated -p pypy@3.9 pytest
 	uv run --isolated -p pypy@3.10 pytest
 	uv run --isolated -p pypy@3.11 pytest
