@@ -49,6 +49,10 @@ type-check: ## Type check with
 format: ## Format files using ruff format
 	uvx ruff format ./src/plainlog
 
+.PHONY: bench
+bench: ## Format files using ruff format
+	uv run benchmarks/timeit_bench_log.py
+
 ##@ Utility
 .PHONY: clean
 clean: ## Delete all temporary files
