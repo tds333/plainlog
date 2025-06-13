@@ -7,6 +7,7 @@ Processors useful regardless of the logging framework.
 """
 
 from __future__ import annotations
+
 import contextlib
 
 

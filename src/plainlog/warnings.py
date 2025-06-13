@@ -5,8 +5,8 @@
 # codeparts from std library logging
 
 import warnings
-from . import logger
 
+from . import logger
 
 _warnings_showwarning = None
 _warnings_logger = logger.new("py.warnings")

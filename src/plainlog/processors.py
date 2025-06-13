@@ -8,21 +8,20 @@ Processors useful regardless of the logging framework.
 
 from __future__ import annotations
 
-import sys
 import contextlib
-from threading import current_thread
-from multiprocessing import current_process
-from os.path import basename, splitext
-from pathlib import Path
+import sys
 import time
 from datetime import datetime, timezone
 from functools import lru_cache
-from typing import Protocol, Dict, Any, Optional
+from multiprocessing import current_process
+from os.path import basename, splitext
+from pathlib import Path
+from threading import current_thread
+from typing import Any, Dict, Optional, Protocol
 
-from ._recattrs import RecordException
 from ._frames import get_frame
-from ._utils import eval_lambda_dict, eval_lambda_list, eval_dict, eval_list, eval_format
-
+from ._recattrs import RecordException
+from ._utils import eval_dict, eval_format, eval_lambda_dict, eval_lambda_list, eval_list
 
 STOP_PROCESSING = True
 CONTINUE_PROCESSING = False

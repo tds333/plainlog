@@ -2,11 +2,11 @@
 #
 # SPDX-License-Identifier: Apache-2.0 OR MIT
 
-import logging
 import contextlib
+import logging
 from datetime import datetime, timezone
 
-from ._logger import logger_core, Options, Logger, plainlog_context
+from ._logger import Logger, Options, logger_core, plainlog_context
 
 
 def percent_preformat(record):

@@ -5,17 +5,13 @@
 # Mostly copied from structlog.
 
 from __future__ import annotations
-import traceback
+
 import sys
-
+import traceback
 from io import StringIO
-from typing import Any, Iterable, TextIO, Type, Union
+from typing import Any, Iterable, Protocol, TextIO, Type, Union
 
-from ._frames import _format_exception
 from .formatters import format_message
-
-from typing import Protocol
-
 
 __all__ = [
     "ConsoleRenderer",

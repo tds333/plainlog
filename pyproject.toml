@@ -63,7 +63,7 @@ select = [
   "E", # pycodestyle errors
   "W", # pycodestyle warnings
   "F", # pyflakes
-  # "I",  # isort
+  "I", # isort
   "C", # flake8-comprehensions
   "B", # flake8-bugbear
 ]
@@ -77,8 +77,5 @@ ignore = [
 #division-by-zero = "ignore"
 
 [dependency-groups]
-dev = [
-    "pytest",
-    "pytest-cov",
-]
+dev = ["pytest", "pytest-cov"]
 #show-source = true

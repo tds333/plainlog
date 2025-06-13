@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0 OR MIT
 import pickle
 from types import TracebackType
-from typing import NamedTuple, Callable, Any, Tuple, Dict, Optional
+from typing import Any, Callable, Dict, NamedTuple, Optional, Tuple
 
 
 class Level(NamedTuple):

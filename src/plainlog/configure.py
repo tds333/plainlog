@@ -7,8 +7,8 @@ from ._logger import logger_core
 
 
 def _default(level=None, extra=None, **kwargs):
-    from .processors import DEFAULT_PROCESSORS, DEFAULT_PREPROCESSORS
     from .handlers import DefaultHandler
+    from .processors import DEFAULT_PREPROCESSORS, DEFAULT_PROCESSORS
 
     logger_core.configure(
         handlers=[{"handler": DefaultHandler(), "level": level}],
@@ -19,13 +19,13 @@ def _default(level=None, extra=None, **kwargs):
 
 
 def _develop(level=None, extra=None, **kwargs):
-    from .processors import (
-        add_caller_info,
-        Duration,
-        DEFAULT_PROCESSORS,
-        DEFAULT_PREPROCESSORS,
-    )
     from .handlers import ConsoleHandler
+    from .processors import (
+        DEFAULT_PREPROCESSORS,
+        DEFAULT_PROCESSORS,
+        Duration,
+        add_caller_info,
+    )
 
     preprocessors = (*DEFAULT_PREPROCESSORS, add_caller_info, Duration())
     processors = DEFAULT_PROCESSORS
@@ -44,13 +44,13 @@ def _develop(level=None, extra=None, **kwargs):
 
 
 def _fingerscrossed(level=None, extra=None, **kwargs):
+    from .handlers import ConsoleHandler, FingersCrossedHandler
     from .processors import (
-        add_caller_info,
-        Duration,
-        DEFAULT_PROCESSORS,
         DEFAULT_PREPROCESSORS,
+        DEFAULT_PROCESSORS,
+        Duration,
+        add_caller_info,
     )
-    from .handlers import FingersCrossedHandler, ConsoleHandler
 
     action_level = kwargs.get("action_level")
     buffer_size = kwargs.get("buffer_size")
@@ -80,9 +80,9 @@ def _fingerscrossed(level=None, extra=None, **kwargs):
 
 
 def _simple(level=None, extra=None, **kwargs):
-    from .handlers import StreamHandler
     from .formatters import SimpleFormatter
-    from .processors import DEFAULT_PROCESSORS, DEFAULT_PREPROCESSORS
+    from .handlers import StreamHandler
+    from .processors import DEFAULT_PREPROCESSORS, DEFAULT_PROCESSORS
 
     stream = kwargs.get("stream", sys.stderr)
     logger_core.configure(
@@ -95,7 +95,7 @@ def _simple(level=None, extra=None, **kwargs):
 
 def _cloud(level=None, extra=None, **kwargs):
     from .handlers import JsonHandler
-    from .processors import DEFAULT_PROCESSORS, DEFAULT_PREPROCESSORS
+    from .processors import DEFAULT_PREPROCESSORS, DEFAULT_PROCESSORS
 
     stream = kwargs.get("stream", sys.stderr)
     logger_core.configure(
@@ -108,7 +108,7 @@ def _cloud(level=None, extra=None, **kwargs):
 
 def _json(level=None, extra=None, **kwargs):
     from .handlers import JsonHandler
-    from .processors import DEFAULT_PROCESSORS, DEFAULT_PREPROCESSORS
+    from .processors import DEFAULT_PREPROCESSORS, DEFAULT_PROCESSORS
 
     stream = kwargs.get("stream", sys.stderr)
 
@@ -122,7 +122,7 @@ def _json(level=None, extra=None, **kwargs):
 
 def _file(level=None, extra=None, **kwargs):
     from .handlers import FileHandler
-    from .processors import DEFAULT_PROCESSORS, DEFAULT_PREPROCESSORS
+    from .processors import DEFAULT_PREPROCESSORS, DEFAULT_PROCESSORS
 
     filename = kwargs.get("filename", "plainlog.log")
     watch = True
@@ -136,8 +136,8 @@ def _file(level=None, extra=None, **kwargs):
 
 
 def _fingerscrossed_file(level=None, extra=None, **kwargs):
-    from .handlers import FingersCrossedHandler, FileHandler
-    from .processors import DEFAULT_PROCESSORS, DEFAULT_PREPROCESSORS
+    from .handlers import FileHandler, FingersCrossedHandler
+    from .processors import DEFAULT_PREPROCESSORS, DEFAULT_PROCESSORS
 
     filename = kwargs.get("filename", "plainlog.log")
     action_level = kwargs.get("action_level")
@@ -160,7 +160,7 @@ def _fingerscrossed_file(level=None, extra=None, **kwargs):
 
 def _console_no_color(level=None, extra=None, **kwargs):
     from .handlers import ConsoleHandler
-    from .processors import DEFAULT_PROCESSORS, DEFAULT_PREPROCESSORS
+    from .processors import DEFAULT_PREPROCESSORS, DEFAULT_PROCESSORS
 
     stream = kwargs.get("stream", sys.stderr)
 
@@ -179,8 +179,8 @@ def _console_no_color(level=None, extra=None, **kwargs):
 
 
 def _fast(level=None, extra=None, **kwargs):
-    from .handlers import StreamHandler
     from .formatters import SimpleFormatter
+    from .handlers import StreamHandler
 
     stream = kwargs.get("stream", sys.stderr)
 

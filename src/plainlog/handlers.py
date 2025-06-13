@@ -1,22 +1,22 @@
 # SPDX-FileCopyrightText: 2023 Wolfgang Langner <tds333@mailbox.org>
 #
 # SPDX-License-Identifier: Apache-2.0 OR MIT
+import asyncio
+import logging
 import os
+import pathlib
 import stat
 import sys
-import logging
-import asyncio
 from collections import deque
-import pathlib
-from typing import Protocol, Dict, Any
+from typing import Any, Dict, Protocol
 
-from .formatters import (
-    SimpleFormatter,
-    JsonFormatter,
-    DefaultFormatter,
-)
 from . import _env
 from ._dev import ConsoleRenderer
+from .formatters import (
+    DefaultFormatter,
+    JsonFormatter,
+    SimpleFormatter,
+)
 
 
 class HandlerProtocol(Protocol):

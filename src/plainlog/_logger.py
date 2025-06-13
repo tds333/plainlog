@@ -1,26 +1,25 @@
 # SPDX-FileCopyrightText: 2023 Wolfgang Langner <tds333@mailbox.org>
 #
 # SPDX-License-Identifier: Apache-2.0 OR MIT
+import atexit
+import collections.abc
 import contextlib
 import logging
 import sys
-import collections.abc
+import traceback
 from contextvars import ContextVar
 from copy import deepcopy
 from datetime import datetime, timezone
-from threading import Thread, Event
-from queue import SimpleQueue
 from enum import Enum
-import atexit
-import traceback
 from functools import partial
 from multiprocessing import current_process
-from typing import Union, Optional, Callable, Iterable, Any, Generator, Tuple, Dict
+from queue import SimpleQueue
+from threading import Event, Thread
+from typing import Any, Callable, Dict, Generator, Iterable, Optional, Tuple, Union
 
 from . import _env
-from ._recattrs import Level, HandlerRecord, Options
 from ._frames import get_frame
-
+from ._recattrs import HandlerRecord, Level, Options
 
 get_now_utc = partial(datetime.now, timezone.utc)
 plainlog_context: ContextVar[dict] = ContextVar("plainlog_context")
