@@ -6,7 +6,7 @@ import contextlib
 import logging
 from datetime import datetime, timezone
 
-from ._logger import Logger, Options, logger_core, plainlog_context
+from ._logger import logger_core, plainlog_context, logger
 
 
 def percent_preformat(record):
@@ -25,10 +25,7 @@ def percent_preformat(record):
 class PlainlogStdLogger(logging.Logger):
     def __init__(self, name, level=logging.NOTSET):
         super().__init__(name, level)
-        self._core = logger_core
-        self._options = Options(name, preprocessors=(), processors=(percent_preformat,), extra={})
-
-    _plain_log = Logger._log
+        self._plain_logger = logger.new(name, (), (percent_preformat,), {})
 
     def setLevel(self, level):
         pass
@@ -66,22 +63,19 @@ class PlainlogStdLogger(logging.Logger):
         self._log(level, msg, args, kwargs)
 
     def _log(self, level, msg, args, kwargs):
-        # extra = {**extra} if extra is not None else {}
-        # extra["exc_info"] = exc_info
-        level = self._core.level(level)
-        self._plain_log(level, msg, args, kwargs)
+        self._plain_logger.log(level, msg, args, kwargs)
 
     def handle(self, record):
         pass
 
     def hasHandlers(self):
-        return self._core.has_handlers()
+        return self._plain_logger._core.has_handlers()
 
     def callHandlers(self, record):
         pass
 
     def getEffectiveLevel(self):
-        return self._core.min_level_no
+        return self._plain_log._core.min_level_no
 
     def isEnabledFor(self, level):
         if self.disabled:

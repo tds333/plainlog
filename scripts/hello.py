@@ -9,7 +9,8 @@ from plainlog.processors import (
     FilterList,
 )
 from plainlog.handlers import WrapStandardHandler, ConsoleHandler, JsonHandler, FileHandler, StreamHandler
-#from plainlog._rich_handler import RichHandler
+
+# from plainlog._rich_handler import RichHandler
 from plainlog.handlers import JsonHandler
 from plainlog.warnings import capture_warnings
 from plainlog.formatters import SimpleFormatter
@@ -17,6 +18,7 @@ from plainlog.formatters import SimpleFormatter
 capture_warnings(True)
 
 log = logger.new()
+
 
 def val():
     return "from val function"
@@ -32,15 +34,17 @@ def frame_patcher(record):
     record["frame"] = frame
 
 
-
 def timer():
     return time()
+
 
 def duration_calc(start=time()):
     duration = time() - start
     return duration
 
+
 start = time()
+
 
 def elapsed():
     duration = time() - start
@@ -51,6 +55,7 @@ def messager(record):
     print(f"{record['datetime'].isoformat()} {record['message']}")
     # print(f"{record['datetime']:%H:%M} {record['message']}")
     # print(record["datetime"], record["message"])
+
 
 async def amessager(record):
     print(f"amessager: {record}")
@@ -77,8 +82,7 @@ class SpecPrint:
 
 
 class LoggerClass:
-
-    #clog = logger.new(name=__qualname__)
+    # clog = logger.new(name=__qualname__)
     clog = logger.new()
 
     def __init__(self):
@@ -110,14 +114,13 @@ def main():
 
     log = first_log
 
-
     try:
         1 / 0
     except ZeroDivisionError:
         log.exception("Error")
 
     log.debug("my time is {0:.2f} {1}", lambda: timer(), 17, wolla="pure")
-    #log = log.new(extra={})
+    # log = log.new(extra={})
     hr = logger_core.add(print)
     print(hr)
     log.debug("fsdfsdfsdf")
@@ -151,10 +154,12 @@ def main():
 
 def main2():
     from plainlog.configure import configure_log
-    #configure_log("develop", level="DEBUG", reset=True, buffer_size=2)
+
+    # configure_log("develop", level="DEBUG", reset=True, buffer_size=2)
     configure_log("develop", level="DEBUG", reset=True, buffer_size=2)
     log = logger.new()
     log.debug("hello")
+    log.warning("some warning")
 
     log = log.bind(bla=5)
     log.context(special_context="my context")
@@ -167,7 +172,7 @@ def main2():
 
     log.debug("my time is {0:.2f} {1}", lambda: timer(), 17, wolla="pure")
 
-    for i in range(1_000):
+    for i in range(5):
         log.info(f"my range {i}")
         log.debug(f"debug my range {i}")
         if (i % 100) == 0:
@@ -176,78 +181,14 @@ def main2():
     log.info("ENDE")
 
 
-def main3():
-    from plainlog._rich_handler import RichHandler
-    logger_core.configure(
-        handlers=[
-            {
-                "handler": RichHandler(
-                    rich_tracebacks=True,
-                    omit_repeated_times=False,
-                    log_time_format="[%H:%M:%S]",
-                    tracebacks_show_locals=True,
-                ),
-                "level": "DEBUG",
-            }
-        ],
-    )
-    log = logger.new("rich")
-
-    log.info("Server starting...")
-    log.info("Listening on http://127.0.0.1:8080")
-    sleep(0.3)
-
-    log.info("GET /index.html 200 1298")
-    log.info("GET /imgs/backgrounds/back1.jpg 200 54386")
-    log.info("GET /css/styles.css 200 54386")
-    log.warning("GET /favicon.ico 404 242")
-    sleep(0.3)
-
-    log.debug(
-        "JSONRPC request\n--> %r\n<-- %r"
-        % (
-            {
-                "version": "1.1",
-                "method": "confirmFruitPurchase",
-                "params": [["apple", "orange", "mangoes", "pomelo"], 1.123],
-                "id": "194521489",
-            },
-            {"version": "1.1", "result": True, "error": None, "id": "194521489"},
-        )
-    )
-    log.debug(
-        "Loading configuration file /adasd/asdasd/qeqwe/qwrqwrqwr/sdgsdgsdg/werwerwer/dfgerert/ertertert/ertetert/werwerwer"
-    )
-    log.error("Unable to find 'pomelo' in database!")
-    log.info("POST /jsonrpc/ 200 65532")
-    log.info("POST /admin/ 401 42234")
-    log.warning("password was rejected for admin site.")
-
-    def divide() -> None:
-        number = 1
-        divisor = 0
-        foos = ["foo"] * 100
-        log.debug("in divide")
-        try:
-            number / divisor
-        except:
-            log.exception("An error of some kind occurred!")
-
-    divide()
-    sleep(0.3)
-    log.critical("Out of memory!")
-    log.info("Server exited with code=-1")
-    log.info("[bold]EXITING...[/bold]", markup=True)
-    log.log("C", "mymessage in no log")
-
-
 def main4():
     global log
     from plainlog.configure import configure_log
+
     handler_type = "develop"
     configure_log(handler_type, level="DEBUG")
     # log = logger.name("test")
-    #log = logger.name().processor(FilterList(blacklist=["mymodule"], whitelist=["mymodule.class.function"]))
+    # log = logger.name().processor(FilterList(blacklist=["mymodule"], whitelist=["mymodule.class.function"]))
     log.debug(f"Start {__name__}", start=__name__)
 
     log.info("Server starting...")
@@ -338,12 +279,15 @@ def main4():
     log("W", "notset")
     log.info("ENDE")
 
+
 def main5():
     global log
     from plainlog.configure import configure_log
+
     handler_type = "develop"
-    #configure_log(handler_type, level="DEBUG")
+    # configure_log(handler_type, level="DEBUG")
     from immod import run
+
     log.debug(f"Start in main5")
     run()
     log.debug(f"after run")
@@ -351,21 +295,23 @@ def main5():
 
 if __name__ == "__main__":
     from plainlog.warnings import capture_warnings
+
     capture_warnings(True)
     import cProfile
+
     t1 = time()
-    #cProfile.run("main2()")
-    main()
-    #main2()
-    #main3()
-    #main4()
-    #main5()
-    #main()
+    # cProfile.run("main2()")
+    # main()
+    main2()
+    # main3()
+    # main4()
+    # main5()
+    # main()
     t2 = time()
     duration = t2 - t1
     print("===============================================================================")
     print("duration: %f s" % duration)
     print("===============================================================================")
     logger.error("Duration: %f" % duration, timer=True)
-    #logger.close()
-    #logger.close()
+    # logger.close()
+    # logger.close()

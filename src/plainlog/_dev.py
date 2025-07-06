@@ -132,10 +132,7 @@ class ConsoleRenderer:
         self._styles = styles
         self._pad_event = pad_event
 
-        if level_styles is None:
-            self._level_to_color: dict = self.get_default_level_styles(colors)
-        else:
-            self._level_to_color: dict = level_styles
+        self._level_to_color: dict = self.get_default_level_styles(colors) if level_styles is None else level_styles
 
         for key in self._level_to_color.keys():
             self._level_to_color[key] += styles.bright
