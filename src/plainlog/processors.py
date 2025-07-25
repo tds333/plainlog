@@ -17,23 +17,23 @@ from multiprocessing import current_process
 from os.path import basename, splitext
 from pathlib import Path
 from threading import current_thread
-from typing import Any, Dict, Optional, Protocol
+from typing import Any, Dict, Optional, Protocol, Callable
 
 from ._frames import get_frame
 from ._recattrs import RecordException
 from ._utils import eval_dict, eval_format, eval_lambda_dict, eval_lambda_list, eval_list
 
-STOP_PROCESSING = True
-CONTINUE_PROCESSING = False
+STOP_PROCESSING: bool = True
+CONTINUE_PROCESSING: bool = False
 
-start_time = datetime.now(timezone.utc)
+start_time: datetime = datetime.now(timezone.utc)
 
 
 class ProcessorProtocol(Protocol):
     def __call__(self, record: Dict[str, Any]) -> Optional[bool]: ...
 
 
-def add_caller_info(record, level=3):
+def add_caller_info(record, level=3) -> None:
     frame = get_frame(level)
     # name = frame.f_globals["__name__"]
     code = frame.f_code
@@ -53,24 +53,24 @@ def add_caller_info(record, level=3):
     record["thread_name"] = thread.name
 
 
-def dynamic_name(record):
+def dynamic_name(record) -> None:
     frame = get_frame(3)
     name = frame.f_globals["__name__"]
     if name:
         record["name"] = name
 
 
-def eval_args(record):
+def eval_args(record) -> None:
     args = record.get("args", [])
     record["args"] = eval_list(args)
 
 
-def eval_kwargs(record):
+def eval_kwargs(record) -> None:
     kwargs = record.get("kwargs", {})
     eval_dict(kwargs)
 
 
-def eval_lambda(record):
+def eval_lambda(record) -> None:
     args = record.get("args", [])
     record["args"] = eval_lambda_list(args)
 
@@ -78,12 +78,12 @@ def eval_lambda(record):
     eval_lambda_dict(kwargs)
 
 
-def eval_extra(record):
+def eval_extra(record) -> None:
     extra = record.get("extra", {})
     eval_lambda_dict(extra)
 
 
-def preprocess_exc_info(record):
+def preprocess_exc_info(record) -> None:
     kwargs = record.get("kwargs", {})
     exc_info = kwargs.pop("exc_info", False)
     if exc_info:
@@ -93,21 +93,21 @@ def preprocess_exc_info(record):
         record["exception"] = exception
 
 
-def kwargs_to_extra(record):
+def kwargs_to_extra(record) -> None:
     kwargs = record.get("kwargs", {})
     if kwargs:
         extra = record.get("extra", {})
         extra.update(kwargs)
 
 
-def context_to_extra(record):
+def context_to_extra(record) -> None:
     context = record.get("context", {})
     if context:
         extra = record.get("extra", {})
         extra.update(context)
 
 
-def preformat_message(record):
+def preformat_message(record) -> None:
     preformatted = record.get("preformatted", False)
     if preformatted:
         return
@@ -120,8 +120,8 @@ def preformat_message(record):
             record["preformatted"] = True
 
 
-def remove_items(*args):
-    def remover(record):
+def remove_items(*args) -> Callable:
+    def remover(record) -> None:
         for arg in args:
             arg = str(arg)
             record.pop(arg, None)
@@ -129,16 +129,16 @@ def remove_items(*args):
     return remover
 
 
-def filter_None(record):
+def filter_None(record) -> bool:
     return record["name"] is None
 
 
-def filter_all(record):
+def filter_all(record) -> bool:
     return STOP_PROCESSING
 
 
-def filter_by_name(parent):
-    def namefilter(record):
+def filter_by_name(parent) -> Callable:
+    def namefilter(record) -> bool:
         name = record["name"]
         if name is None:
             return STOP_PROCESSING
@@ -147,8 +147,8 @@ def filter_by_name(parent):
     return namefilter
 
 
-def filter_by_level(level_per_module):
-    def levelfilter(record):
+def filter_by_level(level_per_module) -> Callable:
+    def levelfilter(record) -> bool:
         name = record["name"]
 
         while name:
@@ -162,16 +162,18 @@ def filter_by_level(level_per_module):
             index = name.rfind(".")
             name = name[:index] if index != -1 else ""
 
+        return CONTINUE_PROCESSING
+
     return levelfilter
 
 
 class FilterList:
-    def __init__(self, blacklist, whitelist=None):
+    def __init__(self, blacklist, whitelist=None) -> None:
         self._whitelist = frozenset() if whitelist is None else frozenset(whitelist)
         self._blacklist = frozenset(blacklist)
-        self._partition_cache = {}
+        self._partition_cache: dict = {}
 
-    def partition(self, name):
+    def partition(self, name: str) -> set:
         if name in self._partition_cache:
             return self._partition_cache[name]
         part_set = set()
@@ -182,7 +184,7 @@ class FilterList:
 
         return part_set
 
-    def __call__(self, record):
+    def __call__(self, record) -> bool:
         name = record["name"]
         name_parts = self.partition(name)
 
@@ -193,13 +195,13 @@ class FilterList:
 
 
 class WhitelistLevel:
-    def __init__(self, whitelist):
+    def __init__(self, whitelist) -> None:
         self._whitelist_names = frozenset(whitelist)
         self._whitelist_levels = whitelist
 
     @staticmethod
     @lru_cache
-    def partition(name):
+    def partition(name) -> set:
         part_set = set()
         parts = name.split(".")
         for i in range(1, len(parts) + 1):
@@ -207,12 +209,12 @@ class WhitelistLevel:
 
         return part_set
 
-    def __call__(self, record):
+    def __call__(self, record) -> bool:
         name = record["name"]
         level_no = record["level"].no
         name_parts = self.partition(name)
 
-        whitelisted = not name_parts.isdisjoint(self._whitelist_names)
+        whitelisted: bool = not name_parts.isdisjoint(self._whitelist_names)
         if not whitelisted:
             return True
         # else check level
@@ -222,13 +224,15 @@ class WhitelistLevel:
                 if level_no < level:
                     return True
 
+        return False
+
 
 class Duration:
-    def __init__(self, add_message=True):
-        self._starts = {}
+    def __init__(self, add_message=True) -> None:
+        self._starts: dict = {}
         self._add_message = add_message
 
-    def __call__(self, record):
+    def __call__(self, record) -> None:
         kwargs = record.get("kwargs", {})
         message = record.get("message", "")
         start = kwargs.get("start", None)
@@ -252,7 +256,7 @@ class Duration:
                     record["message"] = message
 
 
-def elapsed(record):
+def elapsed(record) -> None:
     record["elapsed"] = datetime.now(timezone.utc) - start_time
 
 

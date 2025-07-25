@@ -11,7 +11,7 @@ from __future__ import annotations
 import contextlib
 
 
-def eval_lambda_list(data: list):
+def eval_lambda_list(data: list) -> list:
     result = []
     for arg in data:
         if callable(arg) and arg.__name__ == "<lambda>":
@@ -24,7 +24,7 @@ def eval_lambda_list(data: list):
     return result
 
 
-def eval_lambda_dict(data: dict):
+def eval_lambda_dict(data: dict) -> dict:
     for name, value in data.items():
         if callable(value) and value.__name__ == "<lambda>":
             with contextlib.suppress(Exception):
@@ -34,7 +34,7 @@ def eval_lambda_dict(data: dict):
     return data
 
 
-def eval_list(data: list):
+def eval_list(data: list) -> list:
     result = []
     for arg in data:
         if callable(arg):
@@ -47,7 +47,7 @@ def eval_list(data: list):
     return result
 
 
-def eval_dict(data: dict):
+def eval_dict(data: dict) -> None:
     for name, value in data.items():
         if callable(value):
             with contextlib.suppress(Exception):
@@ -55,9 +55,9 @@ def eval_dict(data: dict):
                 data[name] = result
 
 
-def eval_format(msg, args, kwargs):
+def eval_format(msg, args, kwargs) -> str:
     args = eval_lambda_list(args)
     kwargs_ = eval_lambda_dict(kwargs.copy())
-    message = msg.format(*args, **kwargs_)
+    message: str = msg.format(*args, **kwargs_)
 
     return message

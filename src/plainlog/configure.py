@@ -6,7 +6,7 @@ import sys
 from ._logger import logger_core
 
 
-def _default(level=None, extra=None, **kwargs):
+def _default(level=None, extra=None, **kwargs) -> None:
     from .handlers import DefaultHandler
     from .processors import DEFAULT_PREPROCESSORS, DEFAULT_PROCESSORS
 
@@ -18,7 +18,7 @@ def _default(level=None, extra=None, **kwargs):
     )
 
 
-def _develop(level=None, extra=None, **kwargs):
+def _develop(level=None, extra=None, **kwargs) -> None:
     from .handlers import ConsoleHandler
     from .processors import (
         DEFAULT_PREPROCESSORS,
@@ -43,7 +43,7 @@ def _develop(level=None, extra=None, **kwargs):
     )
 
 
-def _fingerscrossed(level=None, extra=None, **kwargs):
+def _fingerscrossed(level=None, extra=None, **kwargs) -> None:
     from .handlers import ConsoleHandler, FingersCrossedHandler
     from .processors import (
         DEFAULT_PREPROCESSORS,
@@ -79,7 +79,7 @@ def _fingerscrossed(level=None, extra=None, **kwargs):
     )
 
 
-def _simple(level=None, extra=None, **kwargs):
+def _simple(level=None, extra=None, **kwargs) -> None:
     from .formatters import SimpleFormatter
     from .handlers import StreamHandler
     from .processors import DEFAULT_PREPROCESSORS, DEFAULT_PROCESSORS
@@ -93,7 +93,7 @@ def _simple(level=None, extra=None, **kwargs):
     )
 
 
-def _cloud(level=None, extra=None, **kwargs):
+def _cloud(level=None, extra=None, **kwargs) -> None:
     from .handlers import JsonHandler
     from .processors import DEFAULT_PREPROCESSORS, DEFAULT_PROCESSORS
 
@@ -106,7 +106,7 @@ def _cloud(level=None, extra=None, **kwargs):
     )
 
 
-def _json(level=None, extra=None, **kwargs):
+def _json(level=None, extra=None, **kwargs) -> None:
     from .handlers import JsonHandler
     from .processors import DEFAULT_PREPROCESSORS, DEFAULT_PROCESSORS
 
@@ -120,7 +120,7 @@ def _json(level=None, extra=None, **kwargs):
     )
 
 
-def _file(level=None, extra=None, **kwargs):
+def _file(level=None, extra=None, **kwargs) -> None:
     from .handlers import FileHandler
     from .processors import DEFAULT_PREPROCESSORS, DEFAULT_PROCESSORS
 
@@ -135,7 +135,7 @@ def _file(level=None, extra=None, **kwargs):
     )
 
 
-def _fingerscrossed_file(level=None, extra=None, **kwargs):
+def _fingerscrossed_file(level=None, extra=None, **kwargs) -> None:
     from .handlers import FileHandler, FingersCrossedHandler
     from .processors import DEFAULT_PREPROCESSORS, DEFAULT_PROCESSORS
 

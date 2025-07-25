@@ -26,11 +26,11 @@ plainlog_context: ContextVar[dict] = ContextVar("plainlog_context")
 logger_process = current_process()
 
 # predefined for performance reason
-LEVEL_DEBUG = Level(logging.DEBUG, "DEBUG")
-LEVEL_INFO = Level(logging.INFO, "INFO")
-LEVEL_WARNING = Level(logging.WARNING, "WARNING")
-LEVEL_ERROR = Level(logging.ERROR, "ERROR")
-LEVEL_CRITICAL = Level(logging.CRITICAL, "CRITICAL")
+LEVEL_DEBUG: Level = Level(logging.DEBUG, "DEBUG")
+LEVEL_INFO: Level = Level(logging.INFO, "INFO")
+LEVEL_WARNING: Level = Level(logging.WARNING, "WARNING")
+LEVEL_ERROR: Level = Level(logging.ERROR, "ERROR")
+LEVEL_CRITICAL: Level = Level(logging.CRITICAL, "CRITICAL")
 
 
 class Command(str, Enum):
@@ -118,7 +118,7 @@ class Core:
     def min_level_no(self) -> int:
         return self._min_level_no
 
-    def _put(self, command: Command, message: Any = None):
+    def _put(self, command: Command, message: Any = None) -> None:
         self._queue.put((command, message))
 
     def log(self, log_record: Dict[str, Any], processors: Callables) -> None:
@@ -149,7 +149,7 @@ class Core:
         preprocessors: Optional[Callables] = None,
         processors: Optional[Callables] = None,
         update_levels: bool = False,
-    ):
+    ) -> list:
         if handlers is not None:
             self.remove()
         else:
@@ -173,7 +173,7 @@ class Core:
         return added
 
     def wait_for_processed(self, timeout: Optional[float] = None) -> None:
-        event = Event()
+        event: Event = Event()
         self._put(Command.EVENT, event)
         event.wait(timeout)
 
@@ -196,7 +196,7 @@ class Core:
         level = _env.PLAINLOG_LEVEL if level is None else level
         level = self.level(level)
 
-        handler_record = HandlerRecord(name, level, print_errors, handler)
+        handler_record: HandlerRecord = HandlerRecord(name, level, print_errors, handler)
 
         self._put(Command.ADD_HANDLER, handler_record)
         self.wait_for_processed(_env.DEFAULT_WAIT_TIMEOUT)
@@ -280,7 +280,7 @@ class Core:
                     levelnos = (h.level.no for h in handlers.values())
                     self._min_level_no = min(levelnos, default=sys.maxsize)
 
-                    if hasattr(handler, "close") and callable(handler.close):
+                    if hasattr(handler, "close") and callable(handler.close):  # type: ignore
                         try:
                             handler.close()
                         except Exception as ex:
@@ -303,7 +303,7 @@ class Core:
                 event.set()
 
     @staticmethod
-    def _print_error(record: dict, handler_name: str, exception=None):
+    def _print_error(record: dict, handler_name: str, exception=None) -> None:
         if not sys.stderr or sys.stderr.closed:
             return
 
@@ -346,7 +346,7 @@ class Logger:
         extra = _validate_extra(extra)
         self._options = Options(name, preprocessors, processors, extra)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         name = self._options.name
         core = repr(self._core)
         return f"<plainlog.Logger name={name!r} core={core}>"
@@ -379,7 +379,7 @@ class Logger:
     def __getstate__(self) -> object:
         return self._options
 
-    def __setstate__(self, state):
+    def __setstate__(self, state) -> None:
         global logger_core
         self._options = state
         self._core = logger_core
@@ -483,10 +483,10 @@ class Logger:
         return self._log(level, msg, args, kwargs)
 
 
-logger_core = Core()
+logger_core: Core = Core()
 atexit.register(logger_core.close)
 
-logger = Logger(
+logger: Logger = Logger(
     core=logger_core,
     name="root",
     preprocessors=None,

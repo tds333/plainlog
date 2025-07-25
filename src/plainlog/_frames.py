@@ -12,10 +12,10 @@ def get_frame_fallback(n) -> FrameType:
     try:
         raise Exception
     except Exception:
-        frame = sys.exc_info()[2].tb_frame.f_back
+        frame = sys.exc_info()[2].tb_frame.f_back  # type: ignore
         for _ in range(n):
-            frame = frame.f_back
-        return frame
+            frame = frame.f_back  # type: ignore
+        return frame  # type: ignore
 
 
 def load_get_frame_function():
