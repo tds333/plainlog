@@ -67,14 +67,13 @@ def _validate_callables(
 
 
 def _validate_extra(extra: Optional[Dict[str, Any]]) -> Dict[str, Any]:
-    if extra is None:
-        extra = {}
-    else:
+    ret: Dict[str, Any] = {}
+    if extra is not None:
         if not isinstance(extra, collections.abc.Mapping):
             raise ValueError("Extra must be a Mapping (dict like) object.")
-        extra = deepcopy(extra)
+        ret = deepcopy(extra)
 
-    return extra
+    return ret
 
 
 def _validate_name(name: str) -> str:
