@@ -205,25 +205,11 @@ def _no_init(level=None, extra=None, **kwargs):
     pass
 
 
-def _std_class(level=None, extra=None, **kwargs):
-    from .std import set_as_std_logger_class
-
-    set_as_std_logger_class()
-    _default(level, extra, kwargs=kwargs)
-
-
 def _std_handler(level=None, extra=None, **kwargs):
     from .std import set_as_root_handler
 
     set_as_root_handler()
     _default(level, extra, kwargs=kwargs)
-
-
-def _std_class_develop(level=None, extra=None, **kwargs):
-    from .std import set_as_std_logger_class
-
-    set_as_std_logger_class()
-    _develop(level, extra, kwargs=kwargs)
 
 
 def _std_handler_develop(level=None, extra=None, **kwargs):
@@ -246,9 +232,7 @@ _profiles = {
     "fast": _fast,
     "empty": _empty,
     "no_init": _no_init,
-    "std_class_default": _std_class,
     "std_handler_default": _std_handler,
-    "std_class_develop": _std_class_develop,
     "std_handler_develop": _std_handler_develop,
 }
 

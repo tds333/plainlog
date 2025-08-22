@@ -22,71 +22,6 @@ def percent_preformat(record) -> None:
             record["preformatted"] = True
 
 
-class PlainlogStdLogger(logging.Logger):
-    def __init__(self, name, level=logging.NOTSET) -> None:
-        super().__init__(name, level)
-        self._plain_logger = logger.new(name, (), (percent_preformat,), {})
-
-    def setLevel(self, level) -> None:
-        pass
-
-    # def debug(self, msg, *args, **kwargs) -> None:
-    #     self._log(logging.DEBUG, msg, args, kwargs)
-
-    # def info(self, msg, *args, **kwargs) -> None:
-    #     self._log(logging.INFO, msg, args, kwargs)
-
-    # def warning(self, msg, *args, **kwargs) -> None:
-    #     self._log(logging.WARNING, msg, args, kwargs)
-
-    # def warn(self, msg, *args, **kwargs) -> None:
-    #     self.warning(msg, *args, **kwargs)
-
-    # def error(self, msg, *args, **kwargs) -> None:
-    #     self._log(logging.ERROR, msg, args, kwargs)
-
-    # def exception(self, msg, *args, exc_info=True, **kwargs) -> None:
-    #     self.error(msg, *args, exc_info=exc_info, **kwargs)
-
-    # def critical(self, msg, *args, **kwargs) -> None:
-    #     self._log(logging.CRITICAL, msg, args, kwargs)
-
-    # def fatal(self, msg, *args, **kwargs) -> None:
-    #     self.critical(msg, *args, **kwargs)
-
-    # def log(self, level, msg, *args, **kwargs) -> None:
-    #     if not isinstance(level, int):
-    #         if logging.raiseExceptions:
-    #             raise TypeError("level must be an integer")
-    #         else:
-    #             return
-    #     self._log(level, msg, args, kwargs)
-
-    def _log(self, level: int, msg: str, args, **kwargs) -> None:  # type: ignore
-        self._plain_logger.log(level, msg, args, kwargs)
-
-    def handle(self, record) -> None:
-        pass
-
-    def hasHandlers(self) -> bool:
-        return self._plain_logger._core.has_handlers()
-
-    def callHandlers(self, record) -> None:
-        pass
-
-    def getEffectiveLevel(self) -> int:
-        return self._plain_logger._core.min_level_no
-
-    def isEnabledFor(self, level) -> bool:
-        if self.disabled:
-            return False
-
-        if level >= self.getEffectiveLevel():
-            return True
-
-        return False
-
-
 class StdInterceptHandler(logging.Handler):
     _core = logger_core
     _known_keys = {
@@ -160,10 +95,6 @@ class StdInterceptHandler(logging.Handler):
                 return
 
         core.log(log_record, processors=())
-
-
-def set_as_std_logger_class() -> None:
-    logging.setLoggerClass(PlainlogStdLogger)
 
 
 def set_as_root_handler() -> None:
