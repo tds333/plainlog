@@ -2,8 +2,7 @@ from plainlog._logger import logger_core, LEVEL_DEBUG, logger_process, plainlog_
 from plainlog._recattrs import Level, HandlerRecord, Options
 
 
-def make_record(msg, level=None, name="root", args=None, kwargs=None):
-    args = () if args is None else args
+def make_record(msg, level=None, name="root", kwargs=None):
     kwargs = {} if kwargs is None else kwargs
     level = LEVEL_DEBUG if level is None else level
     log_record = {
@@ -16,7 +15,6 @@ def make_record(msg, level=None, name="root", args=None, kwargs=None):
         "process_name": logger_process.name,
         "context": {**plainlog_context.get({})},
         "extra": {},
-        "args": args,
         "kwargs": kwargs,
     }
 

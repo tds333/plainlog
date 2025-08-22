@@ -418,7 +418,7 @@ class Logger:
         finally:
             Logger.reset_context(token)
 
-    def _log(self, level: Level, msg: str, args: Tuple[Any, ...], kwargs: dict) -> Optional[dict]:
+    def _log(self, level: Level, msg: str, kwargs: dict) -> Optional[dict]:
         level_no, _ = level
         core = self._core
 
@@ -440,7 +440,6 @@ class Logger:
             "process_name": logger_process.name,
             "context": {**plainlog_context.get({})},
             "extra": {**core_extra, **extra},
-            "args": args,
             "kwargs": kwargs,
         }
 
@@ -454,32 +453,32 @@ class Logger:
 
         return log_record
 
-    def debug(self, msg: str, *args, **kwargs) -> None:  # noqa: N805
-        self._log(LEVEL_DEBUG, msg, args, kwargs)
+    def debug(self, msg: str, **kwargs) -> None:  # noqa: N805
+        self._log(LEVEL_DEBUG, msg, kwargs)
 
-    def info(self, msg: str, *args, **kwargs) -> None:  # noqa: N805
-        self._log(LEVEL_INFO, msg, args, kwargs)
+    def info(self, msg: str, **kwargs) -> None:  # noqa: N805
+        self._log(LEVEL_INFO, msg, kwargs)
 
-    def warning(self, msg: str, *args, **kwargs) -> None:  # noqa: N805
-        self._log(LEVEL_WARNING, msg, args, kwargs)
+    def warning(self, msg: str, **kwargs) -> None:  # noqa: N805
+        self._log(LEVEL_WARNING, msg, kwargs)
 
-    def error(self, msg: str, *args, **kwargs) -> None:  # noqa: N805
-        self._log(LEVEL_ERROR, msg, args, kwargs)
+    def error(self, msg: str, **kwargs) -> None:  # noqa: N805
+        self._log(LEVEL_ERROR, msg, kwargs)
 
-    def critical(self, msg: str, *args, **kwargs) -> None:  # noqa: N805
-        self._log(LEVEL_CRITICAL, msg, args, kwargs)
+    def critical(self, msg: str, **kwargs) -> None:  # noqa: N805
+        self._log(LEVEL_CRITICAL, msg, kwargs)
 
-    def exception(self, msg: str, *args, **kwargs) -> None:  # noqa: N805
+    def exception(self, msg: str, **kwargs) -> None:  # noqa: N805
         kwargs["exc_info"] = True
-        self._log(LEVEL_ERROR, msg, args, kwargs)
+        self._log(LEVEL_ERROR, msg, kwargs)
 
-    def log(self, level: LevelInput, msg: str, *args, **kwargs) -> None:
+    def log(self, level: LevelInput, msg: str, **kwargs) -> None:
         level = self._core.level(level)
-        self._log(level, msg, args, kwargs)
+        self._log(level, msg, kwargs)
 
-    def __call__(self, level: LevelInput = LEVEL_DEBUG, msg="", *args, **kwargs) -> Optional[dict]:
+    def __call__(self, level: LevelInput = LEVEL_DEBUG, msg="", **kwargs) -> Optional[dict]:
         level = self._core.level(level)
-        return self._log(level, msg, args, kwargs)
+        return self._log(level, msg, kwargs)
 
 
 logger_core: Core = Core()

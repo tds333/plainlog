@@ -119,7 +119,7 @@ def main():
     except ZeroDivisionError:
         log.exception("Error")
 
-    log.debug("my time is {0:.2f} {1}", lambda: timer(), 17, wolla="pure")
+    log.debug("my time is ", wolla="pure")
     # log = log.new(extra={})
     hr = logger_core.add(print)
     print(hr)
@@ -170,7 +170,7 @@ def main2():
     except ZeroDivisionError:
         log.exception("Error")
 
-    log.debug("my time is {0:.2f} {1}", lambda: timer(), 17, wolla="pure")
+    log.debug("my time is ", wolla="pure")
 
     for i in range(5):
         log.info(f"my range {i}")

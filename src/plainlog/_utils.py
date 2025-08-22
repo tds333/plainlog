@@ -34,19 +34,6 @@ def eval_lambda_dict(data: dict) -> dict:
     return data
 
 
-def eval_list(data: list) -> list:
-    result = []
-    for arg in data:
-        if callable(arg):
-            with contextlib.suppress(Exception):
-                arg_result = arg()
-                result.append(arg_result)
-        else:
-            result.append(arg)
-
-    return result
-
-
 def eval_dict(data: dict) -> None:
     for name, value in data.items():
         if callable(value):
@@ -55,9 +42,8 @@ def eval_dict(data: dict) -> None:
                 data[name] = result
 
 
-def eval_format(msg, args, kwargs) -> str:
-    args = eval_lambda_list(args)
+def eval_format(msg, kwargs) -> str:
     kwargs_ = eval_lambda_dict(kwargs.copy())
-    message: str = msg.format(*args, **kwargs_)
+    message: str = msg.format(**kwargs_)
 
     return message

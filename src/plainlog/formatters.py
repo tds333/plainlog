@@ -12,10 +12,9 @@ def format_message(record):
     if preformatted:
         return message
     msg = record.get("msg", "")
-    args = record.get("args", [])
     kwargs = record.get("kwargs", {})
-    if msg and (args or kwargs):
-        message = eval_format(msg, args, kwargs)
+    if msg and kwargs:
+        message = eval_format(msg, kwargs)
 
     return message
 

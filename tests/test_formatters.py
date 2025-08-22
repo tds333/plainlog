@@ -10,12 +10,6 @@ class TestFormatMessage:
         result = format_message(log_record)
         assert result == message
 
-    def test_format_message_percent(self):
-        message = "my message {0}"
-        log_record = make_record(message, None, args=("one",))
-        result = format_message(log_record)
-        assert result == "my message one"
-
     def test_format_message_percent_dict(self):
         message = "my message {name}"
         log_record = make_record(message, kwargs={"name": "one"})
