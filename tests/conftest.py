@@ -19,19 +19,19 @@ import plainlog
 #     yield
 #     reset()
 
-class DummyHandler:
 
+class DummyHandler:
     def __init__(self):
         self._records = []
 
     def __call__(self, record):
         self._records.append(record)
+        return record
 
     @property
     def records(self):
-        plainlog.logger_core.wait_for_processed() 
+        plainlog.logger_core.wait_for_processed()
         return self._records
-        
 
     def first(self):
         plainlog.logger_core.wait_for_processed()
@@ -44,14 +44,12 @@ class DummyHandler:
 @pytest.fixture
 def thandler():
     dh = DummyHandler()
-    name = "testhandler"
 
-    plainlog.logger_core.configure(handlers=[dict(handler=dh, name=name)])
-    #plainlog.logger_core.add(dh, name="writer")
+    plainlog.logger_core.configure(processors=[dh])
 
     yield dh
 
-    plainlog.logger_core.remove(name)
+    plainlog.logger_core.configure(processors=[])
     dh.clear()
 
 

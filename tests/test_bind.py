@@ -24,7 +24,7 @@ def test_bind_before_add(thandler):
 
 
 def test_add_using_bound(thandler):
-    logger_core.configure(extra={"a": -1})
+    logger_core.configure(extra={"a": -1}, processors=thandler)
     logger_bound = logger.bind(a=0)
     logger.debug("A")
     logger_bound.debug("B")

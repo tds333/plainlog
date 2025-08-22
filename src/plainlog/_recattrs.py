@@ -17,13 +17,6 @@ class Level(NamedTuple):
         return self.name.__format__(spec)
 
 
-class HandlerRecord(NamedTuple):
-    name: str
-    level: Level
-    print_errors: bool
-    handler: Callable
-
-
 class Options(NamedTuple):
     name: str
     preprocessors: Tuple[Callable, ...]

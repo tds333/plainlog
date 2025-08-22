@@ -22,7 +22,7 @@ from .formatters import (
 
 
 class HandlerProtocol(Protocol):
-    def __call__(self, record: Dict[str, Any]) -> None: ...
+    def __call__(self, record: Dict[str, Any]) -> Dict[str, Any]: ...
 
 
 class StreamHandler:
@@ -37,6 +37,8 @@ class StreamHandler:
     def __call__(self, record) -> None:
         message = self._formatter(record)
         self.write(message)
+
+        return record
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(formatter={self._formatter.__class__.__name__})"
@@ -89,6 +91,8 @@ class WrapStandardHandler:
         if exc:
             lrecord.exc_text = "\n"
         self._handler.handle(lrecord)
+
+        return record
 
     def close(self) -> None:
         self._handler.close()
@@ -151,6 +155,8 @@ class FingersCrossedHandler:
         if self.enqueue(record):
             self.rollover()
 
+        return record
+
 
 class FileHandler:
     def __init__(
@@ -183,6 +189,8 @@ class FileHandler:
     def __call__(self, record) -> None:
         message = self._formatter(record)
         self.write(message)
+
+        return record
 
     def write(self, message) -> None:
         if self._file is None:
@@ -244,6 +252,8 @@ class AsyncHandler:
         message = self._formatter(record)
         if self.loop.is_running():
             self.last_future = asyncio.run_coroutine_threadsafe(self.write(message), self.loop)
+
+        return record
 
     async def write(self, message):
         pass
