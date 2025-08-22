@@ -21,7 +21,7 @@ from typing import Any, Dict, Optional, Protocol, Callable
 
 from ._frames import get_frame
 from ._recattrs import RecordException
-from ._utils import eval_dict, eval_format, eval_lambda_dict, eval_lambda_list, eval_list
+from ._utils import eval_dict, eval_format, eval_lambda_dict
 
 STOP_PROCESSING: bool = True
 CONTINUE_PROCESSING: bool = False
@@ -60,20 +60,12 @@ def dynamic_name(record) -> None:
         record["name"] = name
 
 
-def eval_args(record) -> None:
-    args = record.get("args", [])
-    record["args"] = eval_list(args)
-
-
 def eval_kwargs(record) -> None:
     kwargs = record.get("kwargs", {})
     eval_dict(kwargs)
 
 
 def eval_lambda(record) -> None:
-    args = record.get("args", [])
-    record["args"] = eval_lambda_list(args)
-
     kwargs = record.get("kwargs", {})
     eval_lambda_dict(kwargs)
 
@@ -112,11 +104,10 @@ def preformat_message(record) -> None:
     if preformatted:
         return
     msg = record.get("msg", "")
-    args = record.get("args", [])
     kwargs = record.get("kwargs", {})
-    if msg and (args or kwargs):
+    if msg and kwargs:
         with contextlib.suppress(Exception):
-            record["message"] = eval_format(msg, args, kwargs)
+            record["message"] = eval_format(msg, kwargs)
             record["preformatted"] = True
 
 

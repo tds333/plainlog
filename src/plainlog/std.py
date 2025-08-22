@@ -9,19 +9,6 @@ from datetime import datetime, timezone
 from ._logger import logger_core, plainlog_context, logger
 
 
-def percent_preformat(record) -> None:
-    preformatted = record.get("preformatted", False)
-    if preformatted:
-        return
-
-    msg = record.get("msg", "")
-    args = record.get("args", [])
-    if msg and args:
-        with contextlib.suppress(Exception):
-            record["message"] = msg % args
-            record["preformatted"] = True
-
-
 class StdInterceptHandler(logging.Handler):
     _core = logger_core
     _known_keys = {

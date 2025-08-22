@@ -5,7 +5,7 @@ from time import sleep, time
 from plainlog import logger, logger_core
 from plainlog.formatters import SimpleFormatter
 
-#from plainlog._rich_handler import RichHandler
+# from plainlog._rich_handler import RichHandler
 from plainlog.handlers import (
     AsyncHandler,
     ConsoleHandler,
@@ -25,13 +25,13 @@ from plainlog.warnings import capture_warnings
 
 
 class MyAsyncHandler(AsyncHandler):
-
     async def write(self, message):
         print("async: ", message)
 
 
 def timer():
     return time()
+
 
 def syncf():
     logger.info("start syncf")
@@ -46,8 +46,7 @@ async def asyncf():
 
 
 class LoggerClass:
-
-    #clog = logger.new(name=__qualname__)
+    # clog = logger.new(name=__qualname__)
     clog = logger.new()
 
     def __init__(self):
@@ -66,8 +65,6 @@ class LoggerClass:
         self.log.new().info("in do with name logger")
 
 
-
-
 async def main():
     logger_core.add(MyAsyncHandler())
     log = logger.new()
@@ -84,8 +81,8 @@ async def main():
 
     xala = lambda: "mystring"
 
-    log.debug("my time is {timer:.2f} {1}", timer, 17, wolla="pure", timer=0.0)
-    log.debug("my xala is {0}", xala)
+    log.debug("my time is {timer:.2f}", wolla="pure", timer=0.0)
+    log.debug("my xala is ")
     log.debug("my x is {x}", x=lambda: "ret str")
 
     for i in range(1_0):
