@@ -87,6 +87,9 @@ class StdInterceptHandler(logging.Handler):
         core.log(log_record, processors=())
 
 
-def set_as_root_handler(level: Union[int, str] = logging.NOTSET) -> None:
+def set_as_root_handler(level: Union[int, str] = logging.NOTSET) -> logging.Handler:
+    handler = StdInterceptHandler(level)
     root = logging.getLogger(name="root")
-    root.addHandler(StdInterceptHandler(level))
+    root.addHandler(handler)
+
+    return handler

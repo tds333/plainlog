@@ -49,7 +49,7 @@ def thandler():
 
     yield dh
 
-    plainlog.logger_core.configure(level="DEBUG", processors=[], preprocessors=(), extra={})
+    plainlog.logger_core.configure(level="DEBUG", processors=(), preprocessors=(), extra={})
     dh.clear()
 
 
