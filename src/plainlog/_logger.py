@@ -117,7 +117,7 @@ class Core:
         self._print_errors = False
 
     def __repr__(self) -> str:
-        return f"<plainlog.Core>"
+        return "<plainlog.Core>"
 
     @property
     def options(self) -> Options:
