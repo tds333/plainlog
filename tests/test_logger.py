@@ -6,7 +6,7 @@ from plainlog._logger import Logger, Core
 def test_logger_repr():
     rstring = repr(logger)
 
-    assert rstring == "<plainlog.Logger name='root' core=<plainlog.Core>>"
+    assert rstring == "<plainlog.Logger name='root' core=<plainlog.Core(name='CORE')>>"
 
 
 def test_logger_new():
@@ -34,7 +34,7 @@ def test_core():
 
         return record
 
-    core_test = Core()
+    core_test = Core(name="CORE_TEST")
     with closing(core_test):
         core_test.configure(processors=dummy_processor)
         logger_test = Logger(core_test, name="test", preprocessors=(), processors=(), extra={})

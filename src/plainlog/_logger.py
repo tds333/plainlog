@@ -107,17 +107,19 @@ def _validate_level(level) -> Level:
 
 
 class Core:
-    def __init__(self) -> None:
+    def __init__(self, name: Optional[str] = None) -> None:
+        name = "CORE" if name is None else name
         self._min_level_no: int = sys.maxsize
         self._levels: Levels = _get_levels()
-        self._options: Options = Options("CORE", (), (), {})
+        self._options: Options = Options(name, (), (), {})
         self._queue: SimpleQueue = SimpleQueue()
         self._thread: Thread = Thread(target=self._worker, daemon=True, name="plainlog-worker")
         self._thread.start()
         self._print_errors = False
 
     def __repr__(self) -> str:
-        return "<plainlog.Core>"
+        name = self.options.name
+        return f"<plainlog.Core({name=})>"
 
     @property
     def options(self) -> Options:
@@ -170,13 +172,13 @@ class Core:
             level = _validate_level(level)
             self._put(Command.UPDATE_LEVEL, level)
 
-        _, preprocessors_old, processors_old, extra_old = self._options
+        name, preprocessors_old, processors_old, extra_old = self._options
         extra = extra_old if extra is None else _validate_extra(extra)
         preprocessors = (
             preprocessors_old if preprocessors is None else _validate_callables(preprocessors, "Preprocessor")
         )
         processors = processors_old if processors is None else _validate_callables(processors, "Processor")
-        options = Options("CORE", preprocessors, processors, extra)
+        options = Options(name, preprocessors, processors, extra)
         self._put(Command.OPTIONS, options)
         self.wait_for_processed(_env.DEFAULT_WAIT_TIMEOUT)
 
