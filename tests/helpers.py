@@ -1,5 +1,4 @@
 from plainlog._logger import logger_core, LEVEL_DEBUG, logger_process, plainlog_context, get_now_utc
-from plainlog._recattrs import Level, HandlerRecord, Options
 
 
 def make_record(msg, level=None, name="root", kwargs=None):

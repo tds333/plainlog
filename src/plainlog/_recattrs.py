@@ -6,6 +6,9 @@ from types import TracebackType
 from typing import Any, Callable, Dict, NamedTuple, Optional, Tuple
 
 
+Record = Dict[str, Any]
+
+
 class Level(NamedTuple):
     no: int
     name: str
@@ -15,13 +18,6 @@ class Level(NamedTuple):
 
     def __format__(self, spec):
         return self.name.__format__(spec)
-
-
-class HandlerRecord(NamedTuple):
-    name: str
-    level: Level
-    print_errors: bool
-    handler: Callable
 
 
 class Options(NamedTuple):

@@ -2,11 +2,11 @@
 #
 # SPDX-License-Identifier: Apache-2.0 OR MIT
 
-import contextlib
 import logging
 from datetime import datetime, timezone
+from typing import Union
 
-from ._logger import logger_core, plainlog_context, logger
+from ._logger import logger_core, plainlog_context
 
 
 class StdInterceptHandler(logging.Handler):
@@ -42,6 +42,8 @@ class StdInterceptHandler(logging.Handler):
 
         if level_no < core.min_level_no:
             return
+        if self.level != logging.NOTSET and self.level < core.min_level_no:
+            return
 
         _, core_preprocessors, __, core_extra = core.options
         kwargs: dict = {}
@@ -69,21 +71,25 @@ class StdInterceptHandler(logging.Handler):
             "path": record.pathname,
             "thread_id": record.thread,
             "thread_name": record.threadName,
-            # "task_name": record.taskName, # since Python 3.12
             "stack_info": record.stack_info,
             "exc_text": record.exc_text,
             "exc_info": record.exc_info,
         }
+        # since Python 3.12 there is taskName available
+        if hasattr(record, "taskName"):
+            log_record["task_name"] = record.taskName
 
-        stop = False
         for preprocessor in core_preprocessors:
-            stop = preprocessor(log_record)
-            if stop:
-                return
+            log_record = preprocessor(log_record)
+            if not log_record:
+                return None
 
         core.log(log_record, processors=())
 
 
-def set_as_root_handler() -> None:
+def set_as_root_handler(level: Union[int, str] = logging.NOTSET) -> logging.Handler:
+    handler = StdInterceptHandler(level)
     root = logging.getLogger(name="root")
-    root.addHandler(StdInterceptHandler())
+    root.addHandler(handler)
+
+    return handler

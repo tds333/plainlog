@@ -4,18 +4,18 @@
 import sys
 
 import plainlog.std
+from plainlog import configure_log
 import logging
 
 print(sys.path)
 
 
 def main():
+    configure_log("develop", level="DEBUG")
     root = logging.getLogger("root")
     root.setLevel("DEBUG")
     root.addHandler(plainlog.std.StdInterceptHandler())
     root = logging.getLogger("root")
-    root.setLevel("DEBUG")
-    root.addHandler(plainlog.std.StdInterceptHandler())
     log = logging.getLogger("bla")
     try:
         1 / 0
