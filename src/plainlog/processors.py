@@ -15,17 +15,14 @@ from multiprocessing import current_process
 from os.path import basename, splitext
 from pathlib import Path
 from threading import current_thread
-from typing import Any, Dict, Optional, Protocol, Callable, Final
+from typing import Protocol, Callable
 
 from ._frames import get_frame
-from ._recattrs import RecordException
+from ._recattrs import RecordException, Record
 from ._utils import eval_dict, eval_format, eval_lambda_dict
 
-STOP_PROCESSING: Final[dict] = {}
 
 start_time: datetime = datetime.now(timezone.utc)
-
-Record = Dict[str, Any]
 
 
 class ProcessorProtocol(Protocol):
@@ -140,21 +137,21 @@ def remove_items(*args) -> Callable:
 
 def filter_None(record: Record) -> Record:
     if record["name"] is None:
-        return STOP_PROCESSING
+        return {}
     return record
 
 
 def filter_all(record: Record) -> Record:
-    return STOP_PROCESSING
+    return {}
 
 
 def filter_by_name(parent) -> Callable:
     def namefilter(record: Record) -> Record:
         name = record["name"]
         if name is None:
-            return STOP_PROCESSING
+            return {}
         elif name.startswith(parent):
-            return STOP_PROCESSING
+            return {}
         return record
 
     return namefilter
@@ -167,10 +164,10 @@ def filter_by_level(level_per_module) -> Callable:
         while name:
             level = level_per_module.get(name, None)
             if level is False:
-                return STOP_PROCESSING
+                return {}
             if level is not None:
                 if record["level"].no < level:
-                    return STOP_PROCESSING
+                    return {}
             if not name:
                 return record
             index = name.rfind(".")
@@ -206,7 +203,7 @@ class FilterList:
         blacklist = not name_parts.isdisjoint(self._blacklist)
 
         if whitelist and blacklist:
-            return STOP_PROCESSING
+            return {}
         return record
 
 
@@ -232,13 +229,13 @@ class WhitelistLevel:
 
         whitelisted: bool = not name_parts.isdisjoint(self._whitelist_names)
         if not whitelisted:
-            return STOP_PROCESSING
+            return {}
         # else check level
         for name in name_parts:
             level = self._whitelist_levels.get(name)
             if level is not None:
                 if level_no < level:
-                    return STOP_PROCESSING
+                    return {}
 
         return record
 

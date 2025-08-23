@@ -24,7 +24,8 @@ def test_bind_before_add(thandler):
 
 
 def test_add_using_bound(thandler):
-    logger_core.configure(extra={"a": -1}, processors=thandler)
+    # thandler resets als extra stuff of core
+    logger_core.configure(extra={"a": -1})
     logger_bound = logger.bind(a=0)
     logger.debug("A")
     logger_bound.debug("B")
@@ -54,7 +55,7 @@ def test_unbind(thandler):
     assert record["msg"] == "A"
 
     record = thandler.records[1]
-    assert record["extra"].get("a") == None
+    assert record["extra"].get("a") is None
     assert record["msg"] == "B"
 
 

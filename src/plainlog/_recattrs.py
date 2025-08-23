@@ -6,6 +6,9 @@ from types import TracebackType
 from typing import Any, Callable, Dict, NamedTuple, Optional, Tuple
 
 
+Record = Dict[str, Any]
+
+
 class Level(NamedTuple):
     no: int
     name: str

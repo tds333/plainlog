@@ -45,11 +45,11 @@ class DummyHandler:
 def thandler():
     dh = DummyHandler()
 
-    plainlog.logger_core.configure(processors=[dh])
+    plainlog.logger_core.configure(level="DEBUG", processors=[dh], preprocessors=(), extra={})
 
     yield dh
 
-    plainlog.logger_core.configure(processors=[])
+    plainlog.logger_core.configure(level="DEBUG", processors=[], preprocessors=(), extra={})
     dh.clear()
 
 

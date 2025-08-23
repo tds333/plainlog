@@ -19,7 +19,7 @@ from typing import Any, Callable, Dict, Generator, Iterable, Optional, Tuple, Un
 
 from . import _env
 from ._frames import get_frame
-from ._recattrs import Level, Options
+from ._recattrs import Level, Options, Record
 
 get_now_utc = partial(datetime.now, timezone.utc)
 plainlog_context: ContextVar[dict] = ContextVar("plainlog_context")
@@ -96,6 +96,16 @@ def _get_levels() -> Levels:
     return levels
 
 
+def _validate_level(level) -> Level:
+    levels = _get_levels()
+    try:
+        ret = levels[level]
+    except Exception as e:
+        raise ValueError(f"Invalid log level {level}") from e
+
+    return ret
+
+
 class Core:
     def __init__(self) -> None:
         self._min_level_no: int = sys.maxsize
@@ -120,7 +130,7 @@ class Core:
     def _put(self, command: Command, message: Any = None) -> None:
         self._queue.put((command, message))
 
-    def log(self, log_record: Dict[str, Any], processors: Callables) -> None:
+    def log(self, log_record: Record, processors: Callables) -> None:
         self._queue.put((Command.LOG, (log_record, processors)))
 
     def stop(self) -> None:
@@ -153,12 +163,19 @@ class Core:
         print_errors=False,
     ) -> None:
         self._print_errors = print_errors
-        level = _env.PLAINLOG_LEVEL if level is None else level
-        self._put(Command.UPDATE_LEVEL, level)
+        if level is None:
+            if self._min_level_no == sys.maxsize:
+                level = _env.PLAINLOG_LEVEL
+        if level is not None:
+            level = _validate_level(level)
+            self._put(Command.UPDATE_LEVEL, level)
 
-        extra = _validate_extra(extra)
-        preprocessors = _validate_callables(preprocessors, "Preprocessor")
-        processors = _validate_callables(processors, "Processor")
+        _, preprocessors_old, processors_old, extra_old = self._options
+        extra = extra_old if extra is None else _validate_extra(extra)
+        preprocessors = (
+            preprocessors_old if preprocessors is None else _validate_callables(preprocessors, "Preprocessor")
+        )
+        processors = processors_old if processors is None else _validate_callables(processors, "Processor")
         options = Options("CORE", preprocessors, processors, extra)
         self._put(Command.OPTIONS, options)
         self.wait_for_processed(_env.DEFAULT_WAIT_TIMEOUT)
@@ -188,7 +205,7 @@ class Core:
 
             if command is Command.LOG:
                 log_record, processors = message
-                record = log_record.copy()
+                record: Record = log_record.copy()
 
                 for p in (*processors, *self._options.processors):
                     try:
@@ -208,13 +225,14 @@ class Core:
                         try:
                             processor.close()
                         except Exception as ex:
-                            print(
-                                f"Error in processor.close(). Processor: {processor.__class__.__name__!r} Error: {ex!r}",
-                                file=sys.stderr,
-                            )
+                            if self._print_errors:
+                                print(
+                                    f"Error in processor.close(). Processor: {processor.__class__.__name__!r} Error: {ex!r}",
+                                    file=sys.stderr,
+                                )
 
             elif command is Command.OPTIONS:
-                options = message
+                options: Options = message
                 self._options = options
 
             elif command is Command.UPDATE_LEVEL:
@@ -222,7 +240,7 @@ class Core:
                 self._min_level_no = self.level(message).no
 
             elif command is Command.EVENT:
-                event = message
+                event: Event = message
                 event.set()
 
     @staticmethod
@@ -346,7 +364,7 @@ class Logger:
         finally:
             Logger.reset_context(token)
 
-    def _log(self, level: Level, msg: str, kwargs: dict) -> Optional[dict]:
+    def _log(self, level: Level, msg: str, kwargs: dict) -> Optional[Record]:
         level_no, _ = level
         core = self._core
 
@@ -404,7 +422,7 @@ class Logger:
         level = self._core.level(level)
         self._log(level, msg, kwargs)
 
-    def __call__(self, level: LevelInput = LEVEL_DEBUG, msg="", **kwargs) -> Optional[dict]:
+    def __call__(self, level: LevelInput = LEVEL_DEBUG, msg="", **kwargs) -> Optional[Record]:
         level = self._core.level(level)
         return self._log(level, msg, kwargs)
 

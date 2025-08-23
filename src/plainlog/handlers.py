@@ -19,10 +19,11 @@ from .formatters import (
     JsonFormatter,
     SimpleFormatter,
 )
+from ._recattrs import Record
 
 
 class HandlerProtocol(Protocol):
-    def __call__(self, record: Dict[str, Any]) -> Dict[str, Any]: ...
+    def __call__(self, record: Record) -> Record: ...
 
 
 class StreamHandler:
@@ -34,7 +35,7 @@ class StreamHandler:
         self._flushable = callable(getattr(stream, "flush", None))
         self.terminator = "\n"
 
-    def __call__(self, record) -> None:
+    def __call__(self, record: Record) -> Record:
         message = self._formatter(record)
         self.write(message)
 
@@ -73,7 +74,7 @@ class WrapStandardHandler:
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(handler={self._handler!r})"
 
-    def __call__(self, record) -> None:
+    def __call__(self, record: Record) -> Record:
         message = str(record.get("message", ""))
         exc = record.get("exception")
         file_path = record["file"].path if "file" in record else ""
@@ -151,7 +152,7 @@ class FingersCrossedHandler:
 
         self._action_triggered = not self._reset
 
-    def __call__(self, record) -> None:
+    def __call__(self, record: Record) -> Record:
         if self.enqueue(record):
             self.rollover()
 
@@ -186,7 +187,7 @@ class FileHandler:
         if not delay:
             self._create_file()
 
-    def __call__(self, record) -> None:
+    def __call__(self, record: Record) -> Record:
         message = self._formatter(record)
         self.write(message)
 
@@ -248,7 +249,7 @@ class AsyncHandler:
         self.terminator = "\n"
         self.last_future: Future[Any] | None = None
 
-    def __call__(self, record) -> None:
+    def __call__(self, record: Record) -> Record:
         message = self._formatter(record)
         if self.loop.is_running():
             self.last_future = asyncio.run_coroutine_threadsafe(self.write(message), self.loop)
