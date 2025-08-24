@@ -87,7 +87,7 @@ def preprocess_exc_info(record: Record) -> Record:
     if exc_info:
         type_, value, traceback = sys.exc_info()
         exception = RecordException(type_, value, traceback)
-        # record["exc_info"] = (type_, value, traceback)
+        record["exc_info"] = (type_, value, traceback)
         record["exception"] = exception
 
     return record

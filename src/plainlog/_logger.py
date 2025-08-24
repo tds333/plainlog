@@ -182,9 +182,6 @@ class Core:
         print_errors=False,
     ) -> None:
         self._print_errors = print_errors
-        if level is None:
-            if self._min_level_no == logging.NOTSET:
-                level = _env.PLAINLOG_LEVEL
 
         if level is not None:
             level = _validate_level(level)
