@@ -40,9 +40,7 @@ class StdInterceptHandler(logging.Handler):
         level = core.level(record.levelno)
         level_no, _ = level
 
-        if level_no < core.min_level_no:
-            return
-        if self.level != logging.NOTSET and self.level < core.min_level_no:
+        if core.min_level_no > level_no or self.level > level_no:
             return
 
         _, core_preprocessors, __, core_extra = core.options
