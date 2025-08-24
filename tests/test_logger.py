@@ -95,6 +95,17 @@ def test_logger_log(thandler):
     assert record["level"] == LEVEL_INFO
 
 
+def test_logger_msg_dict(thandler):
+    message = {"content": "this is a dict"}
+    logger.log("INFO", message)
+
+    record = thandler.first()
+
+    assert record["msg"] == message
+    assert record["message"] == str(message)
+    assert record["level"] == LEVEL_INFO
+
+
 def test_logger_call(thandler):
     message = "log in DEBUG"
     record = logger(msg=message)
