@@ -41,14 +41,18 @@ Source = "https://github.com/tds333/plainlog"
 path = "src/plainlog/__version__.py"
 
 [tool.coverage.run]
-branch = true
 parallel = true
-omit = ["src/plainlog/__version__.py"]
+branch = true
+source = ["plainlog"]
 
-[tool.coverage.report]
-exclude_lines = ["no cov", "if __name__ == .__main__.:", "if TYPE_CHECKING:"]
 [tool.coverage.paths]
 source = ["src"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+exclude_lines = ["no cov", "if __name__ == .__main__.:", "if TYPE_CHECKING:"]
+omit = ["src/plainlog/__version__.py"]
 
 
 [tool.pytest.ini_options]
@@ -57,7 +61,7 @@ testpaths = ["tests"]
 
 [tool.ruff]
 exclude = [".env", ".venv", "venv"]
-line-length = 120
+line-length = 88
 [tool.ruff.lint]
 select = [
   "E", # pycodestyle errors

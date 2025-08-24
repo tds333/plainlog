@@ -230,7 +230,9 @@ def configure_log(name=None, level=None, extra=None, **kwargs):
     profile = _profiles.get(name)
     if profile is None:
         profile_names = list(_profiles.keys())
-        raise ValueError(f"Name {name!r} is not a valid log profile. Use one of {profile_names!r}")
+        raise ValueError(
+            f"Name {name!r} is not a valid log profile. Use one of {profile_names!r}"
+        )
 
     profile(level, extra, **kwargs)
 

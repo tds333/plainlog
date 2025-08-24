@@ -132,11 +132,17 @@ class ConsoleRenderer:
         self._styles = styles
         self._pad_event = pad_event
 
-        self._level_to_color: dict = self.get_default_level_styles(colors) if level_styles is None else level_styles
+        self._level_to_color: dict = (
+            self.get_default_level_styles(colors)
+            if level_styles is None
+            else level_styles
+        )
 
         for key in self._level_to_color.keys():
             self._level_to_color[key] += styles.bright
-        self._longest_level = len(max(self._level_to_color.keys(), key=lambda e: len(e)))
+        self._longest_level = len(
+            max(self._level_to_color.keys(), key=lambda e: len(e))
+        )
 
         self._repr_native_str = repr_native_str
         self._exception_formatter = exception_formatter
@@ -164,17 +170,28 @@ class ConsoleRenderer:
         if ts is not None:
             sio.write(
                 # can be a number if timestamp is UNIX
-                self._styles.timestamp + ts.astimezone().strftime("%H:%M:%S.%f") + self._styles.reset + " "
+                self._styles.timestamp
+                + ts.astimezone().strftime("%H:%M:%S.%f")
+                + self._styles.reset
+                + " "
             )
         level = record.get("level", None)
         if level is not None:
             if self._shoert_level:
                 level = level.name
-                sio.write(self._level_to_color.get(level, "") + "[" + level[0] + "] " + self._styles.reset)
+                sio.write(
+                    self._level_to_color.get(level, "")
+                    + "["
+                    + level[0]
+                    + "] "
+                    + self._styles.reset
+                )
             else:
                 level = level.name
                 sio.write(
-                    self._level_to_color.get(level, "") + _pad(level, self._longest_level + 1) + self._styles.reset
+                    self._level_to_color.get(level, "")
+                    + _pad(level, self._longest_level + 1)
+                    + self._styles.reset
                 )
 
         event = format_message(record)

@@ -33,7 +33,11 @@ class RecordException(NamedTuple):
     traceback: Optional[TracebackType]
 
     def __repr__(self):
-        return "(type=%r, value=%r, traceback=%r)" % (self.type, self.value, self.traceback)
+        return "(type=%r, value=%r, traceback=%r)" % (
+            self.type,
+            self.value,
+            self.traceback,
+        )
 
     def __reduce__(self):
         # The traceback is not picklable so we need to remove it. Also, some custom exception

@@ -113,7 +113,9 @@ class Core:
         self._levels: Levels = _get_levels()
         self._options: Options = Options(name, (), (), {})
         self._queue: SimpleQueue = SimpleQueue()
-        self._thread: Thread = Thread(target=self._worker, daemon=True, name="plainlog-worker")
+        self._thread: Thread = Thread(
+            target=self._worker, daemon=True, name="plainlog-worker"
+        )
         self._thread.start()
         self._print_errors = False
 
@@ -175,9 +177,15 @@ class Core:
         name, preprocessors_old, processors_old, extra_old = self._options
         extra = extra_old if extra is None else _validate_extra(extra)
         preprocessors = (
-            preprocessors_old if preprocessors is None else _validate_callables(preprocessors, "Preprocessor")
+            preprocessors_old
+            if preprocessors is None
+            else _validate_callables(preprocessors, "Preprocessor")
         )
-        processors = processors_old if processors is None else _validate_callables(processors, "Processor")
+        processors = (
+            processors_old
+            if processors is None
+            else _validate_callables(processors, "Processor")
+        )
         options = Options(name, preprocessors, processors, extra)
         self._put(Command.OPTIONS, options)
         self.wait_for_processed(_env.DEFAULT_WAIT_TIMEOUT)
@@ -257,7 +265,11 @@ class Core:
         if exception is None:
             type_, value, traceback_ = sys.exc_info()
         else:
-            type_, value, traceback_ = (type(exception), exception, exception.__traceback__)
+            type_, value, traceback_ = (
+                type(exception),
+                exception,
+                exception.__traceback__,
+            )
 
         try:
             sys.stderr.write("--- Logging error in Plainlog processor %r ---\n" % name)
@@ -298,10 +310,21 @@ class Logger:
         core = repr(self._core)
         return f"<plainlog.Logger name={name!r} core={core}>"
 
-    def new(self, name: Optional[str] = None, preprocessors=None, processors=None, extra=None):
+    def new(
+        self,
+        name: Optional[str] = None,
+        preprocessors=None,
+        processors=None,
+        extra=None,
+    ):
         name_, preprocessors_, processors_, extra_ = self._options
         # special handling to autodetect name, only for empty new
-        if name is None and preprocessors is None and processors is None and extra is None:
+        if (
+            name is None
+            and preprocessors is None
+            and processors is None
+            and extra is None
+        ):
             names = []
             frame = get_frame(1)
             with contextlib.suppress(KeyError):
@@ -314,7 +337,9 @@ class Logger:
                     qualname = code.co_qualname  # from 3.11 on available
                 if qualname and qualname != "<module>":
                     names.append(qualname)
-            name = ".".join(names)  # TODO: finish impl to handle all cases and asign names correct
+            name = ".".join(
+                names
+            )  # TODO: finish impl to handle all cases and asign names correct
 
         name = name_ if name is None else name
         preprocessors = preprocessors_ if preprocessors is None else preprocessors
@@ -333,7 +358,9 @@ class Logger:
 
     def bind(self, **kwargs) -> "Logger":
         name, preprocessors, processors, extra = self._options
-        return self.__class__(self._core, name, preprocessors, processors, {**extra, **kwargs})
+        return self.__class__(
+            self._core, name, preprocessors, processors, {**extra, **kwargs}
+        )
 
     def unbind(self, *args) -> "Logger":
         name, preprocessors, processors, old_extra = self._options
@@ -417,14 +444,16 @@ class Logger:
         self._log(LEVEL_CRITICAL, msg, kwargs)
 
     def exception(self, msg: str, **kwargs) -> None:  # noqa: N805
-        kwargs["exc_info"] = True
+        kwargs["exc_info"] = kwargs.get("exc_info", True)
         self._log(LEVEL_ERROR, msg, kwargs)
 
     def log(self, level: LevelInput, msg: str, **kwargs) -> None:
         level = self._core.level(level)
         self._log(level, msg, kwargs)
 
-    def __call__(self, level: LevelInput = LEVEL_DEBUG, msg="", **kwargs) -> Optional[Record]:
+    def __call__(
+        self, level: LevelInput = LEVEL_DEBUG, msg="", **kwargs
+    ) -> Optional[Record]:
         level = self._core.level(level)
         return self._log(level, msg, kwargs)
 

@@ -42,7 +42,9 @@ class StreamHandler:
         return record
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(formatter={self._formatter.__class__.__name__})"
+        return (
+            f"{self.__class__.__name__}(formatter={self._formatter.__class__.__name__})"
+        )
 
     def write(self, message) -> None:
         self._stream.write(message + self.terminator)
@@ -120,9 +122,13 @@ class JsonHandler(StreamHandler):
 
 
 class FingersCrossedHandler:
-    def __init__(self, handler, action_level=None, buffer_size=None, reset=None) -> None:
+    def __init__(
+        self, handler, action_level=None, buffer_size=None, reset=None
+    ) -> None:
         self._handler = handler
-        action_level = 40 if action_level is None else action_level  # default action_level ERROR
+        action_level = (
+            40 if action_level is None else action_level
+        )  # default action_level ERROR
         self._level = logging._checkLevel(action_level)  # type: ignore
         buffer_size = 1 if buffer_size is None else int(buffer_size)
         self.buffered_records: deque = deque(maxlen=buffer_size)
@@ -211,7 +217,9 @@ class FileHandler:
 
     def _create_file(self) -> None:
         self._path.parent.mkdir(parents=True, exist_ok=True)
-        self._file = self._path.open(mode=self._mode, encoding=self._encoding, buffering=self._buffering)
+        self._file = self._path.open(
+            mode=self._mode, encoding=self._encoding, buffering=self._buffering
+        )
 
         if self._watch:
             fileno: int = self._file.fileno()
@@ -237,7 +245,11 @@ class FileHandler:
         except FileNotFoundError:
             result = None
 
-        if not result or result[stat.ST_DEV] != self._file_dev or result[stat.ST_INO] != self._file_ino:
+        if (
+            not result
+            or result[stat.ST_DEV] != self._file_dev
+            or result[stat.ST_INO] != self._file_ino
+        ):
             self._close_file()
             self._create_file()
 
@@ -252,7 +264,9 @@ class AsyncHandler:
     def __call__(self, record: Record) -> Record:
         message = self._formatter(record)
         if self.loop.is_running():
-            self.last_future = asyncio.run_coroutine_threadsafe(self.write(message), self.loop)
+            self.last_future = asyncio.run_coroutine_threadsafe(
+                self.write(message), self.loop
+            )
 
         return record
 
@@ -264,4 +278,6 @@ class AsyncHandler:
             self.last_future.result(_env.DEFAULT_WAIT_TIMEOUT)  # type: ignore
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(formatter={self._formatter.__class__.__name__})"
+        return (
+            f"{self.__class__.__name__}(formatter={self._formatter.__class__.__name__})"
+        )
