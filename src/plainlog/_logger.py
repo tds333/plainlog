@@ -19,7 +19,7 @@ from typing import Any, Callable, Dict, Generator, Iterable, Optional, Tuple, Un
 
 from . import _env
 from ._frames import get_frame
-from ._recattrs import Level, Options, Record
+from ._recattrs import Level, Record, Msg
 
 get_now_utc = partial(datetime.now, timezone.utc)
 plainlog_context: ContextVar[dict] = ContextVar("plainlog_context")
@@ -37,10 +37,10 @@ LEVEL_CRITICAL: Level = Level(logging.CRITICAL, "CRITICAL")
 class Command(str, Enum):
     LOG = "LOG"
     STOP = "STOP"
-    ADD_HANDLER = "ADD_HANDLER"
-    REMOVE_HANDLER = "REMOVE_HANDLER"
     CLOSE_PROCESSORS = "CLOSE_PROCESSORS"
-    OPTIONS = "OPTIONS"
+    UPDATE_PREPROCESSORS = "UPDATE_PREPROCESSORS"
+    UPDATE_PROCESSORS = "UPDATE_PROCESSORS"
+    UPDATE_EXTRA = "UPDATE_EXTRA"
     UPDATE_LEVEL = "UPDATE_LEVEL"
     EVENT = "EVENT"
 
@@ -109,10 +109,12 @@ def _validate_level(level) -> Level:
 
 class Core:
     def __init__(self, name: Optional[str] = None) -> None:
-        name = "CORE" if name is None else name
+        self._name: str = "CORE" if name is None else name
         self._min_level_no: int = logging.NOTSET
         self._levels: Levels = _get_levels()
-        self._options: Options = Options(name, (), (), {})
+        self._preprocessors: Tuple = ()
+        self._processors: Tuple = ()
+        self._extra: dict = {}
         self._queue: SimpleQueue = SimpleQueue()
         self._thread: Thread = Thread(
             target=self._worker, daemon=True, name="plainlog-worker"
@@ -121,12 +123,24 @@ class Core:
         self._print_errors = False
 
     def __repr__(self) -> str:
-        name = self.options.name
+        name = self.name
         return f"<plainlog.Core({name=})>"
 
     @property
-    def options(self) -> Options:
-        return self._options
+    def name(self) -> str:
+        return self._name
+
+    @property
+    def preprocessors(self) -> Tuple[Callable, ...]:
+        return self._preprocessors
+
+    @property
+    def processors(self) -> Tuple[Callable, ...]:
+        return self._processors
+
+    @property
+    def extra(self) -> dict:
+        return deepcopy(self._extra)
 
     @property
     def min_level_no(self) -> int:
@@ -171,24 +185,20 @@ class Core:
         if level is None:
             if self._min_level_no == logging.NOTSET:
                 level = _env.PLAINLOG_LEVEL
+
         if level is not None:
             level = _validate_level(level)
             self._put(Command.UPDATE_LEVEL, level)
+        if preprocessors is not None:
+            preprocessors = _validate_callables(preprocessors, "Preprocessors")
+            self._put(Command.UPDATE_PREPROCESSORS, preprocessors)
+        if processors is not None:
+            processors = _validate_callables(processors, "Processors")
+            self._put(Command.UPDATE_PROCESSORS, processors)
+        if extra is not None:
+            extra = _validate_extra(extra)
+            self._put(Command.UPDATE_EXTRA, extra)
 
-        name, preprocessors_old, processors_old, extra_old = self._options
-        extra = extra_old if extra is None else _validate_extra(extra)
-        preprocessors = (
-            preprocessors_old
-            if preprocessors is None
-            else _validate_callables(preprocessors, "Preprocessor")
-        )
-        processors = (
-            processors_old
-            if processors is None
-            else _validate_callables(processors, "Processor")
-        )
-        options = Options(name, preprocessors, processors, extra)
-        self._put(Command.OPTIONS, options)
         self.wait_for_processed(_env.DEFAULT_WAIT_TIMEOUT)
 
     def wait_for_processed(self, timeout: Optional[float] = None) -> None:
@@ -218,7 +228,7 @@ class Core:
                 log_record, processors = message
                 record: Record = log_record.copy()
 
-                for p in (*processors, *self._options.processors):
+                for p in (*processors, *self._processors):
                     try:
                         record = p(record)
                     except Exception as ex:
@@ -231,7 +241,7 @@ class Core:
                 break
 
             elif command is Command.CLOSE_PROCESSORS:
-                for processor in self.options.processors:
+                for processor in self._processors:
                     if hasattr(processor, "close") and callable(processor.close):  # type: ignore
                         try:
                             processor.close()
@@ -242,9 +252,14 @@ class Core:
                                     file=sys.stderr,
                                 )
 
-            elif command is Command.OPTIONS:
-                options: Options = message
-                self._options = options
+            elif command is Command.UPDATE_PREPROCESSORS:
+                self._preprocessors = message
+
+            elif command is Command.UPDATE_PROCESSORS:
+                self._processors = message
+
+            elif command is Command.UPDATE_EXTRA:
+                self._extra = message
 
             elif command is Command.UPDATE_LEVEL:
                 self._levels = _get_levels()
@@ -288,9 +303,9 @@ class Core:
 
 
 class Logger:
-    __slots__ = ("_core", "_options")
+    __slots__ = ("_core", "_name", "_preprocessors", "_processors", "_extra")
 
-    # core should be the same for every logger, options change per logger
+    # core should be the same for every logger
     def __init__(
         self,
         core: Core,
@@ -300,16 +315,35 @@ class Logger:
         extra: Optional[Dict[str, Any]],
     ):
         self._core = core
-        name = _validate_name(name)
-        preprocessors = _validate_callables(preprocessors, "Preprocessor")
-        processors = _validate_callables(processors, "Processor")
-        extra = _validate_extra(extra)
-        self._options = Options(name, preprocessors, processors, extra)
+        self._name = _validate_name(name)
+        self._preprocessors = _validate_callables(preprocessors, "Preprocessor")
+        self._processors = _validate_callables(processors, "Processor")
+        self._extra = _validate_extra(extra)
 
     def __repr__(self) -> str:
-        name = self._options.name
+        name = self._name
         core = repr(self._core)
         return f"<plainlog.Logger name={name!r} core={core}>"
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @property
+    def preprocessors(self) -> Tuple[Callable, ...]:
+        return self._preprocessors
+
+    @property
+    def processors(self) -> Tuple[Callable, ...]:
+        return self._processors
+
+    @property
+    def extra(self) -> dict:
+        return deepcopy(self._extra)
+
+    @property
+    def core(self) -> Core:
+        return self._core
 
     def new(
         self,
@@ -318,7 +352,6 @@ class Logger:
         processors=None,
         extra=None,
     ):
-        name_, preprocessors_, processors_, extra_ = self._options
         # special handling to autodetect name, only for empty new
         if (
             name is None
@@ -342,37 +375,38 @@ class Logger:
                 names
             )  # TODO: finish impl to handle all cases and asign names correct
 
-        name = name_ if name is None else name
-        preprocessors = preprocessors_ if preprocessors is None else preprocessors
-        processors = processors_ if processors is None else processors
-        extra = extra_ if extra is None else extra
+        name = self._name if name is None else name
+        preprocessors = self._preprocessors if preprocessors is None else preprocessors
+        processors = self._processors if processors is None else processors
+        extra = self._extra if extra is None else extra
 
         return self.__class__(self._core, name, preprocessors, processors, extra)
 
     def __getstate__(self) -> object:
-        return self._options
+        return self._name, self._preprocessors, self._processors, self._extra
 
     def __setstate__(self, state) -> None:
         global logger_core
-        self._options = state
+        self._name, self._preprocessors, self._processors, self._extra = state
         self._core = logger_core
 
     def bind(self, **kwargs) -> "Logger":
-        name, preprocessors, processors, extra = self._options
         return self.__class__(
-            self._core, name, preprocessors, processors, {**extra, **kwargs}
+            self._core,
+            self._name,
+            self._preprocessors,
+            self._processors,
+            {**self._extra, **kwargs},
         )
 
     def unbind(self, *args) -> "Logger":
-        name, preprocessors, processors, old_extra = self._options
-        extra: Dict[str, Any] = old_extra.copy()
+        extra: Dict[str, Any] = self._extra.copy()
         for key in args:
             extra.pop(key, None)
 
-        return self.__class__(self._core, name, preprocessors, processors, extra)
-
-    def get_core(self) -> Core:
-        return self._core
+        return self.__class__(
+            self._core, self._name, self._preprocessors, self._processors, extra
+        )
 
     @staticmethod
     def context(**kwargs):
@@ -394,7 +428,7 @@ class Logger:
         finally:
             Logger.reset_context(token)
 
-    def _log(self, level: Level, msg: str, kwargs: dict) -> Optional[Record]:
+    def _log(self, level: Level, msg: Msg, kwargs: dict) -> Optional[Record]:
         level_no, _ = level
         core = self._core
 
@@ -403,57 +437,53 @@ class Logger:
 
         current_datetime = get_now_utc()
 
-        _, core_preprocessors, __, core_extra = core.options
-        name, preprocessors, processors, extra = self._options
-
         log_record = {
             "level": level,
             "msg": msg,  # raw message as in std logging
             "message": str(msg),
-            "name": name,
+            "name": self._name,
             "datetime": current_datetime,
             "process_id": logger_process.ident,
             "process_name": logger_process.name,
             "context": {**plainlog_context.get({})},
-            "extra": {**core_extra, **extra},
+            "extra": {**core._extra, **self._extra},
             "kwargs": kwargs,
         }
 
-        # stop = False
-        for preprocessor in (*preprocessors, *core_preprocessors):
+        for preprocessor in (*self._preprocessors, *core.preprocessors):
             log_record = preprocessor(log_record)
             if not log_record:
                 return None
 
-        core.log(log_record, processors)
+        core.log(log_record, self._processors)
 
         return log_record
 
-    def debug(self, msg: str, **kwargs) -> None:  # noqa: N805
+    def debug(self, msg: Msg, **kwargs) -> None:  # noqa: N805
         self._log(LEVEL_DEBUG, msg, kwargs)
 
-    def info(self, msg: str, **kwargs) -> None:  # noqa: N805
+    def info(self, msg: Msg, **kwargs) -> None:  # noqa: N805
         self._log(LEVEL_INFO, msg, kwargs)
 
-    def warning(self, msg: str, **kwargs) -> None:  # noqa: N805
+    def warning(self, msg: Msg, **kwargs) -> None:  # noqa: N805
         self._log(LEVEL_WARNING, msg, kwargs)
 
-    def error(self, msg: str, **kwargs) -> None:  # noqa: N805
+    def error(self, msg: Msg, **kwargs) -> None:  # noqa: N805
         self._log(LEVEL_ERROR, msg, kwargs)
 
-    def critical(self, msg: str, **kwargs) -> None:  # noqa: N805
+    def critical(self, msg: Msg, **kwargs) -> None:  # noqa: N805
         self._log(LEVEL_CRITICAL, msg, kwargs)
 
-    def exception(self, msg: str, **kwargs) -> None:  # noqa: N805
+    def exception(self, msg: Msg, **kwargs) -> None:  # noqa: N805
         kwargs["exc_info"] = kwargs.get("exc_info", True)
         self._log(LEVEL_ERROR, msg, kwargs)
 
-    def log(self, level: LevelInput, msg: str, **kwargs) -> None:
+    def log(self, level: LevelInput, msg: Msg, **kwargs) -> None:
         level = self._core.level(level)
         self._log(level, msg, kwargs)
 
     def __call__(
-        self, level: LevelInput = LEVEL_DEBUG, msg="", **kwargs
+        self, level: LevelInput = LEVEL_DEBUG, msg: Msg = "", **kwargs
     ) -> Optional[Record]:
         level = self._core.level(level)
         return self._log(level, msg, kwargs)

@@ -5,7 +5,7 @@ import pickle
 from types import TracebackType
 from typing import Any, Callable, Dict, NamedTuple, Optional, Tuple
 
-
+Msg = str
 Record = Dict[str, Any]
 
 
@@ -18,13 +18,6 @@ class Level(NamedTuple):
 
     def __format__(self, spec):
         return self.name.__format__(spec)
-
-
-class Options(NamedTuple):
-    name: str
-    preprocessors: Tuple[Callable, ...]
-    processors: Tuple[Callable, ...]
-    extra: Dict[str, Any]
 
 
 class RecordException(NamedTuple):

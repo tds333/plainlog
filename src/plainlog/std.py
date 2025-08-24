@@ -43,7 +43,8 @@ class StdInterceptHandler(logging.Handler):
         if core.min_level_no > level_no or self.level > level_no:
             return
 
-        _, core_preprocessors, __, core_extra = core.options
+        core_preprocessors = core.preprocessors
+        core_extra = core.extra
         kwargs: dict = {}
         extra: dict = {}
         for key, value in record.__dict__.items():
