@@ -66,8 +66,9 @@ class LoggerClass:
 
 
 async def main():
-    logger_core.add(MyAsyncHandler())
-    log = logger.new()
+    # logger.core.configure(processors=(*logger.core.processors, MyAsyncHandler()))
+    # logger.core.configure(processors=(*logger.core.processors, MyAsyncHandler()))
+    log = logger.new(processors=MyAsyncHandler())
     log.debug("hello")
 
     log = log.bind(bla=5)
@@ -105,8 +106,12 @@ if __name__ == "__main__":
     asyncio.run(main())
     t2 = time()
     duration = t2 - t1
-    print("===============================================================================")
+    print(
+        "==============================================================================="
+    )
     print("duration: %f s" % duration)
-    print("===============================================================================")
+    print(
+        "==============================================================================="
+    )
     logger.error("Duration: %f" % duration, timer=True)
     logger_core.close()

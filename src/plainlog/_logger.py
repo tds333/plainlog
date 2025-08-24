@@ -109,18 +109,18 @@ def _validate_level(level) -> Level:
 
 class Core:
     def __init__(self, name: Optional[str] = None) -> None:
-        self._name: str = "CORE" if name is None else name
+        self._name: str = "CORE" if name is None else _validate_name(name)
         self._min_level_no: int = logging.NOTSET
         self._levels: Levels = _get_levels()
         self._preprocessors: Tuple = ()
         self._processors: Tuple = ()
         self._extra: dict = {}
+        self._print_errors = False
         self._queue: SimpleQueue = SimpleQueue()
         self._thread: Thread = Thread(
             target=self._worker, daemon=True, name="plainlog-worker"
         )
         self._thread.start()
-        self._print_errors = False
 
     def __repr__(self) -> str:
         name = self.name
