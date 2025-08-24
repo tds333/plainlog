@@ -26,6 +26,7 @@ plainlog_context: ContextVar[dict] = ContextVar("plainlog_context")
 logger_process = current_process()
 
 # predefined for performance reason
+LEVEL_NOTSET: Level = Level(logging.NOTSET, "NOTSET")
 LEVEL_DEBUG: Level = Level(logging.DEBUG, "DEBUG")
 LEVEL_INFO: Level = Level(logging.INFO, "INFO")
 LEVEL_WARNING: Level = Level(logging.WARNING, "WARNING")
@@ -109,7 +110,7 @@ def _validate_level(level) -> Level:
 class Core:
     def __init__(self, name: Optional[str] = None) -> None:
         name = "CORE" if name is None else name
-        self._min_level_no: int = sys.maxsize
+        self._min_level_no: int = logging.NOTSET
         self._levels: Levels = _get_levels()
         self._options: Options = Options(name, (), (), {})
         self._queue: SimpleQueue = SimpleQueue()
@@ -168,7 +169,7 @@ class Core:
     ) -> None:
         self._print_errors = print_errors
         if level is None:
-            if self._min_level_no == sys.maxsize:
+            if self._min_level_no == logging.NOTSET:
                 level = _env.PLAINLOG_LEVEL
         if level is not None:
             level = _validate_level(level)
@@ -397,7 +398,7 @@ class Logger:
         level_no, _ = level
         core = self._core
 
-        if level_no < core.min_level_no:
+        if core.min_level_no > level_no:
             return None
 
         current_datetime = get_now_utc()
