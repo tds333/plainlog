@@ -453,7 +453,7 @@ class Logger:
         for preprocessor in (*self._preprocessors, *core.preprocessors):
             log_record = preprocessor(log_record)
             if not log_record:
-                return None
+                return log_record
 
         core.log(log_record, self._processors)
 
