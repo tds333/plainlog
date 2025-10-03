@@ -3,23 +3,34 @@
 # SPDX-License-Identifier: Apache-2.0 OR MIT
 import atexit
 import collections.abc
+from collections import OrderedDict
 import contextlib
 import logging
 import sys
 import traceback
 from contextvars import ContextVar
-from copy import deepcopy
+from copy import deepcopy, copy
 from datetime import datetime, timezone
 from enum import Enum
 from functools import partial
 from multiprocessing import current_process
 from queue import SimpleQueue
 from threading import Event, Thread
-from typing import Any, Callable, Dict, Generator, Iterable, Optional, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Generator,
+    Iterable,
+    Optional,
+    Tuple,
+    Union,
+    List,
+)
 
 from . import _env
-from ._frames import get_frame
-from ._recattrs import Level, Record, Msg
+from ._frames import get_frame, add_caller_info
+from ._recattrs import Level, Record, Msg, HandlerProtocol, RecordException
 
 get_now_utc = partial(datetime.now, timezone.utc)
 plainlog_context: ContextVar[dict] = ContextVar("plainlog_context")
@@ -37,11 +48,7 @@ LEVEL_CRITICAL: Level = Level(logging.CRITICAL, "CRITICAL")
 class Command(str, Enum):
     LOG = "LOG"
     STOP = "STOP"
-    CLOSE_PROCESSORS = "CLOSE_PROCESSORS"
-    UPDATE_PREPROCESSORS = "UPDATE_PREPROCESSORS"
-    UPDATE_PROCESSORS = "UPDATE_PROCESSORS"
-    UPDATE_EXTRA = "UPDATE_EXTRA"
-    UPDATE_LEVEL = "UPDATE_LEVEL"
+    CONFIGURE = "CONFIGURE"
     EVENT = "EVENT"
 
 
@@ -112,10 +119,10 @@ class Core:
         self._name: str = "CORE" if name is None else _validate_name(name)
         self._min_level_no: int = logging.NOTSET
         self._levels: Levels = _get_levels()
-        self._preprocessors: Tuple = ()
-        self._processors: Tuple = ()
+        self._handler: Optional[HandlerProtocol] = None
         self._extra: dict = {}
         self._print_errors = False
+        self._add_caller_info = False
         self._queue: SimpleQueue = SimpleQueue()
         self._thread: Thread = Thread(
             target=self._worker, daemon=True, name="plainlog-worker"
@@ -130,13 +137,13 @@ class Core:
     def name(self) -> str:
         return self._name
 
-    @property
-    def preprocessors(self) -> Tuple[Callable, ...]:
-        return self._preprocessors
+    # @property
+    # def handlers(self) -> OrderedDict[str, HandlerProtocol]:
+    #     return copy(self._handlers)
 
     @property
-    def processors(self) -> Tuple[Callable, ...]:
-        return self._processors
+    def handler(self) -> Optional[HandlerProtocol]:
+        return self._handler
 
     @property
     def extra(self) -> dict:
@@ -149,14 +156,23 @@ class Core:
     def _put(self, command: Command, message: Any = None) -> None:
         self._queue.put((command, message))
 
-    def log(self, log_record: Record, processors: Callables) -> None:
-        self._queue.put((Command.LOG, (log_record, processors)))
+    def log(self, log_record: Record) -> None:
+        if self._handler:
+            # if self._add_caller_info:
+            #     add_caller_info(log_record)
+
+            try:
+                self._handler.preprocess(log_record)
+            except Exception as ex:
+                if self._print_errors:
+                    print(
+                        f"Error in handler.preprocess() for handler {self._handler!r}. Error: {ex!r}",
+                        file=sys.stderr,
+                    )
+            self._queue.put((Command.LOG, log_record))
 
     def stop(self) -> None:
         self._put(Command.STOP)
-
-    def close_processors(self) -> None:
-        self._put(Command.CLOSE_PROCESSORS)
 
     def join(self) -> None:
         self._thread.join()
@@ -172,29 +188,44 @@ class Core:
 
         return ret
 
+    # def add(self, name, handler):
+    #     self._put(Command.ADD_HANDLER, (name, handler))
+    #     self.wait_for_processed(_env.DEFAULT_WAIT_TIMEOUT)
+    #     return name
+
+    # def remove(self, name=None) -> List[str]:
+    #     removed = []
+    #     if name is None:
+    #         names = list(self._handlers.keys())
+    #         for name in names:
+    #             self._put(Command.REMOVE_HANDLER, name)
+    #             removed.append(name)
+    #     else:
+    #         if name in self._handlers:
+    #             self._put(Command.REMOVE_HANDLER, name)
+    #             removed.append(name)
+    #         else:
+    #             raise ValueError(f"Handler with {name} not found.")
+    #     self.wait_for_processed(_env.DEFAULT_WAIT_TIMEOUT)
+    #     return removed
+
     def configure(
         self,
         *,
         level: Optional[Union[str, int, Level]] = None,
-        preprocessors: Optional[Callables] = None,
-        processors: Optional[Callables] = None,
+        handler: Optional[HandlerProtocol] = None,
         extra: Optional[Dict[str, Any]] = None,
         print_errors=False,
+        add_caller_info=None,
     ) -> None:
-        self._print_errors = print_errors
-
         if level is not None:
             level = _validate_level(level)
-            self._put(Command.UPDATE_LEVEL, level)
-        if preprocessors is not None:
-            preprocessors = _validate_callables(preprocessors, "Preprocessors")
-            self._put(Command.UPDATE_PREPROCESSORS, preprocessors)
-        if processors is not None:
-            processors = _validate_callables(processors, "Processors")
-            self._put(Command.UPDATE_PROCESSORS, processors)
         if extra is not None:
             extra = _validate_extra(extra)
-            self._put(Command.UPDATE_EXTRA, extra)
+
+        self._put(
+            Command.CONFIGURE, (level, handler, extra, print_errors, add_caller_info)
+        )
 
         self.wait_for_processed(_env.DEFAULT_WAIT_TIMEOUT)
 
@@ -205,8 +236,10 @@ class Core:
 
     def close(self) -> None:
         if self.is_alive():
-            self.close_processors()
-            self.wait_for_processed(_env.DEFAULT_WAIT_TIMEOUT)
+            # self.close_processors()
+            # self.remove()
+            self.configure(level=None, handler=None, extra=None, print_errors=False)
+            # self.wait_for_processed(_env.DEFAULT_WAIT_TIMEOUT)
             self.stop()
             self.join()
 
@@ -222,56 +255,48 @@ class Core:
                 continue
 
             if command is Command.LOG:
-                log_record, processors = message
-                record: Record = log_record.copy()
+                log_record = message
+                record: Record = copy(log_record)
 
-                for p in (*processors, *self._processors):
+                if self._handler:
                     try:
-                        record = p(record)
+                        self._handler.process(record)
                     except Exception as ex:
                         if self._print_errors:
-                            self._print_error(log_record, p, ex)
-                    if not record:
-                        break  # for loop
+                            self._print_error(log_record, self._handler, ex)
+
+            elif command is Command.CONFIGURE:
+                level, handler, extra, print_errors, add_caller_info = message
+                if level is not None:
+                    self._levels = _get_levels()
+                    self._min_level_no = self.level(level).no
+                if extra is not None:
+                    self._extra = extra
+                if print_errors is not None:
+                    self._print_errors = print_errors
+                if add_caller_info is not None:
+                    self._add_caller_info = add_caller_info
+                if self._handler is not None:
+                    try:
+                        handler.close()
+                    except Exception as ex:
+                        if self._print_errors:
+                            print(
+                                f"Error in handler.close() for handler {handler.__class__.__name__!r}. Error: {ex!r}",
+                                file=sys.stderr,
+                            )
+                if handler is not None:
+                    self._handler = handler
 
             elif command is Command.STOP:
                 break
-
-            elif command is Command.CLOSE_PROCESSORS:
-                for processor in self._processors:
-                    if hasattr(processor, "close") and callable(processor.close):  # type: ignore
-                        try:
-                            processor.close()
-                        except Exception as ex:
-                            if self._print_errors:
-                                print(
-                                    f"Error in processor.close(). Processor: {processor.__class__.__name__!r} Error: {ex!r}",
-                                    file=sys.stderr,
-                                )
-
-            elif command is Command.UPDATE_PREPROCESSORS:
-                self._preprocessors = message
-
-            elif command is Command.UPDATE_PROCESSORS:
-                self._processors = message
-
-            elif command is Command.UPDATE_EXTRA:
-                self._extra = message
-
-            elif command is Command.UPDATE_LEVEL:
-                self._levels = _get_levels()
-                self._min_level_no = self.level(message).no
 
             elif command is Command.EVENT:
                 event: Event = message
                 event.set()
 
     @staticmethod
-    def _print_error(record: dict, processor, exception=None) -> None:
-        try:
-            name = processor.__name__  # type: ignore
-        except AttributeError:
-            name = processor.__class__.__name__
+    def _print_error(record: dict, handler, exception=None) -> None:
         if not sys.stderr or sys.stderr.closed:
             return
 
@@ -285,7 +310,7 @@ class Core:
             )
 
         try:
-            sys.stderr.write("--- Logging error in Plainlog processor %r ---\n" % name)
+            sys.stderr.write("--- Logging error in Plainlog handler %r ---\n" % handler)
             try:
                 record_repr = str(record)
             except Exception:
@@ -300,21 +325,17 @@ class Core:
 
 
 class Logger:
-    __slots__ = ("_core", "_name", "_preprocessors", "_processors", "_extra")
+    __slots__ = ("_core", "_name", "_extra")
 
     # core should be the same for every logger
     def __init__(
         self,
         core: Core,
         name: str,
-        preprocessors: Optional[Callables],
-        processors: Optional[Callables],
         extra: Optional[Dict[str, Any]],
     ):
         self._core = core
         self._name = _validate_name(name)
-        self._preprocessors = _validate_callables(preprocessors, "Preprocessor")
-        self._processors = _validate_callables(processors, "Processor")
         self._extra = _validate_extra(extra)
 
     def __repr__(self) -> str:
@@ -327,14 +348,6 @@ class Logger:
         return self._name
 
     @property
-    def preprocessors(self) -> Tuple[Callable, ...]:
-        return self._preprocessors
-
-    @property
-    def processors(self) -> Tuple[Callable, ...]:
-        return self._processors
-
-    @property
     def extra(self) -> dict:
         return deepcopy(self._extra)
 
@@ -345,17 +358,10 @@ class Logger:
     def new(
         self,
         name: Optional[str] = None,
-        preprocessors=None,
-        processors=None,
         extra=None,
     ):
         # special handling to autodetect name, only for empty new
-        if (
-            name is None
-            and preprocessors is None
-            and processors is None
-            and extra is None
-        ):
+        if name is None and extra is None:
             names = []
             frame = get_frame(1)
             with contextlib.suppress(KeyError):
@@ -373,26 +379,22 @@ class Logger:
             )  # TODO: finish impl to handle all cases and asign names correct
 
         name = self._name if name is None else name
-        preprocessors = self._preprocessors if preprocessors is None else preprocessors
-        processors = self._processors if processors is None else processors
         extra = self._extra if extra is None else extra
 
-        return self.__class__(self._core, name, preprocessors, processors, extra)
+        return self.__class__(self._core, name, extra)
 
     def __getstate__(self) -> object:
-        return self._name, self._preprocessors, self._processors, self._extra
+        return self._name, self._extra
 
     def __setstate__(self, state) -> None:
         global logger_core
-        self._name, self._preprocessors, self._processors, self._extra = state
+        self._name, self._extra = state
         self._core = logger_core
 
     def bind(self, **kwargs) -> "Logger":
         return self.__class__(
             self._core,
             self._name,
-            self._preprocessors,
-            self._processors,
             {**self._extra, **kwargs},
         )
 
@@ -401,9 +403,7 @@ class Logger:
         for key in args:
             extra.pop(key, None)
 
-        return self.__class__(
-            self._core, self._name, self._preprocessors, self._processors, extra
-        )
+        return self.__class__(self._core, self._name, extra)
 
     @staticmethod
     def context(**kwargs):
@@ -426,13 +426,13 @@ class Logger:
             Logger.reset_context(token)
 
     def _log(self, level: Level, msg: Msg, kwargs: dict) -> Optional[Record]:
-        level_no, _ = level
         core = self._core
 
-        if core.min_level_no > level_no:
+        if core.min_level_no > level.no or core._handler is None:
             return None
 
         current_datetime = get_now_utc()
+        exc_info = kwargs.pop("exc_info", False)
 
         log_record = {
             "level": level,
@@ -447,12 +447,13 @@ class Logger:
             "kwargs": kwargs,
         }
 
-        for preprocessor in (*self._preprocessors, *core.preprocessors):
-            log_record = preprocessor(log_record)
-            if not log_record:
-                return log_record
+        if exc_info:
+            type_, value, traceback = sys.exc_info()
+            exception = RecordException(type_, value, traceback)
+            log_record["exc_info"] = (type_, value, traceback)
+            log_record["exception"] = exception
 
-        core.log(log_record, self._processors)
+        core.log(log_record)
 
         return log_record
 
@@ -492,7 +493,5 @@ atexit.register(logger_core.close)
 logger: Logger = Logger(
     core=logger_core,
     name="root",
-    preprocessors=None,
-    processors=None,
     extra={},
 )

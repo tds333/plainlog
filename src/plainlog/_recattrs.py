@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0 OR MIT
 import pickle
 from types import TracebackType
-from typing import Any, Callable, Dict, NamedTuple, Optional, Tuple
+from typing import Any, Callable, Dict, NamedTuple, Optional, Tuple, Protocol
 
 Msg = str
 Record = Dict[str, Any]
@@ -44,3 +44,11 @@ class RecordException(NamedTuple):
             return (RecordException, (self.type, None, None))
         else:
             return (RecordException, (self.type, self.value, None))
+
+
+class HandlerProtocol(Protocol):
+    def process(self, record: Record) -> None: ...
+
+    def preprocess(self, record: Record) -> None: ...
+
+    def close(self) -> None: ...

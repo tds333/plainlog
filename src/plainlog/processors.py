@@ -30,6 +30,8 @@ class ProcessorProtocol(Protocol):
 
 
 def add_caller_info(record: Record, level=3) -> Record:
+    if "function" in record:
+        return record
     frame = get_frame(level)
     # name = frame.f_globals["__name__"]
     code = frame.f_code

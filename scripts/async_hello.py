@@ -66,9 +66,8 @@ class LoggerClass:
 
 
 async def main():
-    # logger.core.configure(processors=(*logger.core.processors, MyAsyncHandler()))
-    # logger.core.configure(processors=(*logger.core.processors, MyAsyncHandler()))
-    log = logger.new(processors=MyAsyncHandler())
+    logger.core.configure(handler=MyAsyncHandler())
+    log = logger.new()
     log.debug("hello")
 
     log = log.bind(bla=5)

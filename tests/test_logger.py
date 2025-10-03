@@ -9,6 +9,8 @@ from plainlog._logger import (
     LEVEL_ERROR,
     LEVEL_CRITICAL,
 )
+from plainlog._recattrs import Record
+from plainlog.handlers import BaseHandler
 
 
 def test_logger_repr():
@@ -72,7 +74,7 @@ def test_logger_exception(thandler):
 
     assert record["msg"] == message
     assert record["level"] == LEVEL_ERROR
-    assert record["kwargs"]["exc_info"]
+    assert record["exc_info"]
 
 
 def test_logger_critical(thandler):
@@ -123,6 +125,14 @@ def test_core():
     records = []
     message = "other core debug"
 
+    class DummyHandler(BaseHandler):
+        def __init__(self) -> None:
+            self.records = []
+            super().__init__()
+
+        def process(self, record) -> None:
+            self.records.append(record)
+
     def dummy_processor(record):
         nonlocal records
         records.append(record)
@@ -130,12 +140,12 @@ def test_core():
         return record
 
     core_test = Core(name="CORE_TEST")
+    dummy_handler = DummyHandler()
     with closing(core_test):
-        core_test.configure(processors=dummy_processor)
-        logger_test = Logger(
-            core_test, name="test", preprocessors=(), processors=(), extra={}
-        )
+        # core_test.configure(processors=dummy_processor)
+        core_test.configure(handler=dummy_handler)
+        logger_test = Logger(core_test, name="test", extra={})
         logger_test.debug(message)
 
-    assert records
-    assert records[0].get("msg") == message
+    assert dummy_handler.records
+    assert dummy_handler.records[0].get("msg") == message

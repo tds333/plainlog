@@ -43,7 +43,7 @@ class StdInterceptHandler(logging.Handler):
         if core.min_level_no > level_no or self.level > level_no:
             return
 
-        core_preprocessors = core.preprocessors
+        # core_preprocessors = core.preprocessors
         core_extra = core.extra
         kwargs: dict = {}
         extra: dict = {}
@@ -78,12 +78,12 @@ class StdInterceptHandler(logging.Handler):
         if hasattr(record, "taskName"):
             log_record["task_name"] = record.taskName
 
-        for preprocessor in core_preprocessors:
-            log_record = preprocessor(log_record)
-            if not log_record:
-                return None
+        # for preprocessor in core_preprocessors:
+        #     log_record = preprocessor(log_record)
+        #     if not log_record:
+        #         return None
 
-        core.log(log_record, processors=())
+        core.log(log_record)
 
 
 def set_as_root_handler(level: Union[int, str] = logging.NOTSET) -> logging.Handler:

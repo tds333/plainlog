@@ -19,11 +19,48 @@ from .formatters import (
     JsonFormatter,
     SimpleFormatter,
 )
-from ._recattrs import Record
+from ._recattrs import Record, HandlerProtocol
 
 
-class HandlerProtocol(Protocol):
-    def __call__(self, record: Record) -> Record: ...
+# class HandlerProtocol(Protocol):
+#     def __call__(self, record: Record) -> Record: ...
+
+#     def preprocess(self, record: Record) -> Record: ...
+
+#     def close(self) -> None: ...
+
+
+class BaseHandler:
+    def preprocess(self, record: Record) -> None:
+        pass
+
+    def process(self, record: Record) -> None:
+        pass
+
+    def close(self) -> None:
+        pass
+
+
+class ProcessingHandler(BaseHandler):
+    def __init__(self, preprocessors=None, processors=None):
+        self._preprocessors = [] if preprocessors is None else preprocessors
+        self._processors = [] if processors is None else processors
+        super().__init__()
+
+    def preprocess(self, record: Record) -> None:
+        for preprocessor in self._preprocessors:
+            record = preprocessor(record)
+            if not record:
+                break
+
+    def process(self, record: Record) -> None:
+        for processor in self._processors:
+            record = processor(record)
+            if not record:
+                break
+
+    def close(self) -> None:
+        pass
 
 
 class StreamHandler:
@@ -261,7 +298,10 @@ class AsyncHandler:
         self.terminator = "\n"
         self.last_future: Future[Any] | None = None
 
-    def __call__(self, record: Record) -> Record:
+    def preprocess(self, record):
+        pass
+
+    def process(self, record: Record) -> Record:
         message = self._formatter(record)
         if self.loop.is_running():
             self.last_future = asyncio.run_coroutine_threadsafe(
