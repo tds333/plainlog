@@ -156,13 +156,12 @@ class Core:
     def _put(self, command: Command, message: Any = None) -> None:
         self._queue.put((command, message))
 
-    def log(self, log_record: Record) -> None:
+    def log(self, log_record: Record) -> Record:
         if self._handler:
-            # if self._add_caller_info:
-            #     add_caller_info(log_record)
-
             try:
-                self._handler.preprocess(log_record)
+                log_record = self._handler.preprocess(log_record)
+                if not log_record:  # Stop processing if Handler decides so
+                    return log_record
             except Exception as ex:
                 if self._print_errors:
                     print(
@@ -170,6 +169,10 @@ class Core:
                         file=sys.stderr,
                     )
             self._queue.put((Command.LOG, log_record))
+
+            return log_record
+
+        return {}
 
     def stop(self) -> None:
         self._put(Command.STOP)
@@ -187,27 +190,6 @@ class Core:
             raise ValueError(f"Invalid level {level!r}. Does not exist.")
 
         return ret
-
-    # def add(self, name, handler):
-    #     self._put(Command.ADD_HANDLER, (name, handler))
-    #     self.wait_for_processed(_env.DEFAULT_WAIT_TIMEOUT)
-    #     return name
-
-    # def remove(self, name=None) -> List[str]:
-    #     removed = []
-    #     if name is None:
-    #         names = list(self._handlers.keys())
-    #         for name in names:
-    #             self._put(Command.REMOVE_HANDLER, name)
-    #             removed.append(name)
-    #     else:
-    #         if name in self._handlers:
-    #             self._put(Command.REMOVE_HANDLER, name)
-    #             removed.append(name)
-    #         else:
-    #             raise ValueError(f"Handler with {name} not found.")
-    #     self.wait_for_processed(_env.DEFAULT_WAIT_TIMEOUT)
-    #     return removed
 
     def configure(
         self,
@@ -425,11 +407,11 @@ class Logger:
         finally:
             Logger.reset_context(token)
 
-    def _log(self, level: Level, msg: Msg, kwargs: dict) -> Optional[Record]:
+    def _log(self, level: Level, msg: Msg, kwargs: dict) -> Record:
         core = self._core
 
         if core.min_level_no > level.no or core._handler is None:
-            return None
+            return {}
 
         current_datetime = get_now_utc()
         exc_info = kwargs.pop("exc_info", False)
@@ -453,7 +435,7 @@ class Logger:
             log_record["exc_info"] = (type_, value, traceback)
             log_record["exception"] = exception
 
-        core.log(log_record)
+        log_record = core.log(log_record)
 
         return log_record
 
@@ -482,7 +464,7 @@ class Logger:
 
     def __call__(
         self, level: LevelInput = LEVEL_DEBUG, msg: Msg = "", **kwargs
-    ) -> Optional[Record]:
+    ) -> Record:
         level = self._core.level(level)
         return self._log(level, msg, kwargs)
 

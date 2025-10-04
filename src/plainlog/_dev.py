@@ -11,7 +11,7 @@ import traceback
 from io import StringIO
 from typing import Any, Iterable, Protocol, TextIO, Type, Union
 
-from .formatters import format_message
+from .formatters import format_message, get_processed_extra
 
 __all__ = [
     "ConsoleRenderer",
@@ -198,7 +198,8 @@ class ConsoleRenderer:
         if not isinstance(event, str):
             event = str(event)
 
-        extra = record.get("extra")
+        # extra = record.get("extra")
+        extra = get_processed_extra(record)
         logger_name = record.get("name", None)
         if not self._log_name:
             logger_name = None

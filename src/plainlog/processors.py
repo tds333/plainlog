@@ -278,6 +278,6 @@ def elapsed(record) -> None:
 
 
 # defaults used for core configuration
-DEFAULT_PREPROCESSORS = (preprocess_exc_info,)
+DEFAULT_PREPROCESSORS = ()
 # DEFAULT_PROCESSORS = (eval_lambda, context_to_extra, kwargs_to_extra, preformat_message)
 DEFAULT_PROCESSORS = (context_to_extra, kwargs_to_extra, eval_extra)

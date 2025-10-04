@@ -8,7 +8,13 @@ from plainlog.processors import (
     filter_by_name,
     FilterList,
 )
-from plainlog.handlers import WrapStandardHandler, ConsoleHandler, JsonHandler, FileHandler, StreamHandler
+from plainlog.handlers import (
+    WrapStandardHandler,
+    ConsoleHandler,
+    JsonHandler,
+    FileHandler,
+    StreamHandler,
+)
 
 # from plainlog._rich_handler import RichHandler
 from plainlog.handlers import JsonHandler
@@ -129,7 +135,9 @@ def main():
     local_val = "10045 sdf"
     log.info(f"my local format string {local_val}")
     log.info("my local format string {local_val}", local_val=5)
-    log.info("timer output", timer=lambda: timer(), timer_func=timer, timer_result=timer())
+    log.info(
+        "timer output", timer=lambda: timer(), timer_func=timer, timer_result=timer()
+    )
     log.info("print output", pval=lambda: repr(hr))
     log.debug("duration={duration}", duration=lambda: duration_calc(time()))
     log.debug("start duration={duration}", duration=lambda: duration_calc())
@@ -156,7 +164,7 @@ def main2():
     from plainlog.configure import configure_log
 
     # configure_log("develop", level="DEBUG", reset=True, buffer_size=2)
-    configure_log("develop", level="DEBUG", reset=True, buffer_size=2)
+    # configure_log("develop", level="DEBUG", reset=True, buffer_size=2)
     log = logger.new()
     log.debug("hello")
     log.warning("some warning")
@@ -309,9 +317,13 @@ if __name__ == "__main__":
     # main()
     t2 = time()
     duration = t2 - t1
-    print("===============================================================================")
+    print(
+        "==============================================================================="
+    )
     print("duration: %f s" % duration)
-    print("===============================================================================")
+    print(
+        "==============================================================================="
+    )
     logger.error("Duration: %f" % duration, timer=True)
     # logger.close()
     # logger.close()

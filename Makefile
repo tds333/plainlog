@@ -15,6 +15,10 @@ cov: ## Run tests with coverage
 test: ## Run tests in current Python
 	uv run pytest
 
+.PHONY: devel-test
+devel-test: ## Run verbose tests in current Python
+	uv run pytest -v --lf
+
 .PHONY: tests
 tests: ## Run tests in all supporte Python versions
 	uv run --isolated -p 3.9 pytest

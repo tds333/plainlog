@@ -8,7 +8,7 @@ import pathlib
 import stat
 import sys
 from collections import deque
-from typing import Any, Dict, Protocol, IO
+from typing import Any, Dict, Protocol, IO, Optional
 
 from concurrent.futures import Future
 
@@ -19,6 +19,7 @@ from .formatters import (
     JsonFormatter,
     SimpleFormatter,
 )
+from .processors import context_to_extra, kwargs_to_extra, eval_extra
 from ._recattrs import Record, HandlerProtocol
 
 
@@ -31,36 +32,68 @@ from ._recattrs import Record, HandlerProtocol
 
 
 class BaseHandler:
-    def preprocess(self, record: Record) -> None:
-        pass
+    def preprocess(self, record: Record) -> Record:
+        return record
 
-    def process(self, record: Record) -> None:
-        pass
+    def process(self, record: Record) -> Record:
+        return record
 
     def close(self) -> None:
         pass
 
 
-class ProcessingHandler(BaseHandler):
-    def __init__(self, preprocessors=None, processors=None):
+class ProcessingHandler:
+    def __init__(self, preprocessors=None, processors=None, handler=None):
         self._preprocessors = [] if preprocessors is None else preprocessors
         self._processors = [] if processors is None else processors
-        super().__init__()
+        self._handler = handler
 
-    def preprocess(self, record: Record) -> None:
+    def preprocess(self, record: Record) -> Record:
         for preprocessor in self._preprocessors:
             record = preprocessor(record)
             if not record:
-                break
+                return record
 
-    def process(self, record: Record) -> None:
+        return record
+
+    def process(self, record: Record) -> Record:
         for processor in self._processors:
             record = processor(record)
-            if not record:
-                break
+            if not record:  # stop processing
+                return record
+        if self._handler is not None:
+            record = self._handler.process(record)
+
+        return record
 
     def close(self) -> None:
-        pass
+        if self._handler is not None:
+            self._handler.close()
+
+
+class CollectHandler:
+    def __init__(self, handlers=None):
+        self._handlers = [] if handlers is None else handlers
+
+    def preprocess(self, record: Record) -> Record:
+        for handler in self._handlers:
+            record = handler.preprocess(record)
+            if not record:  # stop processing
+                return record
+
+        return record
+
+    def process(self, record: Record) -> Record:
+        for handler in self._handlers:
+            record = handler.process(record)
+            if not record:  # stop processing
+                return record
+
+        return record
+
+    def close(self) -> None:
+        for handler in self._handlers:
+            handler.close()
 
 
 class StreamHandler:
@@ -71,6 +104,15 @@ class StreamHandler:
         self._formatter = SimpleFormatter() if formatter is None else formatter
         self._flushable = callable(getattr(stream, "flush", None))
         self.terminator = "\n"
+
+    def preprocess(self, record: Record) -> Record:
+        return record
+
+    def process(self, record: Record) -> Record:
+        return self(record)
+
+    def close(self) -> None:
+        pass
 
     def __call__(self, record: Record) -> Record:
         message = self._formatter(record)
@@ -112,6 +154,12 @@ class WrapStandardHandler:
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(handler={self._handler!r})"
+
+    def preprocess(self, record: Record) -> Record:
+        return record
+
+    def process(self, record: Record) -> Record:
+        return self(record)
 
     def __call__(self, record: Record) -> Record:
         message = str(record.get("message", ""))
@@ -160,7 +208,7 @@ class JsonHandler(StreamHandler):
 
 class FingersCrossedHandler:
     def __init__(
-        self, handler, action_level=None, buffer_size=None, reset=None
+        self, handler: HandlerProtocol, action_level=None, buffer_size=None, reset=None
     ) -> None:
         self._handler = handler
         action_level = (
@@ -175,13 +223,9 @@ class FingersCrossedHandler:
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(action_level={self._level!r}, handler={self._handler!r})"
 
-    def close(self) -> None:
-        if hasattr(self._handler, "close") and callable(self._handler.close):
-            self._handler.close()
-
     def enqueue(self, record):
         if self._action_triggered:
-            self._handler(record)
+            self._handler.process(record)
         else:
             self.buffered_records.append(record)
             return record["level"].no >= self._level
@@ -191,15 +235,21 @@ class FingersCrossedHandler:
     def rollover(self) -> None:
         while self.buffered_records:
             record = self.buffered_records.popleft()
-            self._handler(record)
+            self._handler.process(record)
 
         self._action_triggered = not self._reset
 
-    def __call__(self, record: Record) -> Record:
+    def preprocess(self, record: Record) -> Record:
+        return self._handler.preprocess(record)
+
+    def process(self, record: Record) -> Record:
         if self.enqueue(record):
             self.rollover()
 
         return record
+
+    def close(self) -> None:
+        self._handler.close()
 
 
 class FileHandler:
@@ -230,7 +280,10 @@ class FileHandler:
         if not delay:
             self._create_file()
 
-    def __call__(self, record: Record) -> Record:
+    def preprocess(self, record: Record) -> Record:
+        return record
+
+    def process(self, record: Record) -> Record:
         message = self._formatter(record)
         self.write(message)
 
@@ -298,8 +351,8 @@ class AsyncHandler:
         self.terminator = "\n"
         self.last_future: Future[Any] | None = None
 
-    def preprocess(self, record):
-        pass
+    def preprocess(self, record: Record) -> Record:
+        return record
 
     def process(self, record: Record) -> Record:
         message = self._formatter(record)

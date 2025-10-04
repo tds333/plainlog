@@ -8,11 +8,9 @@ from ._logger import logger_core
 
 def _default(level=None, extra=None, **kwargs) -> None:
     from .handlers import DefaultHandler, ProcessingHandler
-    from .processors import DEFAULT_PREPROCESSORS, DEFAULT_PROCESSORS
+    from .processors import DEFAULT_PROCESSORS
 
-    handler = ProcessingHandler(
-        DEFAULT_PREPROCESSORS, (*DEFAULT_PROCESSORS, DefaultHandler())
-    )
+    handler = ProcessingHandler(None, DEFAULT_PROCESSORS, DefaultHandler())
 
     logger_core.configure(
         level=level,
@@ -24,16 +22,17 @@ def _default(level=None, extra=None, **kwargs) -> None:
 def _develop(level=None, extra=None, **kwargs) -> None:
     from .handlers import ConsoleHandler, ProcessingHandler
     from .processors import (
-        DEFAULT_PREPROCESSORS,
         DEFAULT_PROCESSORS,
         Duration,
         add_caller_info,
     )
 
-    preprocessors = (*DEFAULT_PREPROCESSORS, add_caller_info, Duration())
-    processors = (*DEFAULT_PROCESSORS, ConsoleHandler(sys.stderr, colors=True))
+    preprocessors = (add_caller_info, Duration())
+    # processors = DEFAULT_PROCESSORS
 
-    handler = ProcessingHandler(preprocessors, processors)
+    handler = ProcessingHandler(
+        preprocessors, handler=ConsoleHandler(sys.stderr, colors=True)
+    )
 
     logger_core.configure(
         handler=handler,
@@ -46,8 +45,6 @@ def _develop(level=None, extra=None, **kwargs) -> None:
 def _fingerscrossed(level=None, extra=None, **kwargs) -> None:
     from .handlers import ConsoleHandler, FingersCrossedHandler, ProcessingHandler
     from .processors import (
-        DEFAULT_PREPROCESSORS,
-        DEFAULT_PROCESSORS,
         Duration,
         add_caller_info,
     )
@@ -63,9 +60,9 @@ def _fingerscrossed(level=None, extra=None, **kwargs) -> None:
         buffer_size=buffer_size,
     )
 
-    preprocessors = (*DEFAULT_PREPROCESSORS, add_caller_info, Duration())
-    processors = (*DEFAULT_PROCESSORS, fc)
-    handler = ProcessingHandler(preprocessors, processors)
+    preprocessors = (add_caller_info, Duration())
+    # processors = (*DEFAULT_PROCESSORS)
+    handler = ProcessingHandler(preprocessors, handler=fc)
     logger_core.configure(
         handler=handler,
         extra=extra,
