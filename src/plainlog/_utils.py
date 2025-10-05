@@ -11,19 +11,6 @@ from __future__ import annotations
 import contextlib
 
 
-def eval_lambda_list(data: list) -> list:
-    result = []
-    for arg in data:
-        if callable(arg) and arg.__name__ == "<lambda>":
-            with contextlib.suppress(Exception):
-                arg_result = arg()
-                result.append(arg_result)
-        else:
-            result.append(arg)
-
-    return result
-
-
 def eval_lambda_dict(data: dict) -> dict:
     for name, value in data.items():
         if callable(value) and value.__name__ == "<lambda>":
