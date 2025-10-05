@@ -47,3 +47,13 @@ def eval_format(msg, kwargs) -> str:
     message: str = msg.format(**kwargs_)
 
     return message
+
+
+def get_processed_extra(record: dict) -> dict:
+    extra = record.get("extra", {})
+    kwargs = record.get("kwargs", {})
+    context = record.get("context", {})
+    extra = {**extra, **context, **kwargs}
+    extra = eval_lambda_dict(extra)
+
+    return extra

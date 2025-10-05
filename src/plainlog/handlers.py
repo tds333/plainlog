@@ -19,16 +19,8 @@ from .formatters import (
     JsonFormatter,
     SimpleFormatter,
 )
-from .processors import context_to_extra, kwargs_to_extra, eval_extra
+from .processors import add_caller_info
 from ._recattrs import Record, HandlerProtocol
-
-
-# class HandlerProtocol(Protocol):
-#     def __call__(self, record: Record) -> Record: ...
-
-#     def preprocess(self, record: Record) -> Record: ...
-
-#     def close(self) -> None: ...
 
 
 class BaseHandler:
@@ -144,6 +136,12 @@ class ConsoleHandler(StreamHandler):
         if stream is None:
             stream = sys.stdout
         super().__init__(stream, ConsoleRenderer(colors=colors))
+
+
+class DevelopHandler(ConsoleHandler):
+    def preprocess(self, record: Record) -> Record:
+        record = add_caller_info(record, level=4)
+        return record
 
 
 class WrapStandardHandler:

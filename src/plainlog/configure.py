@@ -7,35 +7,20 @@ from ._logger import logger_core
 
 
 def _default(level=None, extra=None, **kwargs) -> None:
-    from .handlers import DefaultHandler, ProcessingHandler
-    from .processors import DEFAULT_PROCESSORS
-
-    handler = ProcessingHandler(None, DEFAULT_PROCESSORS, DefaultHandler())
+    from .handlers import DefaultHandler
 
     logger_core.configure(
         level=level,
-        handler=handler,
+        handler=DefaultHandler(),
         extra=extra,
     )
 
 
 def _develop(level=None, extra=None, **kwargs) -> None:
-    from .handlers import ConsoleHandler, ProcessingHandler
-    from .processors import (
-        DEFAULT_PROCESSORS,
-        Duration,
-        add_caller_info,
-    )
-
-    preprocessors = (add_caller_info, Duration())
-    # processors = DEFAULT_PROCESSORS
-
-    handler = ProcessingHandler(
-        preprocessors, handler=ConsoleHandler(sys.stderr, colors=True)
-    )
+    from .handlers import DevelopHandler
 
     logger_core.configure(
-        handler=handler,
+        handler=DevelopHandler(sys.stderr, colors=True),
         extra=extra,
         level=level,
         print_errors=True,
@@ -43,26 +28,19 @@ def _develop(level=None, extra=None, **kwargs) -> None:
 
 
 def _fingerscrossed(level=None, extra=None, **kwargs) -> None:
-    from .handlers import ConsoleHandler, FingersCrossedHandler, ProcessingHandler
-    from .processors import (
-        Duration,
-        add_caller_info,
-    )
+    from .handlers import ConsoleHandler, FingersCrossedHandler
 
     action_level = kwargs.get("action_level")
     buffer_size = kwargs.get("buffer_size")
     reset = kwargs.get("reset")
 
-    fc = FingersCrossedHandler(
+    handler = FingersCrossedHandler(
         ConsoleHandler(sys.stderr, colors=True),
         action_level=action_level,
         reset=reset,
         buffer_size=buffer_size,
     )
 
-    preprocessors = (add_caller_info, Duration())
-    # processors = (*DEFAULT_PROCESSORS)
-    handler = ProcessingHandler(preprocessors, handler=fc)
     logger_core.configure(
         handler=handler,
         extra=extra,
@@ -73,13 +51,10 @@ def _fingerscrossed(level=None, extra=None, **kwargs) -> None:
 
 def _simple(level=None, extra=None, **kwargs) -> None:
     from .formatters import SimpleFormatter
-    from .handlers import StreamHandler, ProcessingHandler
-    from .processors import DEFAULT_PREPROCESSORS, DEFAULT_PROCESSORS
+    from .handlers import StreamHandler
 
     stream = kwargs.get("stream", sys.stderr)
-    preprocessors = DEFAULT_PREPROCESSORS
-    processors = (*DEFAULT_PROCESSORS, StreamHandler(stream, SimpleFormatter()))
-    handler = ProcessingHandler(preprocessors, processors)
+    handler = StreamHandler(stream, SimpleFormatter())
     logger_core.configure(
         extra=extra,
         level=level,
@@ -88,13 +63,10 @@ def _simple(level=None, extra=None, **kwargs) -> None:
 
 
 def _cloud(level=None, extra=None, **kwargs) -> None:
-    from .handlers import JsonHandler, ProcessingHandler
-    from .processors import DEFAULT_PREPROCESSORS, DEFAULT_PROCESSORS
+    from .handlers import JsonHandler
 
     stream = kwargs.get("stream", sys.stderr)
-    preprocessors = (DEFAULT_PREPROCESSORS,)
-    processors = (*DEFAULT_PROCESSORS, JsonHandler(stream=stream))
-    handler = ProcessingHandler(preprocessors, processors)
+    handler = JsonHandler(stream=stream)
     logger_core.configure(
         extra=extra,
         level=level,
@@ -103,13 +75,10 @@ def _cloud(level=None, extra=None, **kwargs) -> None:
 
 
 def _json(level=None, extra=None, **kwargs) -> None:
-    from .handlers import JsonHandler, ProcessingHandler
-    from .processors import DEFAULT_PREPROCESSORS, DEFAULT_PROCESSORS
+    from .handlers import JsonHandler
 
     stream = kwargs.get("stream", sys.stderr)
-    preprocessors = (DEFAULT_PREPROCESSORS,)
-    processors = (*DEFAULT_PROCESSORS, JsonHandler(stream=stream, indent=2))
-    handler = ProcessingHandler(preprocessors, processors)
+    handler = JsonHandler(stream=stream, indent=2)
 
     logger_core.configure(
         extra=extra,
@@ -119,14 +88,11 @@ def _json(level=None, extra=None, **kwargs) -> None:
 
 
 def _file(level=None, extra=None, **kwargs) -> None:
-    from .handlers import FileHandler, ProcessingHandler
-    from .processors import DEFAULT_PREPROCESSORS, DEFAULT_PROCESSORS
+    from .handlers import FileHandler
 
     filename = kwargs.get("filename", "plainlog.log")
     watch = True
-    preprocessors = (DEFAULT_PREPROCESSORS,)
-    processors = (*DEFAULT_PROCESSORS, FileHandler(filename, watch=watch))
-    handler = ProcessingHandler(preprocessors, processors)
+    handler = FileHandler(filename, watch=watch)
 
     logger_core.configure(
         extra=extra,
@@ -136,23 +102,19 @@ def _file(level=None, extra=None, **kwargs) -> None:
 
 
 def _fingerscrossed_file(level=None, extra=None, **kwargs) -> None:
-    from .handlers import FileHandler, FingersCrossedHandler, ProcessingHandler
-    from .processors import DEFAULT_PREPROCESSORS, DEFAULT_PROCESSORS
+    from .handlers import FileHandler, FingersCrossedHandler
 
     filename = kwargs.get("filename", "plainlog.log")
     action_level = kwargs.get("action_level")
     buffer_size = kwargs.get("buffer_size")
     reset = kwargs.get("reset")
 
-    fc = FingersCrossedHandler(
+    handler = FingersCrossedHandler(
         FileHandler(filename, watch=True),
         action_level=action_level,
         reset=reset,
         buffer_size=buffer_size,
     )
-    preprocessors = (DEFAULT_PREPROCESSORS,)
-    processors = (*DEFAULT_PROCESSORS, fc)
-    handler = ProcessingHandler(preprocessors, processors)
     logger_core.configure(
         extra=extra,
         level=level,
@@ -161,14 +123,11 @@ def _fingerscrossed_file(level=None, extra=None, **kwargs) -> None:
 
 
 def _console_no_color(level=None, extra=None, **kwargs):
-    from .handlers import ConsoleHandler, ProcessingHandler
-    from .processors import DEFAULT_PREPROCESSORS, DEFAULT_PROCESSORS
+    from .handlers import ConsoleHandler
 
     stream = kwargs.get("stream", sys.stderr)
 
-    preprocessors = (DEFAULT_PREPROCESSORS,)
-    processors = (*DEFAULT_PROCESSORS, ConsoleHandler(stream, colors=False))
-    handler = ProcessingHandler(preprocessors, processors)
+    handler = ConsoleHandler(stream, colors=False)
     logger_core.configure(
         extra=extra,
         level=level,
@@ -179,12 +138,10 @@ def _console_no_color(level=None, extra=None, **kwargs):
 
 def _fast(level=None, extra=None, **kwargs):
     from .formatters import SimpleFormatter
-    from .handlers import StreamHandler, ProcessingHandler
+    from .handlers import StreamHandler
 
     stream = kwargs.get("stream", sys.stderr)
-    preprocessors = []
-    processors = [StreamHandler(stream, SimpleFormatter())]
-    handler = ProcessingHandler(preprocessors, processors)
+    handler = StreamHandler(stream, SimpleFormatter())
 
     logger_core.configure(
         handler=handler,

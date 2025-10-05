@@ -275,9 +275,3 @@ class Duration:
 def elapsed(record) -> None:
     record["elapsed"] = datetime.now(timezone.utc) - start_time
     return record
-
-
-# defaults used for core configuration
-DEFAULT_PREPROCESSORS = ()
-# DEFAULT_PROCESSORS = (eval_lambda, context_to_extra, kwargs_to_extra, preformat_message)
-DEFAULT_PROCESSORS = (context_to_extra, kwargs_to_extra, eval_extra)

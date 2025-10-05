@@ -11,7 +11,8 @@ import traceback
 from io import StringIO
 from typing import Any, Iterable, Protocol, TextIO, Type, Union
 
-from .formatters import format_message, get_processed_extra
+from .formatters import format_message
+from ._utils import get_processed_extra
 
 __all__ = [
     "ConsoleRenderer",
@@ -147,7 +148,7 @@ class ConsoleRenderer:
         self._repr_native_str = repr_native_str
         self._exception_formatter = exception_formatter
         self._sort_keys = sort_keys
-        self._shoert_level = short_level
+        self._short_level = short_level
         self._log_name = log_name
 
     def _repr(self, val: Any) -> str:
@@ -177,7 +178,7 @@ class ConsoleRenderer:
             )
         level = record.get("level", None)
         if level is not None:
-            if self._shoert_level:
+            if self._short_level:
                 level = level.name
                 sio.write(
                     self._level_to_color.get(level, "")

@@ -4,7 +4,7 @@
 import json
 import contextlib
 
-from ._utils import eval_format
+from ._utils import eval_format, get_processed_extra
 from ._recattrs import Record
 
 
@@ -16,26 +16,6 @@ def format_message(record):
         message = eval_format(msg, kwargs)
 
     return message
-
-
-def eval_lambda_dict(data: dict) -> dict:
-    for name, value in data.items():
-        if callable(value) and value.__name__ == "<lambda>":
-            with contextlib.suppress(Exception):
-                result = value()
-                data[name] = result
-
-    return data
-
-
-def get_processed_extra(record: Record) -> dict:
-    extra = record.get("extra", {})
-    kwargs = record.get("kwargs", {})
-    context = record.get("context", {})
-    extra = {**extra, **context, **kwargs}
-    extra = eval_lambda_dict(extra)
-
-    return extra
 
 
 class SimpleFormatter:

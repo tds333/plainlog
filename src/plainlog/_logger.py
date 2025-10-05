@@ -57,22 +57,22 @@ Levels = Dict[LevelInput, Level]
 Callables = Union[Callable, Iterable[Callable]]
 
 
-def _validate_callables(
-    callables: Optional[Union[Callable, Iterable[Callable]]], name: str = "Callable"
-) -> Tuple[Callable, ...]:
-    if callables is not None:
-        if isinstance(callables, collections.abc.Iterable):
-            callables = tuple(callables)
-        else:
-            callables = (callables,)
+# def _validate_callables(
+#     callables: Optional[Union[Callable, Iterable[Callable]]], name: str = "Callable"
+# ) -> Tuple[Callable, ...]:
+#     if callables is not None:
+#         if isinstance(callables, collections.abc.Iterable):
+#             callables = tuple(callables)
+#         else:
+#             callables = (callables,)
 
-        for c in callables:
-            if not callable(c):
-                raise ValueError(f"{name} '{c}' must be a callable object.")
-    else:
-        callables = ()
+#         for c in callables:
+#             if not callable(c):
+#                 raise ValueError(f"{name} '{c}' must be a callable object.")
+#     else:
+#         callables = ()
 
-    return callables
+#     return callables
 
 
 def _validate_extra(extra: Optional[Dict[str, Any]]) -> Dict[str, Any]:
@@ -137,10 +137,6 @@ class Core:
     def name(self) -> str:
         return self._name
 
-    # @property
-    # def handlers(self) -> OrderedDict[str, HandlerProtocol]:
-    #     return copy(self._handlers)
-
     @property
     def handler(self) -> Optional[HandlerProtocol]:
         return self._handler
@@ -197,7 +193,7 @@ class Core:
         level: Optional[Union[str, int, Level]] = None,
         handler: Optional[HandlerProtocol] = None,
         extra: Optional[Dict[str, Any]] = None,
-        print_errors=False,
+        print_errors=None,
         add_caller_info=None,
     ) -> None:
         if level is not None:
@@ -255,18 +251,19 @@ class Core:
                 if extra is not None:
                     self._extra = extra
                 if print_errors is not None:
-                    self._print_errors = print_errors
+                    self._print_errors = bool(print_errors)
                 if add_caller_info is not None:
-                    self._add_caller_info = add_caller_info
+                    self._add_caller_info = bool(add_caller_info)
                 if self._handler is not None:
-                    try:
-                        handler.close()
-                    except Exception as ex:
-                        if self._print_errors:
-                            print(
-                                f"Error in handler.close() for handler {handler.__class__.__name__!r}. Error: {ex!r}",
-                                file=sys.stderr,
-                            )
+                    if hasattr(handler, "close") and callable(handler.close):
+                        try:
+                            handler.close()
+                        except Exception as ex:
+                            if self._print_errors:
+                                print(
+                                    f"Error in handler.close() for handler {handler.__class__.__name__!r}. Error: {ex!r}",
+                                    file=sys.stderr,
+                                )
                 if handler is not None:
                     self._handler = handler
 

@@ -15,8 +15,6 @@ from plainlog.handlers import (
     WrapStandardHandler,
 )
 from plainlog.processors import (
-    DEFAULT_PREPROCESSORS,
-    DEFAULT_PROCESSORS,
     FilterList,
     add_caller_info,
     filter_by_name,
