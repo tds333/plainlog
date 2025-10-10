@@ -26,16 +26,17 @@ jobs:
         python-version: ['3.9', '3.10', '3.11', '3.12', '3.13', '3.13t', '3.14', '3.14t', 'pypy3.9', 'pypy3.10', 'pypy3.11']
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v5
 
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
+    - name: Set up Python and uv ${{ matrix.python-version }}
+      # uses: actions/setup-python@v5
+      uses: astral-sh/setup-uv@v6
       with:
         python-version: ${{ matrix.python-version }}
-        allow-prereleases: true
+        #allow-prereleases: true
 
-    - name: Install uv
-      run: pip install --upgrade uv
+    # - name: Install uv
+    #   run: pip install --upgrade uv
 
     - name: Run tests
       run: make cov
