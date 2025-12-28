@@ -7,20 +7,6 @@ import plainlog
 from plainlog.handlers import BaseHandler
 
 
-# @pytest.fixture(autouse=True)
-# def reset_logger():
-#     def reset():
-#         plainlog.logger_core.remove()
-#         plainlog.logger.__init__(
-#             plainlog._logger.Core(), "root", None, None, {}
-#         )
-#         plainlog._logger.context.set({})
-
-#     reset()
-#     yield
-#     reset()
-
-
 class DummyHandlerOld:
     def __init__(self):
         self._records = []
@@ -67,11 +53,11 @@ class DummyHandler(BaseHandler):
 def thandler():
     dh = DummyHandler()
 
-    plainlog.logger_core.configure(level="DEBUG", handler=dh, extra={})
+    plainlog.logger_core.configure(level="DEBUG", handler=dh)
 
     yield dh
 
-    plainlog.logger_core.configure(level="DEBUG", handler=None, extra={})
+    plainlog.logger_core.configure(level="DEBUG", handler=None)
     dh.clear()
 
 

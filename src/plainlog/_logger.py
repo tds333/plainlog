@@ -3,13 +3,12 @@
 # SPDX-License-Identifier: Apache-2.0 OR MIT
 import atexit
 import collections.abc
-from collections import OrderedDict
 import contextlib
 import logging
 import sys
 import traceback
 from contextvars import ContextVar
-from copy import deepcopy, copy
+from copy import copy, deepcopy
 from datetime import datetime, timezone
 from enum import Enum
 from functools import partial
@@ -23,14 +22,12 @@ from typing import (
     Generator,
     Iterable,
     Optional,
-    Tuple,
     Union,
-    List,
 )
 
 from . import _env
-from ._frames import get_frame, add_caller_info
-from ._recattrs import Level, Record, Msg, HandlerProtocol, RecordException
+from ._frames import get_frame
+from ._recattrs import HandlerProtocol, Level, Msg, Record, RecordException
 
 get_now_utc = partial(datetime.now, timezone.utc)
 plainlog_context: ContextVar[dict] = ContextVar("plainlog_context")
@@ -55,24 +52,6 @@ class Command(str, Enum):
 LevelInput = Union[int, str, Level]
 Levels = Dict[LevelInput, Level]
 Callables = Union[Callable, Iterable[Callable]]
-
-
-# def _validate_callables(
-#     callables: Optional[Union[Callable, Iterable[Callable]]], name: str = "Callable"
-# ) -> Tuple[Callable, ...]:
-#     if callables is not None:
-#         if isinstance(callables, collections.abc.Iterable):
-#             callables = tuple(callables)
-#         else:
-#             callables = (callables,)
-
-#         for c in callables:
-#             if not callable(c):
-#                 raise ValueError(f"{name} '{c}' must be a callable object.")
-#     else:
-#         callables = ()
-
-#     return callables
 
 
 def _validate_extra(extra: Optional[Dict[str, Any]]) -> Dict[str, Any]:
@@ -120,9 +99,8 @@ class Core:
         self._min_level_no: int = logging.NOTSET
         self._levels: Levels = _get_levels()
         self._handler: Optional[HandlerProtocol] = None
-        self._extra: dict = {}
+        # self._extra: dict = {}
         self._print_errors = False
-        self._add_caller_info = False
         self._queue: SimpleQueue = SimpleQueue()
         self._thread: Thread = Thread(
             target=self._worker, daemon=True, name="plainlog-worker"
@@ -142,10 +120,6 @@ class Core:
         return self._handler
 
     @property
-    def extra(self) -> dict:
-        return deepcopy(self._extra)
-
-    @property
     def min_level_no(self) -> int:
         return self._min_level_no
 
@@ -153,7 +127,7 @@ class Core:
         self._queue.put((command, message))
 
     def log(self, log_record: Record) -> Record:
-        if self._handler:
+        if self._handler is not None:
             try:
                 log_record = self._handler.preprocess(log_record)
                 if not log_record:  # Stop processing if Handler decides so
@@ -190,20 +164,14 @@ class Core:
     def configure(
         self,
         *,
+        handler: Union[HandlerProtocol, None],
         level: Optional[Union[str, int, Level]] = None,
-        handler: Optional[HandlerProtocol] = None,
-        extra: Optional[Dict[str, Any]] = None,
         print_errors=None,
-        add_caller_info=None,
     ) -> None:
         if level is not None:
             level = _validate_level(level)
-        if extra is not None:
-            extra = _validate_extra(extra)
 
-        self._put(
-            Command.CONFIGURE, (level, handler, extra, print_errors, add_caller_info)
-        )
+        self._put(Command.CONFIGURE, (handler, level, print_errors))
 
         self.wait_for_processed(_env.DEFAULT_WAIT_TIMEOUT)
 
@@ -214,65 +182,60 @@ class Core:
 
     def close(self) -> None:
         if self.is_alive():
-            # self.close_processors()
-            # self.remove()
-            self.configure(level=None, handler=None, extra=None, print_errors=False)
-            # self.wait_for_processed(_env.DEFAULT_WAIT_TIMEOUT)
+            self.configure(level=None, handler=None, print_errors=False)
             self.stop()
             self.join()
 
     def _worker(self) -> None:
-        queue = self._queue
+        queue_get = self._queue.get
+        self_handler = self._handler
 
         while True:
-            # command, message = None, None
-            # with contextlib.suppress(Exception):
             try:
-                command, message = queue.get()
+                value = queue_get()
             except Exception:
                 continue
 
-            if command is Command.LOG:
-                log_record = message
-                record: Record = copy(log_record)
-
-                if self._handler:
-                    try:
-                        self._handler.process(record)
-                    except Exception as ex:
-                        if self._print_errors:
-                            self._print_error(log_record, self._handler, ex)
-
-            elif command is Command.CONFIGURE:
-                level, handler, extra, print_errors, add_caller_info = message
-                if level is not None:
-                    self._levels = _get_levels()
-                    self._min_level_no = self.level(level).no
-                if extra is not None:
-                    self._extra = extra
-                if print_errors is not None:
-                    self._print_errors = bool(print_errors)
-                if add_caller_info is not None:
-                    self._add_caller_info = bool(add_caller_info)
-                if self._handler is not None:
-                    if hasattr(handler, "close") and callable(handler.close):
+            match value:
+                case (Command.LOG, log_record):
+                    if self_handler is not None:
+                        record: Record = copy(log_record)
                         try:
-                            handler.close()
+                            self_handler.process(record)
                         except Exception as ex:
                             if self._print_errors:
-                                print(
-                                    f"Error in handler.close() for handler {handler.__class__.__name__!r}. Error: {ex!r}",
-                                    file=sys.stderr,
-                                )
-                if handler is not None:
-                    self._handler = handler
+                                self._print_error(log_record, self_handler, ex)
 
-            elif command is Command.STOP:
-                break
+                case (
+                    Command.CONFIGURE,
+                    (handler, level, print_errors),
+                ):
+                    if level is not None:
+                        self._levels = _get_levels()
+                        self._min_level_no = self.level(level).no
+                    if print_errors is not None:
+                        self._print_errors = bool(print_errors)
+                    if self_handler is not None:
+                        if hasattr(self_handler, "close") and callable(
+                            self_handler.close
+                        ):
+                            try:
+                                self_handler.close()
+                                self._handler = self_handler = None
+                            except Exception as ex:
+                                if self._print_errors:
+                                    print(
+                                        f"Error in handler.close() for handler {self_handler.__class__.__name__!r}. Error: {ex!r}",
+                                        file=sys.stderr,
+                                    )
+                    if handler is not None:
+                        self._handler = self_handler = handler
 
-            elif command is Command.EVENT:
-                event: Event = message
-                event.set()
+                case (Command.STOP, _):
+                    break
+
+                case (Command.EVENT, event):
+                    event.set()
 
     @staticmethod
     def _print_error(record: dict, handler, exception=None) -> None:
@@ -413,7 +376,7 @@ class Logger:
         current_datetime = get_now_utc()
         exc_info = kwargs.pop("exc_info", False)
 
-        log_record = {
+        log_record: Record = {
             "level": level,
             "msg": msg,  # raw message as in std logging
             "message": str(msg),
@@ -422,7 +385,8 @@ class Logger:
             "process_id": logger_process.ident,
             "process_name": logger_process.name,
             "context": {**plainlog_context.get({})},
-            "extra": {**core._extra, **self._extra},
+            # "extra": {**core._extra, **self._extra},
+            "extra": {**self._extra},
             "kwargs": kwargs,
         }
 

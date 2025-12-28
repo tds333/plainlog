@@ -6,28 +6,26 @@ import sys
 from ._logger import logger_core
 
 
-def _default(level=None, extra=None, **kwargs) -> None:
+def _default(level=None, **kwargs) -> None:
     from .handlers import DefaultHandler
 
     logger_core.configure(
         level=level,
         handler=DefaultHandler(),
-        extra=extra,
     )
 
 
-def _develop(level=None, extra=None, **kwargs) -> None:
+def _develop(level=None, **kwargs) -> None:
     from .handlers import DevelopHandler
 
     logger_core.configure(
         handler=DevelopHandler(sys.stderr, colors=True),
-        extra=extra,
         level=level,
         print_errors=True,
     )
 
 
-def _fingerscrossed(level=None, extra=None, **kwargs) -> None:
+def _fingerscrossed(level=None, **kwargs) -> None:
     from .handlers import ConsoleHandler, FingersCrossedHandler
 
     action_level = kwargs.get("action_level")
@@ -43,51 +41,47 @@ def _fingerscrossed(level=None, extra=None, **kwargs) -> None:
 
     logger_core.configure(
         handler=handler,
-        extra=extra,
         level=level,
         print_errors=True,
     )
 
 
-def _simple(level=None, extra=None, **kwargs) -> None:
+def _simple(level=None, **kwargs) -> None:
     from .formatters import SimpleFormatter
     from .handlers import StreamHandler
 
     stream = kwargs.get("stream", sys.stderr)
     handler = StreamHandler(stream, SimpleFormatter())
     logger_core.configure(
-        extra=extra,
         level=level,
         handler=handler,
     )
 
 
-def _cloud(level=None, extra=None, **kwargs) -> None:
+def _cloud(level=None, **kwargs) -> None:
     from .handlers import JsonHandler
 
     stream = kwargs.get("stream", sys.stderr)
     handler = JsonHandler(stream=stream)
     logger_core.configure(
-        extra=extra,
         level=level,
         handler=handler,
     )
 
 
-def _json(level=None, extra=None, **kwargs) -> None:
+def _json(level=None, **kwargs) -> None:
     from .handlers import JsonHandler
 
     stream = kwargs.get("stream", sys.stderr)
     handler = JsonHandler(stream=stream, indent=2)
 
     logger_core.configure(
-        extra=extra,
         level=level,
         handler=handler,
     )
 
 
-def _file(level=None, extra=None, **kwargs) -> None:
+def _file(level=None, **kwargs) -> None:
     from .handlers import FileHandler
 
     filename = kwargs.get("filename", "plainlog.log")
@@ -95,13 +89,12 @@ def _file(level=None, extra=None, **kwargs) -> None:
     handler = FileHandler(filename, watch=watch)
 
     logger_core.configure(
-        extra=extra,
         level=level,
         handler=handler,
     )
 
 
-def _fingerscrossed_file(level=None, extra=None, **kwargs) -> None:
+def _fingerscrossed_file(level=None, **kwargs) -> None:
     from .handlers import FileHandler, FingersCrossedHandler
 
     filename = kwargs.get("filename", "plainlog.log")
@@ -116,27 +109,25 @@ def _fingerscrossed_file(level=None, extra=None, **kwargs) -> None:
         buffer_size=buffer_size,
     )
     logger_core.configure(
-        extra=extra,
         level=level,
         handler=handler,
     )
 
 
-def _console_no_color(level=None, extra=None, **kwargs):
+def _console_no_color(level=None, **kwargs):
     from .handlers import ConsoleHandler
 
     stream = kwargs.get("stream", sys.stderr)
 
     handler = ConsoleHandler(stream, colors=False)
     logger_core.configure(
-        extra=extra,
         level=level,
         handler=handler,
         print_errors=True,
     )
 
 
-def _fast(level=None, extra=None, **kwargs):
+def _fast(level=None, **kwargs):
     from .formatters import SimpleFormatter
     from .handlers import StreamHandler
 
@@ -145,31 +136,30 @@ def _fast(level=None, extra=None, **kwargs):
 
     logger_core.configure(
         handler=handler,
-        extra=extra,
         level=level,
     )
 
 
-def _empty(level=None, extra=None, **kwargs):
-    logger_core.configure(extra={}, level=level)
+def _empty(level=None, **kwargs):
+    logger_core.configure(handler=None, level=level)
 
 
-def _no_init(level=None, extra=None, **kwargs):
+def _no_init(level=None, **kwargs):
     pass
 
 
-def _std_handler(level=None, extra=None, **kwargs):
+def _std_handler(level=None, **kwargs):
     from .std import set_as_root_handler
 
     set_as_root_handler()
-    _default(level, extra, kwargs=kwargs)
+    _default(level, kwargs=kwargs)
 
 
-def _std_handler_develop(level=None, extra=None, **kwargs):
+def _std_handler_develop(level=None, **kwargs):
     from .std import set_as_root_handler
 
     set_as_root_handler()
-    _develop(level, extra, kwargs=kwargs)
+    _develop(level, kwargs=kwargs)
 
 
 _profiles = {
@@ -196,7 +186,7 @@ def add_profile(name, function):
     _profiles[name] = function
 
 
-def configure_log(name=None, level=None, extra=None, **kwargs):
+def configure_log(name=None, level=None, **kwargs):
     if name is None:
         name = "default"
 
@@ -207,7 +197,7 @@ def configure_log(name=None, level=None, extra=None, **kwargs):
             f"Name {name!r} is not a valid log profile. Use one of {profile_names!r}"
         )
 
-    profile(level, extra, **kwargs)
+    profile(level, **kwargs)
 
 
 configure_core = logger_core.configure

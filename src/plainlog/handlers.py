@@ -8,19 +8,18 @@ import pathlib
 import stat
 import sys
 from collections import deque
-from typing import Any, Dict, Protocol, IO, Optional
-
 from concurrent.futures import Future
+from typing import IO, Any
 
 from . import _env
 from ._dev import ConsoleRenderer
+from ._recattrs import HandlerProtocol, Record
 from .formatters import (
     DefaultFormatter,
     JsonFormatter,
     SimpleFormatter,
 )
 from .processors import add_caller_info
-from ._recattrs import Record, HandlerProtocol
 
 
 class BaseHandler:

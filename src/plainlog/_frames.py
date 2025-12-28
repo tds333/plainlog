@@ -5,11 +5,11 @@
 import sys
 import traceback
 from io import StringIO
-from types import FrameType
 from multiprocessing import current_process
 from os.path import basename, splitext
 from pathlib import Path
 from threading import current_thread
+from types import FrameType
 
 
 def get_frame_fallback(n) -> FrameType:

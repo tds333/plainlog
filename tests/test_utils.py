@@ -1,6 +1,4 @@
-import pytest
-
-from plainlog._utils import eval_dict, eval_lambda_dict, eval_format
+from plainlog._utils import eval_dict, eval_format, eval_lambda_dict
 
 
 def test_eval_dict():

@@ -3,9 +3,10 @@
 # SPDX-License-Identifier: Apache-2.0 OR MIT
 import pickle
 from types import TracebackType
-from typing import Any, Callable, Dict, NamedTuple, Optional, Tuple, Protocol
+from typing import Any, Dict, NamedTuple, Optional, Protocol
 
-Msg = str
+# Msg = str
+Msg = Any
 Record = Dict[str, Any]
 
 

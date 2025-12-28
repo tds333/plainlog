@@ -15,12 +15,11 @@ from multiprocessing import current_process
 from os.path import basename, splitext
 from pathlib import Path
 from threading import current_thread
-from typing import Protocol, Callable
+from typing import Callable, Protocol
 
 from ._frames import get_frame
-from ._recattrs import RecordException, Record
+from ._recattrs import Record, RecordException
 from ._utils import eval_dict, eval_format, eval_lambda_dict
-
 
 start_time: datetime = datetime.now(timezone.utc)
 
@@ -272,6 +271,6 @@ class Duration:
         return record
 
 
-def elapsed(record) -> None:
+def elapsed(record) -> Record:
     record["elapsed"] = datetime.now(timezone.utc) - start_time
     return record

@@ -1,13 +1,14 @@
 from contextlib import closing
-from plainlog import logger, logger_core
+
+from plainlog import logger
 from plainlog._logger import (
-    Logger,
-    Core,
+    LEVEL_CRITICAL,
     LEVEL_DEBUG,
+    LEVEL_ERROR,
     LEVEL_INFO,
     LEVEL_WARNING,
-    LEVEL_ERROR,
-    LEVEL_CRITICAL,
+    Core,
+    Logger,
 )
 from plainlog._recattrs import Record
 from plainlog.handlers import BaseHandler
@@ -120,6 +121,11 @@ def test_logger_call(thandler):
     assert record["msg"] == message
     assert record["level"] == LEVEL_DEBUG
 
+    record = logger(level="INFO", msg=message)
+
+    assert record["msg"] == message
+    assert record["level"] == LEVEL_INFO
+
 
 def test_core():
     records = []
@@ -130,8 +136,9 @@ def test_core():
             self.records = []
             super().__init__()
 
-        def process(self, record) -> None:
+        def process(self, record) -> Record:
             self.records.append(record)
+            return record
 
     def dummy_processor(record):
         nonlocal records

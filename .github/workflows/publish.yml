@@ -7,18 +7,20 @@ on:
 
 jobs:
   publish:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest,
     steps:
-      - uses: actions/checkout@v3
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - uses: actions/checkout@v5
+      - name: Set up uv & Python
+        # uses: actions/setup-python@v4
+        uses: astral-sh/setup-uv@v6
         with:
           python-version: "3.10"
-      - name: Install build dependencies
-        run: pip install uv
+          version: "0.9.1"
+      # - name: Install build dependencies
+      #   run: pip install uv
       - name: Build distribution
         run: make build
       - name: Publish
         uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          password: ${{ secrets.PYPI_API_TOKEN }}
+        # with:
+        #   password: ${{ secrets.PYPI_API_TOKEN }}

@@ -1,25 +1,14 @@
-from time import time, sleep
 import sys
+from time import time
 
 sys.path.append("../src")
-from plainlog import logger, logger_core
+from plainlog import logger
 from plainlog.processors import (
-    add_caller_info,
     filter_by_name,
-    FilterList,
-)
-from plainlog.handlers import (
-    WrapStandardHandler,
-    ConsoleHandler,
-    JsonHandler,
-    FileHandler,
-    StreamHandler,
 )
 
 # from plainlog._rich_handler import RichHandler
-from plainlog.handlers import JsonHandler
 from plainlog.warnings import capture_warnings
-from plainlog.formatters import SimpleFormatter
 
 capture_warnings(True)
 
@@ -127,10 +116,7 @@ def main():
 
     log.debug("my time is ", wolla="pure")
     # log = log.new(extra={})
-    hr = logger_core.add(print)
-    print(hr)
     log.debug("fsdfsdfsdf")
-    logger_core.remove(hr.name)
 
     local_val = "10045 sdf"
     log.info(f"my local format string {local_val}")
@@ -161,8 +147,6 @@ def main():
 
 
 def main2():
-    from plainlog.configure import configure_log
-
     # configure_log("develop", level="DEBUG", reset=True, buffer_size=2)
     # configure_log("develop", level="DEBUG", reset=True, buffer_size=2)
     log = logger.new()
@@ -290,22 +274,20 @@ def main4():
 
 def main5():
     global log
-    from plainlog.configure import configure_log
 
     handler_type = "develop"
     # configure_log(handler_type, level="DEBUG")
     from immod import run
 
-    log.debug(f"Start in main5")
+    log.debug("Start in main5")
     run()
-    log.debug(f"after run")
+    log.debug("after run")
 
 
 if __name__ == "__main__":
     from plainlog.warnings import capture_warnings
 
     capture_warnings(True)
-    import cProfile
 
     t1 = time()
     # cProfile.run("main2()")

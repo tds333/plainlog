@@ -1,4 +1,6 @@
 .DEFAULT_GOAL := help
+SRC_DIR = ./src
+PY_VERSIONS = 3.10 3.11 3.12 3.13 3.14 3.15 3.13t 3.14t 3.15t pypy@3.10 pypy@3.11
 export UV_MANAGED_PYTHON ?= 1
 
 ##@ CI/CD
@@ -8,7 +10,7 @@ build: ## Build
 
 .PHONY: cov
 cov: ## Run tests with coverage
-	uv run pytest --cov-report=term-missing --cov-config=pyproject.toml --cov=src/plainlog
+	uv run pytest --cov-report=term-missing --cov-config=pyproject.toml --cov=src
 
 ##@ Quality
 .PHONY: test
@@ -21,37 +23,21 @@ devel-test: ## Run verbose tests in current Python
 
 .PHONY: tests
 tests: ## Run tests in all supporte Python versions
-	uv run --isolated -p 3.9 pytest
-	uv run --isolated -p 3.10 pytest
-	uv run --isolated -p 3.11 pytest
-	uv run --isolated -p 3.12 pytest
-	uv run --isolated -p 3.13 pytest
-	uv run --isolated -p 3.14 pytest
-	uv run --isolated -p 3.13t pytest
-	uv run --isolated -p 3.14t pytest
-	uv run --isolated -p pypy@3.9 pytest
-	uv run --isolated -p pypy@3.10 pytest
-	uv run --isolated -p pypy@3.11 pytest
-#	uv run --isolated -p graalpy pytest
+	for py_v in $(PY_VERSIONS); do \
+		uv run --isolated -p $$py_v pytest; \
+	done
 
-.PHONY: check
-check: ## Run all checks 
-	-uvx mypy ./src/plainlog
-	uvx ruff check ./src/plainlog
-
-.PHONY: ruff-check
-ruff-check: ## Lint using ruff
-	uvx ruff check ./src/plainlog
+.PHONY: lint
+lint: ## Run all checks 
+	uvx ruff check $(SRC_DIR)
 
 .PHONY: type-check
 type-check: ## Type check with
-	-uvx ty check ./src/plainlog
-	-uvx pyrefly check ./src/plainlog
-	uvx mypy ./src/plainlog
+	-uvx ty check $(SRC_DIR)
 
 .PHONY: format
 format: ## Format files using ruff format
-	uvx ruff format ./src/plainlog
+	uvx ruff format $(SRC_DIR)
 
 .PHONY: bench
 bench: ## Format files using ruff format
@@ -81,6 +67,10 @@ install-uv: ## Install uv
 .PHONY: update-uv
 update-uv: ## Update uv
 	uv self update
+
+.PHONY: update-lock
+update-lock: ## Update lockfile
+	uv lock --upgrade
 
 .PHONY: help
 help:  ## Display this help
