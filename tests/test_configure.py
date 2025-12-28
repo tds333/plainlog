@@ -1,6 +1,7 @@
 import pytest
+
 from plainlog import logger
-from plainlog.configure import configure_log, _profiles
+from plainlog.configure import _profiles, configure_log
 
 
 class TestConfigureLog:

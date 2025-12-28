@@ -1,25 +1,12 @@
 import asyncio
-import sys
 from time import sleep, time
 
 from plainlog import logger, logger_core
-from plainlog.formatters import SimpleFormatter
 
 # from plainlog._rich_handler import RichHandler
 from plainlog.handlers import (
     AsyncHandler,
-    ConsoleHandler,
-    FileHandler,
-    JsonHandler,
-    StreamHandler,
-    WrapStandardHandler,
 )
-from plainlog.processors import (
-    FilterList,
-    add_caller_info,
-    filter_by_name,
-)
-from plainlog.warnings import capture_warnings
 
 
 class MyAsyncHandler(AsyncHandler):
@@ -73,11 +60,9 @@ async def main():
     log.info("mit extra")
 
     try:
-        1 / 0
+        1 / 0  # noqa: B018
     except ZeroDivisionError:
         log.exception("Error")
-
-    xala = lambda: "mystring"
 
     log.debug("my time is {timer:.2f}", wolla="pure", timer=0.0)
     log.debug("my xala is ")

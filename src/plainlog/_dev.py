@@ -11,8 +11,8 @@ import traceback
 from io import StringIO
 from typing import Any, Iterable, Protocol, TextIO, Type, Union
 
-from .formatters import format_message
 from ._utils import get_processed_extra
+from .formatters import format_message
 
 __all__ = [
     "ConsoleRenderer",

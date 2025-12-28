@@ -2,10 +2,8 @@
 #
 # SPDX-License-Identifier: Apache-2.0 OR MIT
 import json
-import contextlib
 
 from ._utils import eval_format, get_processed_extra
-from ._recattrs import Record
 
 
 def format_message(record):

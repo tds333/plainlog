@@ -1,14 +1,23 @@
+# /// script
+# requires-python = ">=3.14"
+# dependencies = [
+#     "plainlog>=0.3.0",
+# ]
+#
+# [tool.uv.sources]
+# plainlog = { path = "../" }
+# ///
+
 import sys
 from time import time
 
-sys.path.append("../src")
 from plainlog import logger
 from plainlog._recattrs import Record
 from plainlog.handlers import DevelopHandler
 from plainlog.warnings import capture_warnings
 
 try:
-    from string import templatelib
+    from string import templatelib  # ty:ignore[unresolved-import]
 except ImportError:
     print("Python >=3.14 required to use t-strings.")
     sys.exit(1)
