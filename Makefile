@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 SRC_DIR = ./src
-PY_VERSIONS = 3.10 3.11 3.12 3.13 3.14 3.15 3.13t 3.14t 3.15t pypy@3.10 pypy@3.11
+PY_VERSIONS = 3.10 3.11 3.12 3.13 3.14 3.15 3.13t 3.14t 3.15t
 export UV_MANAGED_PYTHON ?= 1
 
 ##@ CI/CD
