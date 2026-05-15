@@ -169,8 +169,6 @@ def filter_by_level(level_per_module) -> Callable:
             if level is not None:
                 if record["level"].no < level:
                     return {}
-            if not name:
-                return record
             index = name.rfind(".")
             name = name[:index] if index != -1 else ""
 
