@@ -1,13 +1,13 @@
-import sys
+# /// script
+# dependencies = [
+#   "plainlog",
+# ]
+# ///
+
 from time import time
 
-sys.path.append("../src")
 from plainlog import logger
-from plainlog.processors import (
-    filter_by_name,
-)
-
-# from plainlog._rich_handler import RichHandler
+from plainlog.processors import filter_by_name
 from plainlog.warnings import capture_warnings
 
 capture_warnings(True)
@@ -110,7 +110,7 @@ def main():
     log = first_log
 
     try:
-        1 / 0
+        1 / 0  # noqa: B018
     except ZeroDivisionError:
         log.exception("Error")
 
@@ -124,7 +124,6 @@ def main():
     log.info(
         "timer output", timer=lambda: timer(), timer_func=timer, timer_result=timer()
     )
-    log.info("print output", pval=lambda: repr(hr))
     log.debug("duration={duration}", duration=lambda: duration_calc(time()))
     log.debug("start duration={duration}", duration=lambda: duration_calc())
     log.debug("d start, elapsed")
@@ -158,7 +157,7 @@ def main2():
     log.info("mit extra")
 
     try:
-        1 / 0
+        1 / 0  # noqa: B018
     except ZeroDivisionError:
         log.exception("Error")
 
@@ -216,11 +215,10 @@ def main4():
         logg = log.new()
         number = 1
         divisor = 0
-        foos = ["foo"] * 100
         logg.debug("in divide")
         try:
             number / divisor
-        except:
+        except:  # noqa: E722
             logg.exception("An error of some kind occurred!")
 
     divide()
@@ -275,7 +273,6 @@ def main4():
 def main5():
     global log
 
-    handler_type = "develop"
     # configure_log(handler_type, level="DEBUG")
     from immod import run
 
