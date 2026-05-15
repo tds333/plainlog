@@ -9,7 +9,7 @@ from plainlog._dev import (
     _PlainStyles,
     default_exception_formatter,
 )
-from plainlog._logger import LEVEL_DEBUG, LEVEL_INFO
+from plainlog._logger import LEVEL_INFO
 
 
 def record(**overrides):

@@ -18,7 +18,6 @@ from plainlog._logger import (
     _validate_extra,
     _validate_level,
     _validate_name,
-    plainlog_context,
 )
 from plainlog._recattrs import Level, Record
 from plainlog.handlers import BaseHandler
