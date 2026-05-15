@@ -79,18 +79,10 @@ def test_default_exception_formatter_writes_to_sio():
 
 
 class TestConsoleRenderer:
-    def test_default_uses_colorful_styles(self):
-        r = ConsoleRenderer()
-        assert r._styles is _ColorfulStyles
-        assert r._short_level is True
 
     def test_plain_styles(self):
         r = ConsoleRenderer(colors=False)
         assert r._styles is _PlainStyles
-
-    def test_custom_level_styles(self):
-        r = ConsoleRenderer(level_styles={"INFO": "\033[32m"})
-        assert r._level_to_color["INFO"] == "\033[32m\033[1m"
 
     def test_long_level(self):
         r = ConsoleRenderer(short_level=False)

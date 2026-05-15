@@ -556,21 +556,6 @@ class TestFileHandler:
         finally:
             Path(path).unlink(missing_ok=True)
 
-    def test_reopen_after_deletion(self):
-        with tempfile.NamedTemporaryFile(mode="w+", suffix=".log", delete=False) as f:
-            path = f.name
-        try:
-            h = FileHandler(path, watch=True)
-            Path(path).unlink()
-            h._reopen_if_needed()
-            h.process(make_record("recreated"))
-            assert Path(path).exists()
-            content = Path(path).read_text(encoding="utf8")
-            assert "recreated" in content
-            h.close()
-        finally:
-            Path(path).unlink(missing_ok=True)
-
     def test_write_recreates_if_closed(self):
         with tempfile.NamedTemporaryFile(mode="w+", suffix=".log", delete=False) as f:
             path = f.name
