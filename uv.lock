@@ -161,6 +161,7 @@ wheels = [
 
 [[package]]
 name = "plainlog"
+version = "0.3.0"
 source = { editable = "." }
 
 [package.dev-dependencies]

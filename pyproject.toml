@@ -1,6 +1,10 @@
+# [build-system]
+# requires = ["hatchling"]
+# build-backend = "hatchling.build"
+
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["uv_build>=0.11,<1.0"]
+build-backend = "uv_build"
 
 [project]
 name = "plainlog"
@@ -16,8 +20,8 @@ classifiers = [
   "Topic :: System :: Logging",
   "Intended Audience :: Developers",
   "Natural Language :: English",
-  "License :: OSI Approved :: MIT License",
-  "License :: OSI Approved :: Apache Software License",
+  # "License :: OSI Approved :: MIT License",
+  # "License :: OSI Approved :: Apache Software License",
   "Operating System :: OS Independent",
   "Programming Language :: Python",
   "Programming Language :: Python :: 3.10",
@@ -29,15 +33,13 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: CPython",
 ]
 dependencies = []
-dynamic = ["version"]
+version = "0.3.0"
 
 [project.urls]
 Documentation = "https://github.com/tds333/plainlog#readme"
 Issues = "https://github.com/tds333/plainlog/issues"
 Source = "https://github.com/tds333/plainlog"
 
-[tool.hatch.version]
-path = "src/plainlog/__version__.py"
 
 [tool.coverage.run]
 parallel = true
@@ -51,7 +53,6 @@ source = ["src"]
 show_missing = true
 skip_covered = true
 exclude_lines = ["no cov", "if __name__ == .__main__.:", "if TYPE_CHECKING:"]
-omit = ["src/plainlog/__version__.py"]
 
 
 [tool.pytest.ini_options]
