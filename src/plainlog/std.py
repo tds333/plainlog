@@ -76,7 +76,7 @@ class StdInterceptHandler(logging.Handler):
         if hasattr(record, "taskName"):
             log_record["task_name"] = record.taskName
 
-        core.log(log_record)  # ty:ignore[invalid-argument-type]
+        core.log(log_record)
 
 
 def set_as_root_handler(level: Union[int, str] = logging.NOTSET) -> logging.Handler:

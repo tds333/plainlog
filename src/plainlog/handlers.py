@@ -365,7 +365,7 @@ class AsyncHandler:
 
     def close(self) -> None:
         if self.last_future is not None:
-            self.last_future.result(_env.DEFAULT_WAIT_TIMEOUT)  # type: ignore
+            self.last_future.result(_env.DEFAULT_WAIT_TIMEOUT)
 
     def __repr__(self) -> str:
         return (
