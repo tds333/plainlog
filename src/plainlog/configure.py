@@ -6,197 +6,160 @@ import sys
 from ._logger import logger_core
 
 
-def _default(level=None, extra=None, **kwargs) -> None:
+def _default(level=None, **kwargs) -> None:
     from .handlers import DefaultHandler
-    from .processors import DEFAULT_PREPROCESSORS, DEFAULT_PROCESSORS
 
     logger_core.configure(
         level=level,
-        preprocessors=DEFAULT_PREPROCESSORS,
-        processors=(*DEFAULT_PROCESSORS, DefaultHandler()),
-        extra=extra,
+        handler=DefaultHandler(),
     )
 
 
-def _develop(level=None, extra=None, **kwargs) -> None:
-    from .handlers import ConsoleHandler
-    from .processors import (
-        DEFAULT_PREPROCESSORS,
-        DEFAULT_PROCESSORS,
-        Duration,
-        add_caller_info,
-    )
+def _develop(level=None, **kwargs) -> None:
+    from .handlers import DevelopHandler
 
-    preprocessors = (*DEFAULT_PREPROCESSORS, add_caller_info, Duration())
-    processors = (*DEFAULT_PROCESSORS, ConsoleHandler(sys.stderr, colors=True))
     logger_core.configure(
-        preprocessors=preprocessors,
-        processors=processors,
-        extra=extra,
+        handler=DevelopHandler(sys.stderr, colors=True),
         level=level,
         print_errors=True,
     )
 
 
-def _fingerscrossed(level=None, extra=None, **kwargs) -> None:
+def _fingerscrossed(level=None, **kwargs) -> None:
     from .handlers import ConsoleHandler, FingersCrossedHandler
-    from .processors import (
-        DEFAULT_PREPROCESSORS,
-        DEFAULT_PROCESSORS,
-        Duration,
-        add_caller_info,
-    )
 
     action_level = kwargs.get("action_level")
     buffer_size = kwargs.get("buffer_size")
     reset = kwargs.get("reset")
 
-    fc = FingersCrossedHandler(
+    handler = FingersCrossedHandler(
         ConsoleHandler(sys.stderr, colors=True),
         action_level=action_level,
         reset=reset,
         buffer_size=buffer_size,
     )
 
-    preprocessors = (*DEFAULT_PREPROCESSORS, add_caller_info, Duration())
-    processors = (*DEFAULT_PROCESSORS, fc)
     logger_core.configure(
-        preprocessors=preprocessors,
-        processors=processors,
-        extra=extra,
+        handler=handler,
         level=level,
         print_errors=True,
     )
 
 
-def _simple(level=None, extra=None, **kwargs) -> None:
+def _simple(level=None, **kwargs) -> None:
     from .formatters import SimpleFormatter
     from .handlers import StreamHandler
-    from .processors import DEFAULT_PREPROCESSORS, DEFAULT_PROCESSORS
 
     stream = kwargs.get("stream", sys.stderr)
+    handler = StreamHandler(stream, SimpleFormatter())
     logger_core.configure(
-        preprocessors=DEFAULT_PREPROCESSORS,
-        processors=(*DEFAULT_PROCESSORS, StreamHandler(stream, SimpleFormatter())),
-        extra=extra,
         level=level,
+        handler=handler,
     )
 
 
-def _cloud(level=None, extra=None, **kwargs) -> None:
+def _cloud(level=None, **kwargs) -> None:
     from .handlers import JsonHandler
-    from .processors import DEFAULT_PREPROCESSORS, DEFAULT_PROCESSORS
 
     stream = kwargs.get("stream", sys.stderr)
+    handler = JsonHandler(stream=stream)
     logger_core.configure(
-        preprocessors=DEFAULT_PREPROCESSORS,
-        processors=(*DEFAULT_PROCESSORS, JsonHandler(stream=stream)),
-        extra=extra,
         level=level,
+        handler=handler,
     )
 
 
-def _json(level=None, extra=None, **kwargs) -> None:
+def _json(level=None, **kwargs) -> None:
     from .handlers import JsonHandler
-    from .processors import DEFAULT_PREPROCESSORS, DEFAULT_PROCESSORS
 
     stream = kwargs.get("stream", sys.stderr)
+    handler = JsonHandler(stream=stream, indent=2)
 
     logger_core.configure(
-        preprocessors=DEFAULT_PREPROCESSORS,
-        processors=(*DEFAULT_PROCESSORS, JsonHandler(stream=stream, indent=2)),
-        extra=extra,
         level=level,
+        handler=handler,
     )
 
 
-def _file(level=None, extra=None, **kwargs) -> None:
+def _file(level=None, **kwargs) -> None:
     from .handlers import FileHandler
-    from .processors import DEFAULT_PREPROCESSORS, DEFAULT_PROCESSORS
 
     filename = kwargs.get("filename", "plainlog.log")
     watch = True
+    handler = FileHandler(filename, watch=watch)
 
     logger_core.configure(
-        preprocessors=DEFAULT_PREPROCESSORS,
-        processors=(*DEFAULT_PROCESSORS, FileHandler(filename, watch=watch)),
-        extra=extra,
         level=level,
+        handler=handler,
     )
 
 
-def _fingerscrossed_file(level=None, extra=None, **kwargs) -> None:
+def _fingerscrossed_file(level=None, **kwargs) -> None:
     from .handlers import FileHandler, FingersCrossedHandler
-    from .processors import DEFAULT_PREPROCESSORS, DEFAULT_PROCESSORS
 
     filename = kwargs.get("filename", "plainlog.log")
     action_level = kwargs.get("action_level")
     buffer_size = kwargs.get("buffer_size")
     reset = kwargs.get("reset")
 
-    fc = FingersCrossedHandler(
+    handler = FingersCrossedHandler(
         FileHandler(filename, watch=True),
         action_level=action_level,
         reset=reset,
         buffer_size=buffer_size,
     )
     logger_core.configure(
-        preprocessors=DEFAULT_PREPROCESSORS,
-        processors=(*DEFAULT_PROCESSORS, fc),
-        extra=extra,
         level=level,
+        handler=handler,
     )
 
 
-def _console_no_color(level=None, extra=None, **kwargs):
+def _console_no_color(level=None, **kwargs):
     from .handlers import ConsoleHandler
-    from .processors import DEFAULT_PREPROCESSORS, DEFAULT_PROCESSORS
 
     stream = kwargs.get("stream", sys.stderr)
 
+    handler = ConsoleHandler(stream, colors=False)
     logger_core.configure(
-        preprocessors=DEFAULT_PREPROCESSORS,
-        processors=(*DEFAULT_PROCESSORS, ConsoleHandler(stream, colors=False)),
-        extra=extra,
         level=level,
+        handler=handler,
         print_errors=True,
     )
 
 
-def _fast(level=None, extra=None, **kwargs):
+def _fast(level=None, **kwargs):
     from .formatters import SimpleFormatter
     from .handlers import StreamHandler
 
     stream = kwargs.get("stream", sys.stderr)
+    handler = StreamHandler(stream, SimpleFormatter())
 
     logger_core.configure(
-        preprocessors=[],
-        processors=[StreamHandler(stream, SimpleFormatter())],
-        extra=extra,
+        handler=handler,
         level=level,
     )
 
 
-def _empty(level=None, extra=None, **kwargs):
-    logger_core.configure(preprocessors=(), processors=(), extra={}, level=level)
+def _empty(level=None, **kwargs):
+    logger_core.configure(handler=None, level=level)
 
 
-def _no_init(level=None, extra=None, **kwargs):
+def _no_init(level=None, **kwargs):
     pass
 
 
-def _std_handler(level=None, extra=None, **kwargs):
+def _std_handler(level=None, **kwargs):
     from .std import set_as_root_handler
 
     set_as_root_handler()
-    _default(level, extra, kwargs=kwargs)
+    _default(level, kwargs=kwargs)
 
 
-def _std_handler_develop(level=None, extra=None, **kwargs):
+def _std_handler_develop(level=None, **kwargs):
     from .std import set_as_root_handler
 
     set_as_root_handler()
-    _develop(level, extra, kwargs=kwargs)
+    _develop(level, kwargs=kwargs)
 
 
 _profiles = {
@@ -223,7 +186,7 @@ def add_profile(name, function):
     _profiles[name] = function
 
 
-def configure_log(name=None, level=None, extra=None, **kwargs):
+def configure_log(name=None, level=None, **kwargs):
     if name is None:
         name = "default"
 
@@ -234,7 +197,7 @@ def configure_log(name=None, level=None, extra=None, **kwargs):
             f"Name {name!r} is not a valid log profile. Use one of {profile_names!r}"
         )
 
-    profile(level, extra, **kwargs)
+    profile(level, **kwargs)
 
 
 configure_core = logger_core.configure

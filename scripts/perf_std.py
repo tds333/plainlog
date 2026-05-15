@@ -1,9 +1,5 @@
-from time import time, sleep
-import sys
-
 import logging
-
-sys.path.append("../src")
+from time import time
 
 log = logging.getLogger("file")
 

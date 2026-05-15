@@ -3,15 +3,12 @@
 # SPDX-License-Identifier: Apache-2.0 OR MIT
 import json
 
-from ._utils import eval_format
+from ._utils import eval_format, get_processed_extra
 
 
 def format_message(record):
-    preformatted = record.get("preformatted", False)
-    message = record.get("message", "")
-    if preformatted:
-        return message
     msg = record.get("msg", "")
+    message = record.get("message", "")
     kwargs = record.get("kwargs", {})
     if msg and kwargs:
         message = eval_format(msg, kwargs)
@@ -28,6 +25,7 @@ class SimpleFormatter:
     def __call__(self, record):
         data = record.copy()
         data["message"] = format_message(record)
+        data["extra"] = get_processed_extra(record)
         message = self._fmt.format_map(data)
 
         return message
@@ -40,12 +38,10 @@ class DefaultFormatter:
         self._fmt = DefaultFormatter.DEFAULT_FORMAT
 
     def __call__(self, record):
-        message = format_message(record)
         data = record.copy()
-        extra = data.get("extra", {})
-        if not extra:
-            data["extra"] = ""
-        data["message"] = message
+        data["message"] = format_message(record)
+        extra = get_processed_extra(record)
+        data["extra"] = "" if not extra else extra
         message = self._fmt.format_map(data)
 
         return message
@@ -92,6 +88,8 @@ class JsonFormatter:
             }
 
         message = format_message(record)
+        # extra = {**record["extra"], **record["context"], **record["kwargs"]}
+        extra = get_processed_extra(record)
 
         serializable = {
             "message": message,
@@ -100,7 +98,7 @@ class JsonFormatter:
             "timestamp": record["datetime"].timestamp(),
             "level_name": record["level"].name,
             "level_no": record["level"].no,
-            "extra": record["extra"],
+            "extra": extra,
             "process_id": record["process_id"],
             "process_name": record["process_name"],
         }

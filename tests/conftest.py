@@ -4,23 +4,10 @@ import logging
 import pytest
 
 import plainlog
+from plainlog.handlers import BaseHandler
 
 
-# @pytest.fixture(autouse=True)
-# def reset_logger():
-#     def reset():
-#         plainlog.logger_core.remove()
-#         plainlog.logger.__init__(
-#             plainlog._logger.Core(), "root", None, None, {}
-#         )
-#         plainlog._logger.context.set({})
-
-#     reset()
-#     yield
-#     reset()
-
-
-class DummyHandler:
+class DummyHandlerOld:
     def __init__(self):
         self._records = []
 
@@ -41,15 +28,36 @@ class DummyHandler:
         self._records.clear()
 
 
+class DummyHandler(BaseHandler):
+    def __init__(self):
+        self._records = []
+
+    def process(self, record):
+        self._records.append(record)
+        return record
+
+    @property
+    def records(self):
+        plainlog.logger_core.wait_for_processed()
+        return self._records
+
+    def first(self):
+        plainlog.logger_core.wait_for_processed()
+        return self._records[0]
+
+    def clear(self):
+        self._records.clear()
+
+
 @pytest.fixture
 def thandler():
     dh = DummyHandler()
 
-    plainlog.logger_core.configure(level="DEBUG", processors=[dh], preprocessors=(), extra={})
+    plainlog.logger_core.configure(level="DEBUG", handler=dh)
 
     yield dh
 
-    plainlog.logger_core.configure(level="DEBUG", processors=(), preprocessors=(), extra={})
+    plainlog.logger_core.configure(level="DEBUG", handler=None)
     dh.clear()
 
 

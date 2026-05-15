@@ -1,12 +1,16 @@
+# [build-system]
+# requires = ["hatchling"]
+# build-backend = "hatchling.build"
+
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["uv_build>=0.11,<1.0"]
+build-backend = "uv_build"
 
 [project]
 name = "plainlog"
 description = 'Logging made simple and easy.'
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = "Apache-2.0 OR MIT"
 license-files = ["LICENSES/*"]
 keywords = []
@@ -16,29 +20,26 @@ classifiers = [
   "Topic :: System :: Logging",
   "Intended Audience :: Developers",
   "Natural Language :: English",
-  "License :: OSI Approved :: MIT License",
-  "License :: OSI Approved :: Apache Software License",
+  # "License :: OSI Approved :: MIT License",
+  # "License :: OSI Approved :: Apache Software License",
   "Operating System :: OS Independent",
   "Programming Language :: Python",
-  "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3.14",
+  "Programming Language :: Python :: 3.15",
   "Programming Language :: Python :: Implementation :: CPython",
-  "Programming Language :: Python :: Implementation :: PyPy",
 ]
 dependencies = []
-dynamic = ["version"]
+version = "0.3.0"
 
 [project.urls]
 Documentation = "https://github.com/tds333/plainlog#readme"
 Issues = "https://github.com/tds333/plainlog/issues"
 Source = "https://github.com/tds333/plainlog"
 
-[tool.hatch.version]
-path = "src/plainlog/__version__.py"
 
 [tool.coverage.run]
 parallel = true
@@ -52,7 +53,6 @@ source = ["src"]
 show_missing = true
 skip_covered = true
 exclude_lines = ["no cov", "if __name__ == .__main__.:", "if TYPE_CHECKING:"]
-omit = ["src/plainlog/__version__.py"]
 
 
 [tool.pytest.ini_options]

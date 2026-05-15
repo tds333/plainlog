@@ -1,6 +1,12 @@
 import json
+
+from plainlog.formatters import (
+    DefaultFormatter,
+    JsonFormatter,
+    SimpleFormatter,
+    format_message,
+)
 from tests.helpers import make_record
-from plainlog.formatters import format_message, SimpleFormatter, DefaultFormatter, JsonFormatter
 
 
 class TestFormatMessage:

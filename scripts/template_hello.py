@@ -1,14 +1,23 @@
-from time import time
+# /// script
+# requires-python = ">=3.14"
+# dependencies = [
+#     "plainlog>=0.3.0",
+# ]
+#
+# [tool.uv.sources]
+# plainlog = { path = "../" }
+# ///
+
 import sys
+from time import time
 
-sys.path.append("../src")
 from plainlog import logger
-
-from plainlog.warnings import capture_warnings
 from plainlog._recattrs import Record
+from plainlog.handlers import DevelopHandler
+from plainlog.warnings import capture_warnings
 
 try:
-    from string import templatelib
+    from string import templatelib  # ty:ignore[unresolved-import]
 except ImportError:
     print("Python >=3.14 required to use t-strings.")
     sys.exit(1)
@@ -34,17 +43,19 @@ def eval_template(record: Record) -> Record:
     return record
 
 
+class EvalTemplatHandler(DevelopHandler):
+    def process(self, record):
+        record = eval_template(record)
+        return super().process(record)
+
+
 capture_warnings(True)
 
 log = logger.new()
 
 
 def main():
-    from plainlog.configure import configure_log
-
-    configure_log("develop", level="DEBUG", reset=True, buffer_size=2)
-    processors = (eval_template, *logger.core.processors)
-    logger.core.configure(processors=processors)
+    logger.core.configure(handler=EvalTemplatHandler(), level="DEBUG")
 
     name = "My name"
     log = logger.new()

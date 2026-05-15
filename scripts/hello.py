@@ -1,19 +1,14 @@
-from time import time, sleep
-import sys
+# /// script
+# dependencies = [
+#   "plainlog",
+# ]
+# ///
 
-sys.path.append("../src")
-from plainlog import logger, logger_core
-from plainlog.processors import (
-    add_caller_info,
-    filter_by_name,
-    FilterList,
-)
-from plainlog.handlers import WrapStandardHandler, ConsoleHandler, JsonHandler, FileHandler, StreamHandler
+from time import time
 
-# from plainlog._rich_handler import RichHandler
-from plainlog.handlers import JsonHandler
+from plainlog import logger
+from plainlog.processors import filter_by_name
 from plainlog.warnings import capture_warnings
-from plainlog.formatters import SimpleFormatter
 
 capture_warnings(True)
 
@@ -115,22 +110,20 @@ def main():
     log = first_log
 
     try:
-        1 / 0
+        1 / 0  # noqa: B018
     except ZeroDivisionError:
         log.exception("Error")
 
     log.debug("my time is ", wolla="pure")
     # log = log.new(extra={})
-    hr = logger_core.add(print)
-    print(hr)
     log.debug("fsdfsdfsdf")
-    logger_core.remove(hr.name)
 
     local_val = "10045 sdf"
     log.info(f"my local format string {local_val}")
     log.info("my local format string {local_val}", local_val=5)
-    log.info("timer output", timer=lambda: timer(), timer_func=timer, timer_result=timer())
-    log.info("print output", pval=lambda: repr(hr))
+    log.info(
+        "timer output", timer=lambda: timer(), timer_func=timer, timer_result=timer()
+    )
     log.debug("duration={duration}", duration=lambda: duration_calc(time()))
     log.debug("start duration={duration}", duration=lambda: duration_calc())
     log.debug("d start, elapsed")
@@ -153,10 +146,8 @@ def main():
 
 
 def main2():
-    from plainlog.configure import configure_log
-
     # configure_log("develop", level="DEBUG", reset=True, buffer_size=2)
-    configure_log("develop", level="DEBUG", reset=True, buffer_size=2)
+    # configure_log("develop", level="DEBUG", reset=True, buffer_size=2)
     log = logger.new()
     log.debug("hello")
     log.warning("some warning")
@@ -166,7 +157,7 @@ def main2():
     log.info("mit extra")
 
     try:
-        1 / 0
+        1 / 0  # noqa: B018
     except ZeroDivisionError:
         log.exception("Error")
 
@@ -224,11 +215,10 @@ def main4():
         logg = log.new()
         number = 1
         divisor = 0
-        foos = ["foo"] * 100
         logg.debug("in divide")
         try:
             number / divisor
-        except:
+        except:  # noqa: E722
             logg.exception("An error of some kind occurred!")
 
     divide()
@@ -282,22 +272,19 @@ def main4():
 
 def main5():
     global log
-    from plainlog.configure import configure_log
 
-    handler_type = "develop"
     # configure_log(handler_type, level="DEBUG")
     from immod import run
 
-    log.debug(f"Start in main5")
+    log.debug("Start in main5")
     run()
-    log.debug(f"after run")
+    log.debug("after run")
 
 
 if __name__ == "__main__":
     from plainlog.warnings import capture_warnings
 
     capture_warnings(True)
-    import cProfile
 
     t1 = time()
     # cProfile.run("main2()")
@@ -309,9 +296,13 @@ if __name__ == "__main__":
     # main()
     t2 = time()
     duration = t2 - t1
-    print("===============================================================================")
+    print(
+        "==============================================================================="
+    )
     print("duration: %f s" % duration)
-    print("===============================================================================")
+    print(
+        "==============================================================================="
+    )
     logger.error("Duration: %f" % duration, timer=True)
     # logger.close()
     # logger.close()

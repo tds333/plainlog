@@ -1,5 +1,5 @@
 import logging
-from plainlog import logger
+
 from plainlog.std import set_as_root_handler
 
 

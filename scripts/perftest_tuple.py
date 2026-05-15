@@ -1,8 +1,6 @@
 from enum import IntEnum
 from time import time
-import data
 from typing import Final
-
 
 LEVEL = 0
 EXTRA = 7

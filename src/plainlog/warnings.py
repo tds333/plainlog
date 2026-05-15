@@ -43,5 +43,5 @@ def capture_warnings(capture):
             warnings.showwarning = _showwarning  # type: ignore
     else:
         if _warnings_showwarning is not None:
-            warnings.showwarning = _warnings_showwarning  # type: ignore
+            warnings.showwarning = _warnings_showwarning
             _warnings_showwarning = None

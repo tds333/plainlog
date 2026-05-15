@@ -1,6 +1,4 @@
-import pytest
-
-from plainlog import logger, logger_core
+from plainlog import logger
 
 
 def test_bind_after_add(thandler):
@@ -25,7 +23,7 @@ def test_bind_before_add(thandler):
 
 def test_add_using_bound(thandler):
     # thandler resets als extra stuff of core
-    logger_core.configure(extra={"a": -1})
+    # logger_core.configure(extra={"a": -1})
     logger_bound = logger.bind(a=0)
     logger.debug("A")
     logger_bound.debug("B")
@@ -34,7 +32,7 @@ def test_add_using_bound(thandler):
 
     record = thandler.records[0]
 
-    assert record["extra"].get("a") == -1
+    assert record["extra"].get("a", -1) == -1
     assert record["msg"] == "A"
 
     record = thandler.records[1]

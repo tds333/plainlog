@@ -1,4 +1,10 @@
-from plainlog._logger import logger_core, LEVEL_DEBUG, logger_process, plainlog_context, get_now_utc
+from plainlog._logger import (
+    LEVEL_DEBUG,
+    get_now_utc,
+    logger_core,
+    logger_process,
+    plainlog_context,
+)
 
 
 def make_record(msg, level=None, name="root", kwargs=None):

@@ -15,8 +15,8 @@ def main():
     root = logging.getLogger("root")
     root.setLevel("DEBUG")
     root.addHandler(plainlog.std.StdInterceptHandler())
-    root = logging.getLogger("root")
-    log = logging.getLogger("bla")
+    root: Logger = logging.getLogger("root")
+    log: Logger = logging.getLogger("bla")
     try:
         1 / 0
     except Exception:

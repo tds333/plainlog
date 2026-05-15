@@ -11,19 +11,6 @@ from __future__ import annotations
 import contextlib
 
 
-def eval_lambda_list(data: list) -> list:
-    result = []
-    for arg in data:
-        if callable(arg) and arg.__name__ == "<lambda>":
-            with contextlib.suppress(Exception):
-                arg_result = arg()
-                result.append(arg_result)
-        else:
-            result.append(arg)
-
-    return result
-
-
 def eval_lambda_dict(data: dict) -> dict:
     for name, value in data.items():
         if callable(value) and value.__name__ == "<lambda>":
@@ -47,3 +34,13 @@ def eval_format(msg, kwargs) -> str:
     message: str = msg.format(**kwargs_)
 
     return message
+
+
+def get_processed_extra(record: dict) -> dict:
+    extra = record.get("extra", {})
+    kwargs = record.get("kwargs", {})
+    context = record.get("context", {})
+    extra = {**extra, **context, **kwargs}
+    extra = eval_lambda_dict(extra)
+
+    return extra

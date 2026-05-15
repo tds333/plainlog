@@ -15,12 +15,11 @@ from multiprocessing import current_process
 from os.path import basename, splitext
 from pathlib import Path
 from threading import current_thread
-from typing import Protocol, Callable
+from typing import Callable, Protocol
 
 from ._frames import get_frame
-from ._recattrs import RecordException, Record
+from ._recattrs import Record, RecordException
 from ._utils import eval_dict, eval_format, eval_lambda_dict
-
 
 start_time: datetime = datetime.now(timezone.utc)
 
@@ -30,6 +29,8 @@ class ProcessorProtocol(Protocol):
 
 
 def add_caller_info(record: Record, level=3) -> Record:
+    if "function" in record:
+        return record
     frame = get_frame(level)
     # name = frame.f_globals["__name__"]
     code = frame.f_code
@@ -168,8 +169,6 @@ def filter_by_level(level_per_module) -> Callable:
             if level is not None:
                 if record["level"].no < level:
                     return {}
-            if not name:
-                return record
             index = name.rfind(".")
             name = name[:index] if index != -1 else ""
 
@@ -270,12 +269,6 @@ class Duration:
         return record
 
 
-def elapsed(record) -> None:
+def elapsed(record) -> Record:
     record["elapsed"] = datetime.now(timezone.utc) - start_time
     return record
-
-
-# defaults used for core configuration
-DEFAULT_PREPROCESSORS = (preprocess_exc_info,)
-# DEFAULT_PROCESSORS = (eval_lambda, context_to_extra, kwargs_to_extra, preformat_message)
-DEFAULT_PROCESSORS = (context_to_extra, kwargs_to_extra, eval_extra)

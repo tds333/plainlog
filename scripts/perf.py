@@ -1,27 +1,22 @@
-from time import time, sleep
-import sys
+# /// script
+# dependencies = [
+#   "plainlog",
+# ]
+# ///
 
-sys.path.append("../src")
-from plainlog import logger, logger_core, configure_log
-from plainlog.processors import (
-    add_caller_info,
-    filter_by_name,
-    FilterList,
-)
-from plainlog.handlers import WrapStandardHandler, ConsoleHandler, JsonHandler, FileHandler, StreamHandler
-#from plainlog._rich_handler import RichHandler
-from plainlog.handlers import JsonHandler
-from plainlog.warnings import capture_warnings
-from plainlog.formatters import SimpleFormatter
+from time import time
 
-#capture_warnings(True)
+from plainlog import logger
+
+# from plainlog._rich_handler import RichHandler
+
+# capture_warnings(True)
 
 log = logger.new()
 
 
 class LoggerClass:
-
-    #clog = logger.new(name=__qualname__)
+    # clog = logger.new(name=__qualname__)
     clog = logger.new()
 
     def __init__(self):
@@ -49,7 +44,6 @@ def main():
         log.warning("mywarning")
         log.debug("my debug")
 
-
     log.info("BEVORE LOOP")
     for i in range(amount):
         log.info(f"my range {i}")
@@ -58,19 +52,23 @@ def main():
 
 
 if __name__ == "__main__":
-    from plainlog.warnings import capture_warnings
-    #capture_warnings(True)
-    import cProfile
-    #configure_log("fast", level="DEBUG")
-    #configure_log("empty", level="DEBUG")
+    # capture_warnings(True)
+
+
+    # configure_log("fast", level="DEBUG")
+    # configure_log("empty", level="DEBUG")
     t1 = time()
-    #cProfile.run("main2()")
+    # cProfile.run("main2()")
     main()
     t2 = time()
     duration = t2 - t1
-    print("===============================================================================")
+    print(
+        "==============================================================================="
+    )
     print("duration: %f s" % duration)
-    print("===============================================================================")
+    print(
+        "==============================================================================="
+    )
     logger.critical("Duration: %f" % duration, timer=True)
-    #logger.close()
-    #logger.close()
+    # logger.close()
+    # logger.close()
