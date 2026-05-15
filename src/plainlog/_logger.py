@@ -8,7 +8,7 @@ import logging
 import sys
 import traceback
 from contextvars import ContextVar
-from copy import copy, deepcopy
+from copy import copy
 from datetime import datetime, timezone
 from enum import Enum
 from functools import partial
@@ -59,7 +59,8 @@ def _validate_extra(extra: Optional[Dict[str, Any]]) -> Dict[str, Any]:
     if extra is not None:
         if not isinstance(extra, collections.abc.Mapping):
             raise ValueError("Extra must be a Mapping (dict like) object.")
-        ret = deepcopy(extra)
+        # ret = deepcopy(extra)
+        ret = copy(extra)
 
     return ret
 
@@ -199,7 +200,8 @@ class Core:
             match value:
                 case (Command.LOG, log_record):
                     if self_handler is not None:
-                        record: Record = copy(log_record)
+                        # record: Record = copy(log_record)
+                        record: Record = log_record
                         try:
                             self_handler.process(record)
                         except Exception as ex:
@@ -291,7 +293,8 @@ class Logger:
 
     @property
     def extra(self) -> dict:
-        return deepcopy(self._extra)
+        # return deepcopy(self._extra)
+        return copy(self._extra)
 
     @property
     def core(self) -> Core:
@@ -302,8 +305,8 @@ class Logger:
         name: Optional[str] = None,
         extra=None,
     ):
-        # special handling to autodetect name, only for empty new
-        if name is None and extra is None:
+        # special handling to autodetect name
+        if name is None:
             names = []
             frame = get_frame(1)
             with contextlib.suppress(KeyError):
@@ -385,7 +388,6 @@ class Logger:
             "process_id": logger_process.ident,
             "process_name": logger_process.name,
             "context": {**plainlog_context.get({})},
-            # "extra": {**core._extra, **self._extra},
             "extra": {**self._extra},
             "kwargs": kwargs,
         }
