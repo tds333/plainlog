@@ -269,6 +269,22 @@ class Core:
 
 
 class Logger:
+    """Logger that sends structured log records to a shared Core.
+
+    Each Logger is tied to a single Core instance, a ``name``, and an
+    ``extra`` dict of static key-value pairs that are attached to every
+    record.
+
+    Use :meth:`bind` / :meth:`unbind` to derive a new logger with
+    additional or fewer extra keys.  Use :meth:`new` to create a child
+    logger (optionally with an auto-detected name).
+
+    Attributes:
+        name: Logger name (e.g. ``"root"``, ``"mymodule.MyClass"``).
+        extra: Read-only copy of the static extra key-value pairs.
+        core: The shared Core this logger writes to.
+    """
+
     __slots__ = ("_core", "_name", "_extra")
 
     # core should be the same for every logger
@@ -305,6 +321,17 @@ class Logger:
         name: Optional[str] = None,
         extra=None,
     ):
+        """Create a child logger, optionally auto-detecting the caller name.
+
+        Args:
+            name: Explicit logger name. When ``None`` the name is
+                auto-detected from the caller's frame (module + qualname).
+            extra: Extra key-value pairs. Falls back to the parent's
+                ``extra`` when ``None``.
+
+        Returns:
+            A new Logger instance.
+        """
         # special handling to autodetect name
         if name is None:
             names = []
@@ -337,6 +364,14 @@ class Logger:
         self._core = logger_core
 
     def bind(self, **kwargs) -> "Logger":
+        """Return a new logger with additional extra keys.
+
+        Args:
+            **kwargs: Key-value pairs to merge into the logger's extra dict.
+
+        Returns:
+            A new Logger with the combined extra dict.
+        """
         return self.__class__(
             self._core,
             self._name,
@@ -344,6 +379,14 @@ class Logger:
         )
 
     def unbind(self, *args) -> "Logger":
+        """Return a new logger with the given extra keys removed.
+
+        Args:
+            *args: Extra keys to remove.
+
+        Returns:
+            A new Logger without the specified extra keys.
+        """
         extra: Dict[str, Any] = self._extra.copy()
         for key in args:
             extra.pop(key, None)
@@ -352,6 +395,14 @@ class Logger:
 
     @staticmethod
     def context(**kwargs):
+        """Set context variables for the current execution context.
+
+        Args:
+            **kwargs: Key-value pairs to merge into the context.
+
+        Returns:
+            A ``Token`` that can be passed to :meth:`reset_context`.
+        """
         new_context = {**plainlog_context.get({}), **kwargs}
         token = plainlog_context.set(new_context)
 
@@ -359,11 +410,28 @@ class Logger:
 
     @staticmethod
     def reset_context(token) -> None:
+        """Reset the ContextVar to its previous value.
+
+        Args:
+            token: The token returned by :meth:`context`.
+        """
         plainlog_context.reset(token)
 
     @staticmethod
     @contextlib.contextmanager
     def contextualize(**kwargs) -> Generator:  # noqa: N805
+        """Context manager that sets kwargs as context variables.
+
+        Args:
+            **kwargs: Key-value pairs to set as context variables.
+
+        Yields:
+            The token returned by :meth:`context`.
+
+        Example:
+            with logger.contextualize(request_id="abc"):
+                logger.info("handling request")
+        """
         token = Logger.context(**kwargs)
         try:
             yield token
@@ -403,36 +471,67 @@ class Logger:
         return log_record
 
     def debug(self, msg: Msg, **kwargs) -> None:  # noqa: N805
+        """Log *msg* at DEBUG level."""
         self._log(LEVEL_DEBUG, msg, kwargs)
 
     def info(self, msg: Msg, **kwargs) -> None:  # noqa: N805
+        """Log *msg* at INFO level."""
         self._log(LEVEL_INFO, msg, kwargs)
 
     def warning(self, msg: Msg, **kwargs) -> None:  # noqa: N805
+        """Log *msg* at WARNING level."""
         self._log(LEVEL_WARNING, msg, kwargs)
 
     def error(self, msg: Msg, **kwargs) -> None:  # noqa: N805
+        """Log *msg* at ERROR level."""
         self._log(LEVEL_ERROR, msg, kwargs)
 
     def critical(self, msg: Msg, **kwargs) -> None:  # noqa: N805
+        """Log *msg* at CRITICAL level."""
         self._log(LEVEL_CRITICAL, msg, kwargs)
 
     def exception(self, msg: Msg, **kwargs) -> None:  # noqa: N805
+        """Log msg at ERROR level and attach exception info.
+
+        If ``exc_info`` is not already set it defaults to ``True``.
+
+        Args:
+            msg: The message to log.
+            **kwargs: Additional record fields.
+        """
         kwargs["exc_info"] = kwargs.get("exc_info", True)
         self._log(LEVEL_ERROR, msg, kwargs)
 
     def log(self, level: LevelInput, msg: Msg, **kwargs) -> None:
+        """Log msg at the given level.
+
+        Args:
+            level: Log level as int, str, or Level named tuple.
+            msg: The message to log.
+            **kwargs: Additional record fields.
+        """
         level = self._core.level(level)
         self._log(level, msg, kwargs)
 
     def __call__(
         self, level: LevelInput = LEVEL_DEBUG, msg: Msg = "", **kwargs
     ) -> Record:
+        """Callable interface: logger(level, msg, **kwargs).
+
+        Args:
+            level: Log level as int, str, or Level. Defaults to DEBUG.
+            msg: The message to log. Defaults to ``""``.
+            **kwargs: Additional record fields.
+
+        Returns:
+            The created Record dict, or ``{}`` if filtered out.
+        """
         level = self._core.level(level)
         return self._log(level, msg, kwargs)
 
 
 logger_core: Core = Core()
+
 atexit.register(logger_core.close)
 
 logger: Logger = Logger(
@@ -440,3 +539,11 @@ logger: Logger = Logger(
     name="root",
     extra={},
 )
+"""Module-level Logger convenience instance.
+
+Usage::
+
+    from plainlog import logger
+
+    logger.info("hello world")
+"""

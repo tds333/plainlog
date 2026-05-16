@@ -81,5 +81,12 @@ ignore = [
 #division-by-zero = "ignore"
 
 [dependency-groups]
-dev = ["pytest", "pytest-cov"]
+dev = [
+    "pytest",
+    "pytest-cov",
+]
+docs = [
+    "mkdocstrings-python>=2.0.3",
+    "zensical>=0.0.42",
+]
 #show-source = true

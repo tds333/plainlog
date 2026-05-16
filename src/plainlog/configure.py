@@ -181,12 +181,39 @@ _profiles = {
 
 
 def add_profile(name, function):
+    """Register a new logging profile.
+
+    Args:
+        name: Profile name (used as key in ``_profiles``).
+        function: Callable with signature ``(level, **kwargs)``.
+
+    Returns:
+        ``True`` if the profile was added, ``False`` if *name* already exists.
+    """
     if name in _profiles:
         return False
     _profiles[name] = function
 
+    return True
+
 
 def configure_log(name=None, level=None, **kwargs):
+    """Configure plainlog with a named profile.
+
+    Available profiles:
+        ``"default"``, ``"develop"``, ``"fingerscrossed"``, ``"simple"``,
+        ``"cloud"``, ``"json"``, ``"file"``, ``"fingerscrossed_file"``,
+        ``"console_no_color"``, ``"fast"``, ``"empty"``, ``"no_init"``,
+        ``"std_handler_default"``, ``"std_handler_develop"``
+
+    Args:
+        name: Profile name. If ``None``, ``"default"`` is used.
+        level: Optional log level to override the profile's default.
+        **kwargs: Additional arguments forwarded to the profile function.
+
+    Raises:
+        ValueError: If *name* is not a valid profile.
+    """
     if name is None:
         name = "default"
 
