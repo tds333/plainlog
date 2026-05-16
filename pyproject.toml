@@ -8,6 +8,7 @@ build-backend = "uv_build"
 
 [project]
 name = "plainlog"
+version = "0.3.1"
 description = 'Logging made simple and easy.'
 readme = "README.md"
 requires-python = ">=3.10"
@@ -33,7 +34,6 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: CPython",
 ]
 dependencies = []
-version = "0.3.0"
 
 [project.urls]
 Documentation = "https://github.com/tds333/plainlog#readme"
@@ -81,12 +81,6 @@ ignore = [
 #division-by-zero = "ignore"
 
 [dependency-groups]
-dev = [
-    "pytest",
-    "pytest-cov",
-]
-docs = [
-    "mkdocstrings-python>=2.0.3",
-    "zensical>=0.0.42",
-]
+dev = ["pytest", "pytest-cov"]
+docs = ["mkdocstrings-python>=2.0.3", "zensical>=0.0.42"]
 #show-source = true
