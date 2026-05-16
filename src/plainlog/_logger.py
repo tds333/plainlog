@@ -437,7 +437,7 @@ class Logger:
     def _log(self, level: Level, msg: Msg, kwargs: dict) -> Record:
         core = self._core
 
-        if core.min_level_no > level.no or core._handler is None:
+        if core._handler is None or core.min_level_no > level[0]:
             return {}
 
         current_datetime = get_now_utc()

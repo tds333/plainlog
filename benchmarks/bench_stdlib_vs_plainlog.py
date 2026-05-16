@@ -1,13 +1,17 @@
-"""Benchmark comparing stdlib logging vs plainlog performance."""
+"""Benchmark comparing stdlib logging vs plainlog performance.
+
+Results are shown side by side with matching scenarios paired together.
+"""
 
 import logging
 import os
 import timeit
-from statistics import mean, stdev
+from statistics import mean
 
 from plainlog import logger
 from plainlog._base import Record
-from plainlog.configure import apply_log_profile
+from plainlog._logger import logger_core
+from plainlog.configure import _profiles, apply_log_profile
 from plainlog.formatters import JsonFormatter, SimpleFormatter
 from plainlog.handlers import ProcessingHandler, StreamHandler
 from plainlog.processors import add_caller_info
@@ -17,7 +21,7 @@ class NullHandler:
     """Handler that discards records — measures pure overhead."""
 
     def preprocess(self, record: Record) -> Record:
-        return record
+        return {}
 
     def process(self, record: Record) -> Record:
         return record
@@ -75,7 +79,7 @@ def setup_plainlog_empty() -> None:
 
 
 def setup_plainlog_null() -> None:
-    logger.configure(level="DEBUG", handler=NullHandler())
+    logger.configure(level="WARNING", handler=NullHandler())
 
 
 def setup_plainlog_simple() -> None:
@@ -104,6 +108,20 @@ def setup_plainlog_caller() -> None:
 
 def plainlog_log() -> None:
     logger.debug("benchmark message 42")
+
+
+def setup_plainlog_develop() -> None:
+    from plainlog.handlers import DevelopHandler
+
+    logger.configure(
+        level="DEBUG",
+        handler=DevelopHandler(open(DEVNULL, "w"), colors=False),
+        print_errors=True,
+    )
+
+
+def plainlog_log_develop() -> None:
+    logger.info("benchmark message 42")
 
 
 def plainlog_log_json() -> None:
@@ -144,18 +162,42 @@ BENCHMARKS: list[dict] = [
     {
         "name": "plainlog /dev/null (json)",
         "setup": setup_plainlog_json,
-        "func": plainlog_log_json,
+        "func": plainlog_log,
     },
     {
-        "name": "plainlog /dev/null (processing with caller)",
+        "name": "plainlog /dev/null (caller)",
         "setup": setup_plainlog_caller,
-        "func": plainlog_log_caller,
+        "func": plainlog_log,
     },
 ]
 
 
+DEVNULL_FD = open(DEVNULL, "w")
+
+
+def _make_profile_bench(name: str) -> dict:
+    def setup():
+        apply_log_profile(name, level="DEBUG")
+        # redirect handler output to devnull after profile applies its handler
+        h = logger_core._handler
+        if h is not None:
+            _silence_handler(h)
+
+    return {"name": f"profile {name}", "setup": setup, "func": plainlog_log}
+
+
+def _silence_handler(h: object) -> None:
+    if hasattr(h, "_stream"):
+        h._stream = DEVNULL_FD  # type: ignore[assignment]
+    if hasattr(h, "_handler") and h._handler is not None:
+        _silence_handler(h._handler)
+
+
+BENCHMARKS.extend(_make_profile_bench(p) for p in _profiles)
+
+
 def run() -> None:
-    results: list[dict] = []
+    results: dict[str, float] = {}
 
     for bench in BENCHMARKS:
         times: list[float] = []
@@ -163,16 +205,37 @@ def run() -> None:
             bench["setup"]()
             t = timeit.timeit(bench["func"], number=N)
             times.append(t / N)
-        avg = mean(times)
-        sd = stdev(times) if len(times) > 1 else 0.0
-        results.append(
-            {"name": bench["name"], "avg_ns": avg * 1e9, "stdev_ns": sd * 1e9}
-        )
+        logger_core.wait_for_processed()
+        results[bench["name"]] = mean(times) * 1e9
 
-    print(f"{'Scenario':<40} {'avg (ns)':>10} {'stdev (ns)':>10}")
-    print("-" * 62)
-    for r in results:
-        print(f"{r['name']:<40} {r['avg_ns']:>10.1f} {r['stdev_ns']:>10.1f}")
+    pairs = [
+        (
+            "dropped (level filter)",
+            "stdlib dropped (level filter)",
+            "plainlog empty (dropped)",
+        ),
+        ("NullHandler", "stdlib NullHandler", "plainlog NullHandler"),
+        (
+            "StreamHandler /dev/null",
+            "stdlib /dev/null (StreamHandler)",
+            "plainlog /dev/null (simple)",
+        ),
+    ]
+
+    print(f"{'Scenario':<30} {'stdlib (ns)':>12} {'plainlog (ns)':>14} {'ratio':>8}")
+    print("-" * 66)
+    for label, std_key, pl_key in pairs:
+        s = results[std_key]
+        p = results[pl_key]
+        ratio = s / p if p else 0
+        print(f"{label:<30} {s:>12.1f} {p:>14.1f} {ratio:>7.1f}x")
+
+    print()
+    print("Plainlog-only scenarios (all profiles):")
+    for name in sorted(results):
+        if name.startswith("profile "):
+            pname = name.removeprefix("profile ")
+            print(f"  {pname:<29} {results[name]:>10.1f} ns")
 
 
 if __name__ == "__main__":

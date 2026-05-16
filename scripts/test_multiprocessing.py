@@ -1,6 +1,6 @@
 from multiprocessing import Pool, Process
+
 from plainlog import logger
-from time import sleep
 
 log = logger.new()
 glog = log

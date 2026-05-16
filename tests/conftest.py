@@ -3,7 +3,6 @@ import logging
 
 import pytest
 
-import plainlog
 from plainlog import logger
 from plainlog._logger import logger_core
 from plainlog.handlers import BaseHandler

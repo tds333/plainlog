@@ -4,22 +4,8 @@ import timeit
 from time import sleep
 
 from plainlog import apply_log_profile, logger
-from plainlog.formatters import SimpleFormatter
 
 # from plainlog._rich_handler import RichHandler
-from plainlog.handlers import (
-    ConsoleHandler,
-    FileHandler,
-    JsonHandler,
-    StreamHandler,
-    WrapStandardHandler,
-)
-from plainlog.processors import (
-    FilterList,
-    add_caller_info,
-    filter_by_name,
-)
-from plainlog.warnings import capture_warnings
 
 # capture_warnings(True)
 

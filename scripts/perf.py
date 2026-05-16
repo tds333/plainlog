@@ -38,7 +38,7 @@ class LoggerClass:
 def main():
     local_val = "loc"
     amount = 100_000
-    for i in range(amount):
+    for _ in range(amount):
         log.info(f"my local format string {local_val}")
         log.info(f"my local format string {local_val}", some_extra="yeah", local_val=1)
         log.warning("mywarning")
@@ -53,7 +53,6 @@ def main():
 
 if __name__ == "__main__":
     # capture_warnings(True)
-
 
     # configure_log("fast", level="DEBUG")
     # configure_log("empty", level="DEBUG")

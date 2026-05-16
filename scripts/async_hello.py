@@ -1,7 +1,8 @@
 import asyncio
 from time import sleep, time
 
-from plainlog import logger, logger_core
+from plainlog import logger
+from plainlog._logger import logger_core
 
 # from plainlog._rich_handler import RichHandler
 from plainlog.handlers import (
