@@ -2,7 +2,7 @@ name: test
 
 on:
   push:
-    branches: [main, simple_handlers]
+    branches: [main]
     tags: ["*"]
   pull_request:
     branches: [main]
@@ -23,20 +23,15 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ['3.10', '3.11', '3.12', '3.13', '3.13t', '3.14', '3.14t', 'pypy3.10', 'pypy3.11']
+        python-version: ['3.10', '3.11', '3.12', '3.13', '3.13t', '3.14', '3.14t']
 
     steps:
     - uses: actions/checkout@v5
 
     - name: Set up Python and uv ${{ matrix.python-version }}
-      # uses: actions/setup-python@v5
-      uses: astral-sh/setup-uv@v6
+      uses: astral-sh/setup-uv@v7
       with:
         python-version: ${{ matrix.python-version }}
-        #allow-prereleases: true
-
-    # - name: Install uv
-    #   run: pip install --upgrade uv
 
     - name: Run tests
       run: make cov
