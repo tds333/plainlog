@@ -17,8 +17,8 @@ from pathlib import Path
 from threading import current_thread
 from typing import Callable, Protocol
 
+from ._base import Record, RecordException
 from ._frames import get_frame
-from ._recattrs import Record, RecordException
 from ._utils import eval_dict, eval_format, eval_lambda_dict
 
 start_time: datetime = datetime.now(timezone.utc)

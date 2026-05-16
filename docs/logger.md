@@ -1,5 +1,4 @@
-# API 
-
+# Logger
 
 ::: plainlog._logger.Logger
 

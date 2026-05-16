@@ -44,10 +44,13 @@ Copyright &copy; 2026 tds333
 # can be defined using TOML syntax.
 #
 # Read more: https://zensical.org/docs/setup/navigation/
-# nav = [
-#   { "Get started" = "index.md" },
-#   { "Markdown in 5min" = "markdown.md" },
-# ]
+nav = [
+  { "Get started" = "index.md" },
+  { "Logger" = "logger.md" },
+  { "Handlers" = "handlers.md" },
+  { "Base Types" = "base.md" },
+  { "Plainlog vs stdlib" = "comparison_to_stdlib.md" },
+]
 
 # With the "extra_css" option you can add your own CSS styling to customize
 # your Zensical project according to your needs. You can add any number of

@@ -43,6 +43,10 @@ format: ## Format files using ruff format
 bench: ## Format files using ruff format
 	uv run benchmarks/timeit_bench_log.py
 
+.PHONY: docs
+docs: ## build docs
+	uv run --group docs zensical build
+
 ##@ Utility
 .PHONY: clean
 clean: ## Delete all temporary files

@@ -7,10 +7,19 @@ from typing import Any, Dict, NamedTuple, Optional, Protocol
 
 # Msg = str
 Msg = Any
+"""Type alias for log message content. Accepts any type."""
 Record = Dict[str, Any]
+"""Type alias for a log record — a plain dictionary."""
 
 
 class Level(NamedTuple):
+    """Log level as a ``(no, name)`` named tuple.
+
+    Attributes:
+        no: Numeric log level (e.g. 10, 20, 30).
+        name: Canonical name (e.g. ``"DEBUG"``, ``"INFO"``).
+    """
+
     no: int
     name: str
 
@@ -22,6 +31,15 @@ class Level(NamedTuple):
 
 
 class RecordException(NamedTuple):
+    """Pickle-safe exception info attached to log records.
+
+    Attributes:
+        type: The exception class, or ``None``.
+        value: The exception instance, or ``None``.
+        traceback: The traceback object, or ``None``.
+            Stripped during pickling.
+    """
+
     type: Optional[type[BaseException]]
     value: Optional[BaseException]
     traceback: Optional[TracebackType]
@@ -48,6 +66,14 @@ class RecordException(NamedTuple):
 
 
 class HandlerProtocol(Protocol):
+    """Protocol that every plainlog handler must implement.
+
+    Methods:
+        preprocess: Run in the application thread. Return ``{}`` to drop.
+        process: Run in the Core's background thread. Return ``{}`` to drop.
+        close: Cleanup resources.
+    """
+
     def preprocess(self, record: Record) -> Record: ...
     def process(self, record: Record) -> Record: ...
     def close(self) -> None: ...

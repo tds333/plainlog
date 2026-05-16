@@ -7,8 +7,8 @@ from pathlib import Path
 
 import pytest
 
+from plainlog._base import Level, RecordException
 from plainlog._logger import LEVEL_DEBUG, LEVEL_ERROR
-from plainlog._recattrs import Level, RecordException
 from plainlog.formatters import DefaultFormatter, SimpleFormatter
 from plainlog.handlers import (
     AsyncHandler,

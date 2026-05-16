@@ -1,6 +1,6 @@
 import pickle
 
-from plainlog._recattrs import Level, RecordException
+from plainlog._base import Level, RecordException
 
 
 def test_level_creation():

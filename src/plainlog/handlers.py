@@ -12,8 +12,8 @@ from concurrent.futures import Future
 from typing import IO, Any
 
 from . import _env
+from ._base import HandlerProtocol, Record
 from ._dev import ConsoleRenderer
-from ._recattrs import HandlerProtocol, Record
 from .formatters import (
     DefaultFormatter,
     JsonFormatter,
@@ -23,6 +23,12 @@ from .processors import add_caller_info
 
 
 class BaseHandler:
+    """Minimal handler that passes records through unchanged.
+
+    Implements the :class:`HandlerProtocol` with no-op methods.
+    Useful as a base class or placeholder.
+    """
+
     def preprocess(self, record: Record) -> Record:
         return record
 
@@ -34,6 +40,28 @@ class BaseHandler:
 
 
 class ProcessingHandler:
+    """Handler that runs preprocessors and processors around a wrapped handler.
+
+    Preprocessors execute in the application thread before the record is
+    enqueued. Processors execute in the Core's background thread after
+    dequeueing.
+
+    Args:
+        preprocessors: List of callables run before enqueueing.
+        processors: List of callables run after dequeueing.
+        handler: Wrapped :class:`HandlerProtocol` to call after processors.
+
+    Example::
+
+        from plainlog.handlers import ProcessingHandler, StreamHandler
+        from plainlog.processors import add_caller_info
+
+        handler = ProcessingHandler(
+            preprocessors=[add_caller_info],
+            handler=StreamHandler(),
+        )
+    """
+
     def __init__(self, preprocessors=None, processors=None, handler=None):
         self._preprocessors = [] if preprocessors is None else preprocessors
         self._processors = [] if processors is None else processors
@@ -63,6 +91,16 @@ class ProcessingHandler:
 
 
 class CollectHandler:
+    """Handler that dispatches records to multiple sub-handlers.
+
+    Each record is passed through every sub-handler's ``preprocess`` and
+    ``process`` methods in order. If any handler returns a falsy record,
+    processing stops.
+
+    Args:
+        handlers: Iterable of :class:`HandlerProtocol` instances.
+    """
+
     def __init__(self, handlers=None):
         self._handlers = [] if handlers is None else handlers
 
@@ -88,6 +126,17 @@ class CollectHandler:
 
 
 class StreamHandler:
+    """Writes formatted log records to a file-like stream.
+
+    By default writes to ``sys.stderr`` with a :class:`SimpleFormatter`.
+
+    Args:
+        stream: A file-like object with a ``write`` method.
+            Defaults to ``sys.stderr``.
+        formatter: Callable that takes a record and returns a string.
+            Defaults to :class:`SimpleFormatter`.
+    """
+
     def __init__(self, stream=None, formatter=None) -> None:
         if stream is None:
             stream = sys.stderr
@@ -124,6 +173,8 @@ class StreamHandler:
 
 
 class DefaultHandler(StreamHandler):
+    """StreamHandler that writes to ``sys.stdout`` with a :class:`DefaultFormatter`."""
+
     def __init__(self, stream=None) -> None:
         if stream is None:
             stream = sys.stdout
@@ -131,6 +182,15 @@ class DefaultHandler(StreamHandler):
 
 
 class ConsoleHandler(StreamHandler):
+    """StreamHandler with colorized output via :class:`ConsoleRenderer`.
+
+    Intended for interactive development. Color codes can be disabled.
+
+    Args:
+        stream: Output stream. Defaults to ``sys.stdout``.
+        colors: Enable ANSI color codes.
+    """
+
     def __init__(self, stream=None, colors=True) -> None:
         if stream is None:
             stream = sys.stdout
@@ -138,12 +198,27 @@ class ConsoleHandler(StreamHandler):
 
 
 class DevelopHandler(ConsoleHandler):
+    """ConsoleHandler that enriches records with caller info during preprocessing.
+
+    Automatically adds function name, line number, module, and file path
+    to each record via :func:`add_caller_info`.
+    """
+
     def preprocess(self, record: Record) -> Record:
         record = add_caller_info(record, level=4)
         return record
 
 
 class WrapStandardHandler:
+    """Wraps a stdlib ``logging.Handler`` to receive plainlog records.
+
+    Converts plainlog record dicts into ``logging.LogRecord`` instances
+    and forwards them to the wrapped handler.
+
+    Args:
+        handler: A stdlib ``logging.Handler`` instance.
+    """
+
     factory = logging.getLogRecordFactory()
 
     def __init__(self, handler) -> None:
@@ -184,6 +259,19 @@ class WrapStandardHandler:
 
 
 class JsonHandler(StreamHandler):
+    """StreamHandler that outputs one JSON object per log record.
+
+    Configures a :class:`JsonFormatter` with the given parameters.
+
+    Args:
+        stream: Output stream. Defaults to ``sys.stderr``.
+        converter: Custom JSON serializer for non-standard types.
+        indent: JSON indent level. ``None`` for compact output.
+        separators: Custom ``(item_sep, key_sep)`` tuple.
+        sort_keys: Sort JSON keys alphabetically.
+        additional_keys: Extra record keys to include in the JSON output.
+    """
+
     def __init__(
         self,
         stream=None,
@@ -204,6 +292,24 @@ class JsonHandler(StreamHandler):
 
 
 class FingersCrossedHandler:
+    """Buffers records until a threshold level triggers a flush.
+
+    Records are buffered up to ``buffer_size``. When a record at or above
+    ``action_level`` arrives, all buffered records plus the triggering
+    record are forwarded to the wrapped handler.
+
+    Args:
+        handler: Wrapped :class:`HandlerProtocol` to flush to.
+        action_level: Log level number that triggers the flush.
+            Defaults to 40 (ERROR).
+        buffer_size: Maximum number of records to buffer.
+            Defaults to 1.
+        reset: If ``True``, the handler resets after each flush and
+            buffers again. Defaults to ``False``.
+
+    Inspired by Monolog's FingersCrossedHandler.
+    """
+
     def __init__(
         self, handler: HandlerProtocol, action_level=None, buffer_size=None, reset=None
     ) -> None:
@@ -250,6 +356,22 @@ class FingersCrossedHandler:
 
 
 class FileHandler:
+    """Writes formatted log records to a file.
+
+    Supports delayed file creation and log rotation detection via inode
+    watching (useful with logrotate).
+
+    Args:
+        path: File path to write to.
+        formatter: Callable that takes a record and returns a string.
+            Defaults to :class:`SimpleFormatter`.
+        delay: Defer file creation until the first log record.
+        watch: Reopen the file if the inode changes (log rotation).
+        mode: File open mode. Defaults to ``"a"``.
+        buffering: File buffering. Defaults to 1 (line buffered).
+        encoding: File encoding. Defaults to ``"utf8"``.
+    """
+
     def __init__(
         self,
         path,
@@ -342,6 +464,19 @@ class FileHandler:
 
 
 class AsyncHandler:
+    """Base handler for async integrations.
+
+    Schedules writes via ``asyncio.run_coroutine_threadsafe`` on the
+    given event loop. Subclasses must override :meth:`write` to perform
+    the actual async I/O.
+
+    Args:
+        loop: The ``asyncio.AbstractEventLoop`` to schedule writes on.
+            Defaults to the currently running loop.
+        formatter: Callable that takes a record and returns a string.
+            Defaults to :class:`SimpleFormatter`.
+    """
+
     def __init__(self, loop=None, formatter=None) -> None:
         self.loop = asyncio.get_running_loop() if loop is None else loop
         self._formatter = SimpleFormatter() if formatter is None else formatter

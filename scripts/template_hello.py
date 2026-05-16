@@ -12,7 +12,7 @@ import sys
 from time import time
 
 from plainlog import logger
-from plainlog._recattrs import Record
+from plainlog._base import Record
 from plainlog.handlers import DevelopHandler
 from plainlog.warnings import capture_warnings
 

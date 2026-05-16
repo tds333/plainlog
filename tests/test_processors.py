@@ -1,7 +1,7 @@
 from unittest.mock import patch
 
+from plainlog._base import RecordException
 from plainlog._logger import LEVEL_DEBUG, LEVEL_INFO
-from plainlog._recattrs import RecordException
 from plainlog.processors import (
     Duration,
     FilterList,

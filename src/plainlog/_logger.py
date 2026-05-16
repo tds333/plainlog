@@ -26,8 +26,8 @@ from typing import (
 )
 
 from . import _env
+from ._base import HandlerProtocol, Level, Msg, Record, RecordException
 from ._frames import get_frame
-from ._recattrs import HandlerProtocol, Level, Msg, Record, RecordException
 
 get_now_utc = partial(datetime.now, timezone.utc)
 plainlog_context: ContextVar[dict] = ContextVar("plainlog_context")

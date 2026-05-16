@@ -6,6 +6,7 @@ from contextlib import closing
 import pytest
 
 from plainlog import logger
+from plainlog._base import Level, Record
 from plainlog._logger import (
     LEVEL_CRITICAL,
     LEVEL_DEBUG,
@@ -19,7 +20,6 @@ from plainlog._logger import (
     _validate_level,
     _validate_name,
 )
-from plainlog._recattrs import Level, Record
 from plainlog.handlers import BaseHandler
 
 
@@ -294,7 +294,9 @@ def test_core_preprocess_error_prints_to_stderr(thandler, capsys):
 
 
 def test_core_preprocess_error_silent_without_print_errors(thandler):
-    logger.core.configure(handler=ErrorOnPreprocess(), level="DEBUG", print_errors=False)
+    logger.core.configure(
+        handler=ErrorOnPreprocess(), level="DEBUG", print_errors=False
+    )
     logger.info("trigger preprocess error")
 
 
@@ -327,7 +329,9 @@ class ErrorOnCloseHandler(BaseHandler):
 
 
 def test_core_close_error_prints_to_stderr(thandler, capsys):
-    logger.core.configure(handler=ErrorOnCloseHandler(), level="DEBUG", print_errors=True)
+    logger.core.configure(
+        handler=ErrorOnCloseHandler(), level="DEBUG", print_errors=True
+    )
     logger.core.wait_for_processed()
     logger.core.configure(handler=None, level=None)
     output = capsys.readouterr().err
