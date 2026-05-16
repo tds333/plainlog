@@ -9,7 +9,7 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     environment:
-      name: pypi
+      name: release
       url: https://pypi.org/p/plainlog
     permissions:
       id-token: write  # IMPORTANT: mandatory for trusted publishing
