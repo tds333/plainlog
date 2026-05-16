@@ -3,13 +3,13 @@
 # SPDX-License-Identifier: Apache-2.0 OR MIT
 import sys
 
-from ._logger import logger_core
+from ._logger import logger
 
 
 def _default(level=None, **kwargs) -> None:
     from .handlers import DefaultHandler
 
-    logger_core.configure(
+    logger.configure(
         level=level,
         handler=DefaultHandler(),
     )
@@ -18,7 +18,7 @@ def _default(level=None, **kwargs) -> None:
 def _develop(level=None, **kwargs) -> None:
     from .handlers import DevelopHandler
 
-    logger_core.configure(
+    logger.configure(
         handler=DevelopHandler(sys.stderr, colors=True),
         level=level,
         print_errors=True,
@@ -39,7 +39,7 @@ def _fingerscrossed(level=None, **kwargs) -> None:
         buffer_size=buffer_size,
     )
 
-    logger_core.configure(
+    logger.configure(
         handler=handler,
         level=level,
         print_errors=True,
@@ -52,7 +52,7 @@ def _simple(level=None, **kwargs) -> None:
 
     stream = kwargs.get("stream", sys.stderr)
     handler = StreamHandler(stream, SimpleFormatter())
-    logger_core.configure(
+    logger.configure(
         level=level,
         handler=handler,
     )
@@ -63,7 +63,7 @@ def _cloud(level=None, **kwargs) -> None:
 
     stream = kwargs.get("stream", sys.stderr)
     handler = JsonHandler(stream=stream)
-    logger_core.configure(
+    logger.configure(
         level=level,
         handler=handler,
     )
@@ -75,7 +75,7 @@ def _json(level=None, **kwargs) -> None:
     stream = kwargs.get("stream", sys.stderr)
     handler = JsonHandler(stream=stream, indent=2)
 
-    logger_core.configure(
+    logger.configure(
         level=level,
         handler=handler,
     )
@@ -88,7 +88,7 @@ def _file(level=None, **kwargs) -> None:
     watch = True
     handler = FileHandler(filename, watch=watch)
 
-    logger_core.configure(
+    logger.configure(
         level=level,
         handler=handler,
     )
@@ -108,7 +108,7 @@ def _fingerscrossed_file(level=None, **kwargs) -> None:
         reset=reset,
         buffer_size=buffer_size,
     )
-    logger_core.configure(
+    logger.configure(
         level=level,
         handler=handler,
     )
@@ -120,7 +120,7 @@ def _console_no_color(level=None, **kwargs):
     stream = kwargs.get("stream", sys.stderr)
 
     handler = ConsoleHandler(stream, colors=False)
-    logger_core.configure(
+    logger.configure(
         level=level,
         handler=handler,
         print_errors=True,
@@ -134,14 +134,14 @@ def _fast(level=None, **kwargs):
     stream = kwargs.get("stream", sys.stderr)
     handler = StreamHandler(stream, SimpleFormatter())
 
-    logger_core.configure(
+    logger.configure(
         handler=handler,
         level=level,
     )
 
 
 def _empty(level=None, **kwargs):
-    logger_core.configure(handler=None, level=level)
+    logger.configure(handler=None, level=level)
 
 
 def _no_init(level=None, **kwargs):
@@ -197,7 +197,7 @@ def add_profile(name, function):
     return True
 
 
-def configure_log(name=None, level=None, **kwargs):
+def apply_log_profile(name=None, level=None, **kwargs):
     """Configure plainlog with a named profile.
 
     Available profiles:
@@ -227,4 +227,4 @@ def configure_log(name=None, level=None, **kwargs):
     profile(level, **kwargs)
 
 
-configure_core = logger_core.configure
+configure_core = logger.configure

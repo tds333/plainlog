@@ -4,5 +4,5 @@
 
 ::: plainlog.logger
 
-::: plainlog.configure_log
+::: plainlog.configure.apply_log_profile
 

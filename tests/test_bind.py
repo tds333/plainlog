@@ -22,8 +22,6 @@ def test_bind_before_add(thandler):
 
 
 def test_add_using_bound(thandler):
-    # thandler resets als extra stuff of core
-    # logger_core.configure(extra={"a": -1})
     logger_bound = logger.bind(a=0)
     logger.debug("A")
     logger_bound.debug("B")

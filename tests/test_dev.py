@@ -4,7 +4,6 @@ from io import StringIO
 
 from plainlog._dev import (
     ConsoleRenderer,
-    _ColorfulStyles,
     _pad,
     _PlainStyles,
     default_exception_formatter,

@@ -55,7 +55,7 @@ log = logger.new()
 
 
 def main():
-    logger.core.configure(handler=EvalTemplatHandler(), level="DEBUG")
+    logger.configure(handler=EvalTemplatHandler(), level="DEBUG")
 
     name = "My name"
     log = logger.new()

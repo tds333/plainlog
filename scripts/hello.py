@@ -174,10 +174,10 @@ def main2():
 
 def main4():
     global log
-    from plainlog.configure import configure_log
+    from plainlog.configure import apply_log_profile
 
     handler_type = "develop"
-    configure_log(handler_type, level="DEBUG")
+    apply_log_profile(handler_type, level="DEBUG")
     # log = logger.name("test")
     # log = logger.name().processor(FilterList(blacklist=["mymodule"], whitelist=["mymodule.class.function"]))
     log.debug(f"Start {__name__}", start=__name__)

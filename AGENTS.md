@@ -51,7 +51,7 @@ There is no required command ordering — lint/type-check/test are independent.
   - preprocess runs in app thread; process runs in core thread.
   - Return `{}` to drop a record at any stage.
 - **Record** — plain `Dict[str, Any]`.
-- **Profiles** — named presets in `configure.py` `_profiles` dict. Used via `configure_log("name")`.
+- **Profiles** — named presets in `configure.py` `_profiles` dict. Used via `apply_log_profile("name")`.
 - **Env config** — `PLAINLOG_PROFILE` and `PLAINLOG_LEVEL` read at import time.
 
 ## Key files
@@ -60,7 +60,7 @@ There is no required command ordering — lint/type-check/test are independent.
 |------|------|
 | `src/plainlog/__init__.py` | Public API surface, auto-configures on import |
 | `src/plainlog/_logger.py` | Logger + Core classes |
-| `src/plainlog/configure.py` | `configure_log()`, `add_profile()`, profile registry |
+| `src/plainlog/configure.py` | `apply_log_profile()`, `add_profile()`, profile registry |
 | `src/plainlog/handlers.py` | All built-in handler classes |
 | `src/plainlog/processors.py` | Preprocessors and processors |
 | `src/plainlog/formatters.py` | Simple, Default, JSON formatters |

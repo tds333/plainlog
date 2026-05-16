@@ -3,22 +3,20 @@
 # SPDX-License-Identifier: Apache-2.0 OR MIT
 
 # mostly taken from rich log handler
-# experimental and not ready
+# experimental and not ready, not working, don't touch it
 
 from datetime import datetime
 from pathlib import Path
 from types import ModuleType
 from typing import ClassVar, Iterable, List, Optional, Type, Union
 
-from rich._null_file import NullFile
-
 from rich import get_console
 from rich._log_render import FormatTimeCallable, LogRender
+from rich._null_file import NullFile
 from rich.console import Console, ConsoleRenderable
 from rich.highlighter import Highlighter, ReprHighlighter
 from rich.text import Text
 from rich.traceback import Traceback
-
 
 MESSAGE_WIDTH = 40
 
@@ -138,7 +136,9 @@ class RichHandler:
             Text: A tuple of the style and level name.
         """
         level_name = record["level"].name
-        level_text = Text.styled(level_name.ljust(8), f"logging.level.{level_name.lower()}")
+        level_text = Text.styled(
+            level_name.ljust(8), f"logging.level.{level_name.lower()}"
+        )
         return level_text
 
     def emit(self, record) -> None:
@@ -253,19 +253,21 @@ class RichHandler:
         return log_renderable
 
 
-def _rich_profile(level=None, extra=None, **kwargs):
+def _rich_profile(level=None, **kwargs):
+    from plainlog import logger
+
     from .extensions._rich_handler import RichHandler
     from .processors import (
-        add_caller_info,
-        Duration,
-        DEFAULT_PROCESSORS,
         DEFAULT_PREPROCESSORS,
+        DEFAULT_PROCESSORS,
+        Duration,
+        add_caller_info,
     )
 
     preprocessors = (*DEFAULT_PREPROCESSORS, add_caller_info, Duration())
     processors = DEFAULT_PROCESSORS
 
-    logger_core.configure(
+    logger.configure(
         handlers=[
             {
                 "handler": RichHandler(
@@ -284,5 +286,7 @@ def _rich_profile(level=None, extra=None, **kwargs):
         extra=extra,
     )
 
+
 from plainlog.configure import add_profile
+
 add_profile("rich", _rich_profile)

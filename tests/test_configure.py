@@ -1,13 +1,13 @@
 import pytest
 
 from plainlog import logger
-from plainlog.configure import _profiles, configure_log
+from plainlog.configure import _profiles, apply_log_profile
 
 
-class TestConfigureLog:
+class TestApplyLogProfile:
     @pytest.mark.parametrize("name", (*_profiles.keys(),))
-    def test_configure_log(self, name):
-        configure_log(name, level="DEBUG")
+    def test_apply_log_profile(self, name):
+        apply_log_profile(name, level="DEBUG")
         assert logger.error("Testmessage") is None
         assert logger.debug("Testmessage") is None
         assert logger.info("Testmessage") is None

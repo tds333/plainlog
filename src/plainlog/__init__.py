@@ -7,11 +7,11 @@ The plainlog library provides a pre-instanced logger to facilitate dealing with 
 Just ``from plainlog import logger``.
 """
 
-from ._logger import logger, logger_core  # noqa
-from .configure import configure_log
+from ._logger import logger  # noqa
+from .configure import apply_log_profile
 from . import _env
 
 __all__ = ["logger"]
 
 
-configure_log(_env.PLAINLOG_PROFILE, _env.PLAINLOG_LEVEL)
+apply_log_profile(_env.PLAINLOG_PROFILE, _env.PLAINLOG_LEVEL)

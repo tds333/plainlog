@@ -19,6 +19,7 @@ from plainlog._logger import (
     _validate_extra,
     _validate_level,
     _validate_name,
+    logger_core,
 )
 from plainlog.handlers import BaseHandler
 
@@ -202,7 +203,7 @@ def test_logger_pickle_roundtrip(thandler):
 
     assert restored.name == lb.name
     assert restored.extra == lb.extra
-    assert restored.core is logger.core
+    assert restored._core is logger_core
 
 
 def test_logger_pickle_can_log(thandler):
@@ -223,14 +224,14 @@ def test_logger_pickle_global_core():
     lb = Logger(logger_core, "pickle_test", {"a": 1})
     data = pickle.dumps(lb)
     restored = pickle.loads(data)
+    assert restored._core is logger_core
 
-    assert restored.core is logger_core
     assert restored.name == "pickle_test"
     assert restored.extra == {"a": 1}
 
 
 def test_core_handler_property(thandler):
-    assert logger.core.handler is thandler
+    assert logger_core.handler is thandler
 
 
 def test_logger_context(thandler):
@@ -269,7 +270,7 @@ def test_logger_context_isolation(thandler):
 
 def test_core_level_invalid():
     with pytest.raises(ValueError, match="Invalid level"):
-        logger.core.level("NONEXISTENT")
+        logger_core.level("NONEXISTENT")
 
 
 def test_core_log_no_handler_returns_empty():
@@ -285,16 +286,16 @@ class ErrorOnPreprocess(BaseHandler):
 
 
 def test_core_preprocess_error_prints_to_stderr(thandler, capsys):
-    logger.core.configure(handler=ErrorOnPreprocess(), level="DEBUG", print_errors=True)
+    logger.configure(handler=ErrorOnPreprocess(), level="DEBUG", print_errors=True)
     logger.info("trigger preprocess error")
-    logger.core.wait_for_processed()
+    logger_core.wait_for_processed()
     output = capsys.readouterr().err
     assert "Error in handler.preprocess()" in output
     assert "preprocess failed" in output
 
 
 def test_core_preprocess_error_silent_without_print_errors(thandler):
-    logger.core.configure(
+    logger.configure(
         handler=ErrorOnPreprocess(), level="DEBUG", print_errors=False
     )
     logger.info("trigger preprocess error")
@@ -306,18 +307,18 @@ class ErrorOnProcess(BaseHandler):
 
 
 def test_core_process_error_prints_to_stderr(thandler, capsys):
-    logger.core.configure(handler=ErrorOnProcess(), level="DEBUG", print_errors=True)
+    logger.configure(handler=ErrorOnProcess(), level="DEBUG", print_errors=True)
     logger.info("trigger process error")
-    logger.core.wait_for_processed()
+    logger_core.wait_for_processed()
     output = capsys.readouterr().err
     assert "Logging error" in output
     assert "process failed" in output
 
 
 def test_core_process_error_silent_without_print_errors(thandler):
-    logger.core.configure(handler=ErrorOnProcess(), level="DEBUG", print_errors=False)
+    logger.configure(handler=ErrorOnProcess(), level="DEBUG", print_errors=False)
     logger.info("trigger process error")
-    logger.core.wait_for_processed()
+    logger_core.wait_for_processed()
 
 
 class ErrorOnCloseHandler(BaseHandler):
@@ -329,16 +330,16 @@ class ErrorOnCloseHandler(BaseHandler):
 
 
 def test_core_close_error_prints_to_stderr(thandler, capsys):
-    logger.core.configure(
+    logger.configure(
         handler=ErrorOnCloseHandler(), level="DEBUG", print_errors=True
     )
-    logger.core.wait_for_processed()
-    logger.core.configure(handler=None, level=None)
+    logger_core.wait_for_processed()
+    logger.configure(handler=None, level=None)
     output = capsys.readouterr().err
     assert "Error in handler.close()" in output
     assert "close failed" in output
     # Reset back to thandler for fixture teardown
-    logger.core.configure(handler=thandler, level="DEBUG", print_errors=False)
+    logger.configure(handler=thandler, level="DEBUG", print_errors=False)
 
 
 def test_print_error_to_stderr(capsys):
@@ -384,7 +385,7 @@ class FilterOnPreprocess(BaseHandler):
 
 
 def test_core_preprocess_filter(thandler):
-    logger.core.configure(handler=FilterOnPreprocess(), level="DEBUG")
+    logger.configure(handler=FilterOnPreprocess(), level="DEBUG")
     result = logger(msg="should be filtered")
     assert result == {}
 

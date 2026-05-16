@@ -51,7 +51,7 @@ class LoggerClass:
 
 
 async def main():
-    logger.core.configure(handler=MyAsyncHandler())
+    logger.configure(handler=MyAsyncHandler())
     log = logger.new()
     log.debug("hello")
 

@@ -33,9 +33,9 @@ Or use a profile for more structured output:
 
 ```python
 from plainlog import logger
-from plainlog.configure import configure_log
+from plainlog.configure import apply_log_profile
 
-configure_log("develop", level="DEBUG")
+apply_log_profile("develop", level="DEBUG")
 logger.info("ready to go")
 ```
 

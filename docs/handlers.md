@@ -40,16 +40,16 @@ record.
 ### Basic StreamHandler
 
 ```python
-from plainlog import logger_core
+from plainlog import logger
 from plainlog.handlers import StreamHandler
 
-logger_core.configure(handler=StreamHandler())
+logger.configure(handler=StreamHandler())
 ```
 
 ### ProcessingHandler with Callers Info
 
 ```python
-from plainlog import logger_core
+from plainlog import logger
 from plainlog.handlers import ProcessingHandler, ConsoleHandler
 from plainlog.processors import add_caller_info
 
@@ -57,26 +57,26 @@ handler = ProcessingHandler(
     preprocessors=[add_caller_info],
     handler=ConsoleHandler(colors=True),
 )
-logger_core.configure(handler=handler)
+logger.configure(handler=handler)
 ```
 
 ### CollectHandler — Write to Console and File
 
 ```python
-from plainlog import logger_core
+from plainlog import logger
 from plainlog.handlers import CollectHandler, ConsoleHandler, FileHandler
 
 handler = CollectHandler([
     ConsoleHandler(),
     FileHandler("app.log"),
 ])
-logger_core.configure(handler=handler)
+logger.configure(handler=handler)
 ```
 
 ### FingersCrossedHandler — Buffer Until Error
 
 ```python
-from plainlog import logger_core
+from plainlog import logger
 from plainlog.handlers import FingersCrossedHandler, ConsoleHandler
 
 # Buffer up to 100 records, flush everything on ERROR (level 40)
@@ -85,7 +85,7 @@ handler = FingersCrossedHandler(
     action_level=40,
     buffer_size=100,
 )
-logger_core.configure(handler=handler)
+logger.configure(handler=handler)
 ```
 
 ### AsyncHandler Subclass

@@ -1,20 +1,25 @@
-from plainlog import logger, logger_core, configure_log
-from time import sleep
-from plainlog.processors import (
-    add_caller_info,
-    filter_by_name,
-    FilterList,
-)
-from plainlog.handlers import WrapStandardHandler, ConsoleHandler, JsonHandler, FileHandler, StreamHandler
-
-# from plainlog._rich_handler import RichHandler
-from plainlog.handlers import JsonHandler
-from plainlog.warnings import capture_warnings
-from plainlog.formatters import SimpleFormatter
 import logging
 import pprint
-
 import timeit
+from time import sleep
+
+from plainlog import apply_log_profile, logger
+from plainlog.formatters import SimpleFormatter
+
+# from plainlog._rich_handler import RichHandler
+from plainlog.handlers import (
+    ConsoleHandler,
+    FileHandler,
+    JsonHandler,
+    StreamHandler,
+    WrapStandardHandler,
+)
+from plainlog.processors import (
+    FilterList,
+    add_caller_info,
+    filter_by_name,
+)
+from plainlog.warnings import capture_warnings
 
 # capture_warnings(True)
 
@@ -52,12 +57,12 @@ def create_logger():
 
 
 def setup_log():
-    configure_log("empty")
+    apply_log_profile("empty")
     # logger.get_core().add(lambda x: None, level="DEBUG")
 
 
 def setup_stream_log():
-    configure_log("fast")
+    apply_log_profile("fast")
 
 
 def setup_std_log():

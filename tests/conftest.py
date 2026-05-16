@@ -4,6 +4,8 @@ import logging
 import pytest
 
 import plainlog
+from plainlog import logger
+from plainlog._logger import logger_core
 from plainlog.handlers import BaseHandler
 
 
@@ -17,11 +19,11 @@ class DummyHandlerOld:
 
     @property
     def records(self):
-        plainlog.logger_core.wait_for_processed()
+        logger_core.wait_for_processed()
         return self._records
 
     def first(self):
-        plainlog.logger_core.wait_for_processed()
+        logger_core.wait_for_processed()
         return self._records[0]
 
     def clear(self):
@@ -38,11 +40,11 @@ class DummyHandler(BaseHandler):
 
     @property
     def records(self):
-        plainlog.logger_core.wait_for_processed()
+        logger_core.wait_for_processed()
         return self._records
 
     def first(self):
-        plainlog.logger_core.wait_for_processed()
+        logger_core.wait_for_processed()
         return self._records[0]
 
     def clear(self):
@@ -53,11 +55,11 @@ class DummyHandler(BaseHandler):
 def thandler():
     dh = DummyHandler()
 
-    plainlog.logger_core.configure(level="DEBUG", handler=dh)
+    logger.configure(level="DEBUG", handler=dh)
 
     yield dh
 
-    plainlog.logger_core.configure(level="DEBUG", handler=None)
+    logger.configure(level="DEBUG", handler=None)
     dh.clear()
 
 

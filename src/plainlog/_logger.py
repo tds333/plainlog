@@ -312,10 +312,6 @@ class Logger:
         # return deepcopy(self._extra)
         return copy(self._extra)
 
-    @property
-    def core(self) -> Core:
-        return self._core
-
     def new(
         self,
         name: Optional[str] = None,
@@ -512,6 +508,24 @@ class Logger:
         """
         level = self._core.level(level)
         self._log(level, msg, kwargs)
+
+    def configure(
+        self,
+        *,
+        handler: Optional[HandlerProtocol] = None,
+        level: Optional[Union[str, int, Level]] = None,
+        print_errors: Optional[bool] = None,
+    ) -> None:
+        """Configure the shared Core handler, level, and error printing.
+
+        Shortcut for :meth:`Core.configure`.
+
+        Args:
+            handler: Handler to install, or ``None`` to remove.
+            level: Minimum log level.
+            print_errors: Print handler errors to stderr.
+        """
+        self._core.configure(handler=handler, level=level, print_errors=print_errors)
 
     def __call__(
         self, level: LevelInput = LEVEL_DEBUG, msg: Msg = "", **kwargs
