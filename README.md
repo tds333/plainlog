@@ -6,14 +6,6 @@
 
 -----
 
-**Table of Contents**
-
-- [Plainlog](#plainlog)
-  - [Installation](#installation)
-  - [Idea](#idea)
-  - [Status](#status)
-  - [License](#license)
-
 ## Installation
 
 ```console
@@ -25,6 +17,26 @@ or add it to your project with
 ```console
 uv add plainlog
 uv sync
+```
+
+## Quickstart
+
+```python
+from plainlog import logger
+
+logger.info("hello world")
+logger.warning("look out!")
+logger.error("something broke")
+```
+
+Or use a profile for more structured output:
+
+```python
+from plainlog import logger
+from plainlog.configure import configure_log
+
+configure_log("develop", level="DEBUG")
+logger.info("ready to go")
 ```
 
 ## Idea
