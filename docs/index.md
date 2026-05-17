@@ -24,7 +24,7 @@ You need `make` and `uv` as package and environment manager, for more informatio
 Main goal is to be a plain easy to use logging library.
 Simple, small, and fast.
 
-If you are to lazy for long configuration settings simply use the provided log profiles.
+If you are too lazy for long configuration settings simply use the provided log profiles.
 Advanced configuration can be done with environment variables or in the code.
 
 No dependencies to other libraries. Pure Python working in different Python implementations.
@@ -41,14 +41,14 @@ It creates a dict and puts it into a queue. The core handles the rest in an extr
 The concept of preprocessors and processors is special. A preprocessor runs in the context of the logger (application Thread), a processor in the context of the core (logger core Thread).
 So you can enrich log record information in the context of the call or later in the context of processing.
 
-For easy usage and configuration a list of profiles is availabel.
+For easy usage and configuration a list of profiles is available.
 They add documented (pre)-processors and handlers and everything is ready to be used.
 
 
 ### What is from other libraries?
 
-From structlog the idea of processors are taken. But simplyfied and separated. In plainlog it is a simple list of preprocessors and processors
-and they are executed in order. No wraping and complicated parameter handling.
+From structlog the idea of processors are taken. But simplified and separated. In plainlog it is a simple list of preprocessors and processors
+and they are executed in order. No wrapping and complicated parameter handling.
 Also the formating for development log output is inspired from structlog. The logger has the feature to `bind` and `unbind` extra variables.
 
 From loguru the concept of a logger and core is taken. But with cleaner separation.
@@ -66,8 +66,8 @@ takes them and adds them internally. But plainlog does not invent own log levels
 The concept of handlers and formatters is also there. But everything simplified. 
 A handler can have a formatter but this is up to the user.
 
-In contrast to all other libraries, the interface is plain and simple. Not to much methods to remember. Simple and easy configuration.
-But powerfull enough to handle everyones logging needs.
+In contrast to all other libraries, the interface is plain and simple. Not too much methods to remember. Simple and easy configuration.
+But powerful enough to handle everyones logging needs.
 
 ### In short
 
@@ -75,7 +75,7 @@ But powerfull enough to handle everyones logging needs.
 - Configuration with handlers and processors on the core level.
 - Clean separation, the logger is fast and pushes to a queue where the core handles the records in an extra thread. It does not block.
 - Same interface for sync and async code.
-- There is no hierarchy as in standard logging. Therer are loggers and they share one core.
+- There is no hierarchy as in standard logging. There are loggers and they share one core.
 - Everything is fully configurable and can be as minimal as possible. The amount of preprocessors, processors and handlers are under your control.
 - It is really fast. 
 - Handlers, preprocessors, processors all use a simple call interface. They must be callable and get the log record dictionary.
@@ -84,8 +84,8 @@ But powerfull enough to handle everyones logging needs.
 
 ### Why I created it?
 
-After I have seen and used a lot of diffent log libraries I cam to loguru. Powerfull and easy to use, but with some hard corners.
-I use a lot of async frameworks and code. But most of them don't really care to handle logging in a right way. Standard logging asumes
+After I have seen and used a lot of different log libraries I cam to loguru. Powerful and easy to use, but with some hard corners.
+I use a lot of async frameworks and code. But most of them don't really care to handle logging in a right way. Standard logging assumes
 you hopefully add not a blocking handler. But even stdout or stderr is blocking. So there is the way to write a logging library that have
 async methods. But than you have to provide async and sync stuff with different names. Dual interfaces are not nice.
 Finally for logging it is enough if you guaranty that a sync call is not blocking. 
@@ -100,7 +100,7 @@ libraries.
 
 ## Status
 
-In development alpha, internal interfaces can change.
+In development beta, internal interfaces can change.
 
 ## License
 

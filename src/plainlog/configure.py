@@ -225,6 +225,3 @@ def apply_log_profile(name=None, level=None, **kwargs):
         )
 
     profile(level, **kwargs)
-
-
-configure_core = logger.configure

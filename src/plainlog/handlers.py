@@ -25,7 +25,7 @@ from .processors import add_caller_info
 class BaseHandler:
     """Minimal handler that passes records through unchanged.
 
-    Implements the :class:`HandlerProtocol` with no-op methods.
+    Implements the `HandlerProtocol` with no-op methods.
     Useful as a base class or placeholder.
     """
 
@@ -49,7 +49,7 @@ class ProcessingHandler:
     Args:
         preprocessors: List of callables run before enqueueing.
         processors: List of callables run after dequeueing.
-        handler: Wrapped :class:`HandlerProtocol` to call after processors.
+        handler: Wrapped `HandlerProtocol` to call after processors.
 
     Example::
 
@@ -98,7 +98,7 @@ class CollectHandler:
     processing stops.
 
     Args:
-        handlers: Iterable of :class:`HandlerProtocol` instances.
+        handlers: Iterable of `HandlerProtocol` instances.
     """
 
     def __init__(self, handlers=None):
@@ -128,13 +128,13 @@ class CollectHandler:
 class StreamHandler:
     """Writes formatted log records to a file-like stream.
 
-    By default writes to ``sys.stderr`` with a :class:`SimpleFormatter`.
+    By default writes to ``sys.stderr`` with a `SimpleFormatter`.
 
     Args:
         stream: A file-like object with a ``write`` method.
             Defaults to ``sys.stderr``.
         formatter: Callable that takes a record and returns a string.
-            Defaults to :class:`SimpleFormatter`.
+            Defaults to `SimpleFormatter`.
     """
 
     def __init__(self, stream=None, formatter=None) -> None:
@@ -173,7 +173,7 @@ class StreamHandler:
 
 
 class DefaultHandler(StreamHandler):
-    """StreamHandler that writes to ``sys.stdout`` with a :class:`DefaultFormatter`."""
+    """StreamHandler that writes to ``sys.stdout`` with a `DefaultFormatter`."""
 
     def __init__(self, stream=None) -> None:
         if stream is None:
@@ -182,7 +182,7 @@ class DefaultHandler(StreamHandler):
 
 
 class ConsoleHandler(StreamHandler):
-    """StreamHandler with colorized output via :class:`ConsoleRenderer`.
+    """StreamHandler with colorized output via `ConsoleRenderer`.
 
     Intended for interactive development. Color codes can be disabled.
 
@@ -201,7 +201,7 @@ class DevelopHandler(ConsoleHandler):
     """ConsoleHandler that enriches records with caller info during preprocessing.
 
     Automatically adds function name, line number, module, and file path
-    to each record via :func:`add_caller_info`.
+    to each record via `add_caller_info()`.
     """
 
     def preprocess(self, record: Record) -> Record:
@@ -261,7 +261,7 @@ class WrapStandardHandler:
 class JsonHandler(StreamHandler):
     """StreamHandler that outputs one JSON object per log record.
 
-    Configures a :class:`JsonFormatter` with the given parameters.
+    Configures a `JsonFormatter` with the given parameters.
 
     Args:
         stream: Output stream. Defaults to ``sys.stderr``.
@@ -299,7 +299,7 @@ class FingersCrossedHandler:
     record are forwarded to the wrapped handler.
 
     Args:
-        handler: Wrapped :class:`HandlerProtocol` to flush to.
+        handler: Wrapped `HandlerProtocol` to flush to.
         action_level: Log level number that triggers the flush.
             Defaults to 40 (ERROR).
         buffer_size: Maximum number of records to buffer.
@@ -364,7 +364,7 @@ class FileHandler:
     Args:
         path: File path to write to.
         formatter: Callable that takes a record and returns a string.
-            Defaults to :class:`SimpleFormatter`.
+            Defaults to `SimpleFormatter`.
         delay: Defer file creation until the first log record.
         watch: Reopen the file if the inode changes (log rotation).
         mode: File open mode. Defaults to ``"a"``.
@@ -467,14 +467,14 @@ class AsyncHandler:
     """Base handler for async integrations.
 
     Schedules writes via ``asyncio.run_coroutine_threadsafe`` on the
-    given event loop. Subclasses must override :meth:`write` to perform
+    given event loop. Subclasses must override `write()` to perform
     the actual async I/O.
 
     Args:
         loop: The ``asyncio.AbstractEventLoop`` to schedule writes on.
             Defaults to the currently running loop.
         formatter: Callable that takes a record and returns a string.
-            Defaults to :class:`SimpleFormatter`.
+            Defaults to `SimpleFormatter`.
     """
 
     def __init__(self, loop=None, formatter=None) -> None:

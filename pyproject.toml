@@ -82,4 +82,8 @@ ignore = [
 
 [dependency-groups]
 dev = ["pytest", "pytest-cov", "pytest-examples"]
-docs = ["mkdocstrings-python>=2.0.3", "zensical>=0.0.42"]
+docs = [
+    "mkdocs-autorefs>=1.4.4",
+    "mkdocstrings-python>=2.0.3",
+    "zensical>=0.0.42",
+]

@@ -474,6 +474,7 @@ dev = [
     { name = "pytest-examples" },
 ]
 docs = [
+    { name = "mkdocs-autorefs" },
     { name = "mkdocstrings-python" },
     { name = "zensical" },
 ]
@@ -487,6 +488,7 @@ dev = [
     { name = "pytest-examples" },
 ]
 docs = [
+    { name = "mkdocs-autorefs", specifier = ">=1.4.4" },
     { name = "mkdocstrings-python", specifier = ">=2.0.3" },
     { name = "zensical", specifier = ">=0.0.42" },
 ]

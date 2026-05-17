@@ -1,7 +1,7 @@
 # Handlers
 
 Handlers are responsible for the actual output of log records. Each handler
-implements the :class:`~plainlog.handlers.HandlerProtocol` with three methods:
+implements the [`HandlerProtocol`](base.md#handlerprotocol) with three methods:
 
 - **`preprocess(record)`** — runs in the application thread before the record
   is enqueued to the Core. Use this to enrich or filter records early.

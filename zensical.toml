@@ -47,6 +47,7 @@ Copyright &copy; 2026 tds333
 nav = [
   { "Get started" = "index.md" },
   { "Logger" = "logger.md" },
+  { "Configuration" = "configuration.md" },
   { "Handlers" = "handlers.md" },
   { "Base Types" = "base.md" },
   { "Plainlog vs stdlib" = "comparison_to_stdlib.md" },
@@ -359,3 +360,6 @@ paths = ["src"]
 docstring_style = "google"
 inherited_members = true
 show_source = false
+
+[project.plugins.autorefs]
+enable = true

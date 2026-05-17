@@ -275,8 +275,8 @@ class Logger:
     ``extra`` dict of static key-value pairs that are attached to every
     record.
 
-    Use :meth:`bind` / :meth:`unbind` to derive a new logger with
-    additional or fewer extra keys.  Use :meth:`new` to create a child
+    Use `bind()` / `unbind()` to derive a new logger with
+    additional or fewer extra keys.  Use `new()` to create a child
     logger (optionally with an auto-detected name).
 
     Attributes:
@@ -397,7 +397,7 @@ class Logger:
             **kwargs: Key-value pairs to merge into the context.
 
         Returns:
-            A ``Token`` that can be passed to :meth:`reset_context`.
+            A ``Token`` that can be passed to `reset_context()`.
         """
         new_context = {**plainlog_context.get({}), **kwargs}
         token = plainlog_context.set(new_context)
@@ -409,7 +409,7 @@ class Logger:
         """Reset the ContextVar to its previous value.
 
         Args:
-            token: The token returned by :meth:`context`.
+            token: The token returned by `context()`.
         """
         plainlog_context.reset(token)
 
@@ -422,7 +422,7 @@ class Logger:
             **kwargs: Key-value pairs to set as context variables.
 
         Yields:
-            The token returned by :meth:`context`.
+            The token returned by `context()`.
 
         Example:
             with logger.contextualize(request_id="abc"):
@@ -518,7 +518,7 @@ class Logger:
     ) -> None:
         """Configure the shared Core handler, level, and error printing.
 
-        Shortcut for :meth:`Core.configure`.
+        Shortcut for `Core.configure()`.
 
         Args:
             handler: Handler to install, or ``None`` to remove.

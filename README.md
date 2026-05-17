@@ -44,7 +44,7 @@ logger.info("ready to go")
 Main goal is to be a plain easy to use logging library.
 Simple, small, and fast.
 
-If you are to lazy for long configuration settings simply use the provided log profiles.
+If you are too lazy for long configuration settings simply use the provided log profiles.
 Advanced configuration can be done with environment variables or in the code.
 
 No dependencies to other libraries. Pure Python working in different Python implementations.
@@ -52,7 +52,7 @@ No dependencies to other libraries. Pure Python working in different Python impl
 
 ## Status
 
-In development alpha, internal interfaces can change.
+In development beta, internal interfaces can change.
 
 ## License
 
