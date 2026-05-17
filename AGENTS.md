@@ -35,6 +35,7 @@ There is no required command ordering — lint/type-check/test are independent.
 - Code blocks in `README.md` and `docs/*.md` are tested via `pytest-examples`
   (`tests/test_examples.py`). Keep them runnable standalone (full imports).
 - Coverage: `make cov` — 97% average.
+- avoid test classes use functions instead, classes only if to test methods of a class
 
 ## Docs
 
