@@ -25,7 +25,7 @@ start_time: datetime = datetime.now(timezone.utc)
 
 
 class ProcessorProtocol(Protocol):
-    def __call__(self, record: Record) -> Record: ...
+    def __call__(self, record: Record) -> Record: ...  # pragma: no cover
 
 
 def add_caller_info(record: Record, level=3) -> Record:

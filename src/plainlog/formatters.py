@@ -76,6 +76,8 @@ class JsonFormatter:
         self._sort_keys = sort_keys
         if additional_keys is None:
             self._additional_keys = self.DEFAULT_ADDITIONAL_KEYS
+        else:
+            self._additional_keys = additional_keys
 
     def __call__(self, record):
         exception = record.get("exception")

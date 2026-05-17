@@ -495,7 +495,7 @@ class AsyncHandler:
 
         return record
 
-    async def write(self, message):
+    async def write(self, message):  # pragma: no cover
         pass
 
     def close(self) -> None:

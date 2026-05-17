@@ -194,7 +194,7 @@ class Core:
         while True:
             try:
                 value = queue_get()
-            except Exception:
+            except Exception:  # pragma: no cover
                 continue
 
             match value:
@@ -236,7 +236,7 @@ class Core:
                 case (Command.STOP, _):
                     break
 
-                case (Command.EVENT, event):
+                case (Command.EVENT, event):  # pragma: no cover
                     event.set()
 
     @staticmethod

@@ -505,3 +505,24 @@ def test_core():
 
     assert dummy_handler.records
     assert dummy_handler.records[0].get("msg") == message
+
+
+class HandlerWithoutClose:
+    def preprocess(self, record):
+        return record
+
+    def process(self, record):
+        return record
+
+
+def test_core_handler_without_close():
+    core = Core(name="NO_CLOSE_ATTR")
+    with closing(core):
+        core.configure(handler=HandlerWithoutClose(), level="DEBUG")
+        core.configure(handler=BaseHandler(), level="DEBUG")
+
+
+def test_logger_new_at_module_top_level():
+    from tests._helper_new_at_module_level import LOGGER_NAME
+
+    assert LOGGER_NAME == "tests._helper_new_at_module_level"

@@ -73,7 +73,7 @@ class StdInterceptHandler(logging.Handler):
             "exc_info": record.exc_info,
         }
         # since Python 3.12 there is taskName available
-        if hasattr(record, "taskName"):
+        if hasattr(record, "taskName"):  # pragma: no cover
             log_record["task_name"] = record.taskName
 
         core.log(log_record)

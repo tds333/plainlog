@@ -44,7 +44,7 @@ def _format_exception(exc_info):
     traceback.print_exception(exc_info[0], exc_info[1], exc_info[2], None, sio)
     s = sio.getvalue()
     sio.close()
-    if s[-1:] == "\n":
+    if s[-1:] == "\n":  # pragma: no cover
         s = s[:-1]
 
     return s

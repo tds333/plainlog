@@ -61,3 +61,17 @@ class TestJsonFormatter:
         }
 
         assert json_result == serializable
+
+    def test_custom_converter(self):
+        f = JsonFormatter(converter=lambda x: "CUSTOM")
+        record = make_record("test")
+        record["extra"] = {"obj": object()}
+        result = json.loads(f(record))
+        assert result["extra"]["obj"] == "CUSTOM"
+
+    def test_custom_additional_keys(self):
+        f = JsonFormatter(additional_keys=("custom_key",))
+        record = make_record("test")
+        record["custom_key"] = "val"
+        result = json.loads(f(record))
+        assert result["custom_key"] == "val"

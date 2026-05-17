@@ -120,3 +120,11 @@ def test_warnings_only_logged_when_captured(thandler):
         assert len(thandler.records) == pre_count + 1
     finally:
         capture_warnings(False)
+
+
+def test_showwarning_with_file_before_capture():
+    from plainlog.warnings import _showwarning, capture_warnings, _warnings_showwarning
+
+    capture_warnings(False)
+    assert _warnings_showwarning is None
+    _showwarning("test msg", UserWarning, "f.py", 1, file=object())

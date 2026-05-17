@@ -38,3 +38,10 @@ def test_eval_format():
     result = eval_format(msg, kwargs)
 
     assert result == "data"
+
+
+def test_eval_dict_with_non_callable():
+    d = {"a": lambda: "result", "b": 42}
+    eval_dict(d)
+    assert d["a"] == "result"
+    assert d["b"] == 42
