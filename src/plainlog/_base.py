@@ -74,6 +74,6 @@ class HandlerProtocol(Protocol):
         close: Cleanup resources.
     """
 
-    def preprocess(self, record: Record) -> Record: ...
-    def process(self, record: Record) -> Record: ...
-    def close(self) -> None: ...
+    def preprocess(self, record: Record) -> Record: ...  # pragma: no cover
+    def process(self, record: Record) -> Record: ...  # pragma: no cover
+    def close(self) -> None: ...  # pragma: no cover
