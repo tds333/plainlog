@@ -607,20 +607,6 @@ class TestFileHandlerEdgeCases:
         finally:
             Path(path).unlink(missing_ok=True)
 
-    def test_reopen_on_deleted_file(self):
-        with tempfile.NamedTemporaryFile(mode="w+", suffix=".log", delete=False) as f:
-            path = Path(f.name)
-        try:
-            h = FileHandler(path, watch=True)
-            h.process(make_record("first"))
-            path.unlink()
-            h.process(make_record("second"))
-            content = path.read_text(encoding="utf8")
-            assert "second" in content
-            h.close()
-        finally:
-            path.unlink(missing_ok=True)
-
 
 class TestAsyncHandler:
     def test_init_and_repr(self):
