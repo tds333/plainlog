@@ -43,6 +43,10 @@ format: ## Format files using ruff format
 bench: ## Format files using ruff format
 	uv run benchmarks/timeit_bench_log.py
 
+.PHONY: bench-std
+bench-std: ## Benchmark plainlog vs stdlib logging
+	uv run benchmarks/bench_stdlib_vs_plainlog.py
+
 .PHONY: docs
 docs: ## build docs
 	uv run --group docs zensical build

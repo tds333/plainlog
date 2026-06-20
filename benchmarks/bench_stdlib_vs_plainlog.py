@@ -3,9 +3,12 @@
 Results are shown side by side with matching scenarios paired together.
 """
 
+import argparse
+import json
 import logging
 import os
 import timeit
+from datetime import datetime
 from statistics import mean
 
 from plainlog import logger
@@ -33,7 +36,7 @@ class NullHandler:
 DEVNULL = os.devnull
 
 N = 200_000
-RUNS = 5
+RUNS = 3  # overridden by --iterations / --runs CLI flags
 
 std_log = logging.getLogger(__name__)
 
@@ -72,6 +75,49 @@ def setup_stdlib_dropped() -> None:
 
 def stdlib_log_dropped() -> None:
     std_log.debug("benchmark message 42")
+
+
+class StdlibJsonFormatter(logging.Formatter):
+    """JSON formatter for stdlib — mirrors plainlog's JsonFormatter output."""
+
+    def format(self, record: logging.LogRecord) -> str:
+        dt = datetime.fromtimestamp(record.created)
+
+        serializable = {
+            "message": record.getMessage(),
+            "name": record.name,
+            "datetime": dt.isoformat(),
+            "timestamp": dt.timestamp(),
+            "level_name": record.levelname,
+            "level_no": record.levelno,
+            "extra": {},
+            "process_id": record.process,
+            "process_name": record.processName,
+        }
+
+        if record.exc_info and record.exc_info[0] is not None:
+            exc_type, exc_value, _ = record.exc_info
+            serializable["exception"] = {
+                "type": exc_type.__name__,
+                "value": exc_value,
+                "traceback": record.exc_text is not None,
+            }
+
+        return json.dumps(serializable, default=str, ensure_ascii=False)
+
+
+def setup_stdlib_json() -> None:
+    root = logging.getLogger()
+    root.setLevel(logging.DEBUG)
+    root.handlers.clear()
+    handler = logging.StreamHandler(open(DEVNULL, "w"))
+    handler.setFormatter(StdlibJsonFormatter())
+    root.addHandler(handler)
+    std_log.setLevel(logging.DEBUG)
+
+
+def stdlib_log_json() -> None:
+    std_log.info("benchmark message 42")
 
 
 def setup_plainlog_empty() -> None:
@@ -143,6 +189,11 @@ BENCHMARKS: list[dict] = [
         "name": "stdlib dropped (level filter)",
         "setup": setup_stdlib_dropped,
         "func": stdlib_log_dropped,
+    },
+    {
+        "name": "stdlib /dev/null (json)",
+        "setup": setup_stdlib_json,
+        "func": stdlib_log_json,
     },
     {
         "name": "plainlog empty (dropped)",
@@ -220,6 +271,11 @@ def run() -> None:
             "stdlib /dev/null (StreamHandler)",
             "plainlog /dev/null (simple)",
         ),
+        (
+            "JSON /dev/null",
+            "stdlib /dev/null (json)",
+            "plainlog /dev/null (json)",
+        ),
     ]
 
     print(f"{'Scenario':<30} {'stdlib (ns)':>12} {'plainlog (ns)':>14} {'ratio':>8}")
@@ -239,4 +295,9 @@ def run() -> None:
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Benchmark plainlog vs stdlib logging")
+    parser.add_argument("--iterations", type=int, default=N, help="Iterations per run")
+    parser.add_argument("--runs", type=int, default=RUNS, help="Number of runs per scenario")
+    args = parser.parse_args()
+    N, RUNS = args.iterations, args.runs
     run()
