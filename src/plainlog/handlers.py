@@ -205,7 +205,7 @@ class DevelopHandler(ConsoleHandler):
     """
 
     def preprocess(self, record: Record) -> Record:
-        record = add_caller_info(record, level=4)
+        record = add_caller_info(record, level=5)
         return record
 
 
