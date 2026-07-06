@@ -9,12 +9,11 @@ import sys
 import traceback
 from contextvars import ContextVar
 from copy import copy
-from datetime import datetime, timezone
 from enum import Enum
-from functools import partial
 from multiprocessing import current_process
 from queue import SimpleQueue
 from threading import Event, Thread
+from time import time
 from typing import (
     Any,
     Callable,
@@ -29,7 +28,6 @@ from . import _env
 from ._base import HandlerProtocol, Level, Msg, Record, RecordException
 from ._frames import get_frame
 
-get_now_utc = partial(datetime.now, timezone.utc)
 plainlog_context: ContextVar[dict] = ContextVar("plainlog_context")
 logger_process = current_process()
 
@@ -440,26 +438,26 @@ class Logger:
         if core._handler is None or core.min_level_no > level[0]:
             return {}
 
-        current_datetime = get_now_utc()
+        current_time = time()
         exc_info = kwargs.pop("exc_info", False)
+        ctx = plainlog_context.get({})
 
         log_record: Record = {
             "level": level,
             "msg": msg,  # raw message as in std logging
-            "message": str(msg),
             "name": self._name,
-            "datetime": current_datetime,
+            "created": current_time,
             "process_id": logger_process.ident,
             "process_name": logger_process.name,
-            "context": {**plainlog_context.get({})},
-            "extra": {**self._extra},
+            "context": ctx.copy() if ctx else ctx,
+            "extra": self._extra.copy() if self._extra else self._extra,
             "kwargs": kwargs,
         }
 
         if exc_info:
-            type_, value, traceback = sys.exc_info()
-            exception = RecordException(type_, value, traceback)
-            log_record["exc_info"] = (type_, value, traceback)
+            exc_tuple = sys.exc_info()
+            exception = RecordException(*exc_tuple)
+            log_record["exc_info"] = exc_tuple
             log_record["exception"] = exception
 
         log_record = core.log(log_record)

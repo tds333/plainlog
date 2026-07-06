@@ -2,6 +2,8 @@
 #
 # SPDX-License-Identifier: Apache-2.0 OR MIT
 import json
+import time
+from datetime import datetime, timezone
 
 from ._utils import eval_format, get_processed_extra
 
@@ -12,6 +14,8 @@ def format_message(record):
     kwargs = record.get("kwargs", {})
     if msg and kwargs:
         message = eval_format(msg, kwargs)
+    if not message and msg:
+        message = str(msg)
 
     return message
 
@@ -24,6 +28,7 @@ class SimpleFormatter:
 
     def __call__(self, record):
         data = record.copy()
+        data["datetime"] = datetime.fromtimestamp(data.pop("created"), tz=timezone.utc)
         data["message"] = format_message(record)
         data["extra"] = get_processed_extra(record)
         message = self._fmt.format_map(data)
@@ -39,6 +44,7 @@ class DefaultFormatter:
 
     def __call__(self, record):
         data = record.copy()
+        data["datetime"] = datetime.fromtimestamp(data.pop("created"), tz=timezone.utc)
         data["message"] = format_message(record)
         extra = get_processed_extra(record)
         data["extra"] = "" if not extra else extra
@@ -93,11 +99,14 @@ class JsonFormatter:
         # extra = {**record["extra"], **record["context"], **record["kwargs"]}
         extra = get_processed_extra(record)
 
+        created = record["created"]
+        sec = int(created)
+        ts_str = time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(sec))
         serializable = {
             "message": message,
             "name": record["name"],
-            "datetime": record["datetime"].isoformat(),
-            "timestamp": record["datetime"].timestamp(),
+            "datetime": f"{ts_str}.{int((created - sec) * 1_000_000):06d}Z",
+            "timestamp": record["created"],
             "level_name": record["level"].name,
             "level_no": record["level"].no,
             "extra": extra,

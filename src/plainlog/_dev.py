@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import sys
 import traceback
+from datetime import datetime, timezone
 from io import StringIO
 from typing import Any, Iterable, Protocol, TextIO, Type, Union
 
@@ -167,10 +168,10 @@ class ConsoleRenderer:
     def __call__(self, record) -> str:
         sio = StringIO()
 
-        ts = record.get("datetime", None)
-        if ts is not None:
+        created = record.get("created")
+        if created is not None:
+            ts = datetime.fromtimestamp(created, tz=timezone.utc)
             sio.write(
-                # can be a number if timestamp is UNIX
                 self._styles.timestamp
                 + ts.astimezone().strftime("%H:%M:%S.%f")
                 + self._styles.reset

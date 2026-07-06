@@ -3,7 +3,6 @@
 # SPDX-License-Identifier: Apache-2.0 OR MIT
 
 import logging
-from datetime import datetime, timezone
 from typing import Union
 
 from ._logger import logger_core, plainlog_context
@@ -54,7 +53,7 @@ class StdInterceptHandler(logging.Handler):
             "msg": record.msg,  # raw message as in std logging
             "message": record.getMessage(),
             "name": record.name,
-            "datetime": datetime.fromtimestamp(record.created, tz=timezone.utc),
+            "created": record.created,
             "process_id": record.process,
             "process_name": record.processName,
             "context": {**plainlog_context.get({})},

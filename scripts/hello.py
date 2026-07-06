@@ -47,9 +47,9 @@ def elapsed():
 
 
 def messager(record):
-    print(f"{record['datetime'].isoformat()} {record['message']}")
-    # print(f"{record['datetime']:%H:%M} {record['message']}")
-    # print(record["datetime"], record["message"])
+    from datetime import datetime, timezone
+    dt = datetime.fromtimestamp(record["created"], tz=timezone.utc)
+    print(f"{dt.isoformat()} {record['message']}")
 
 
 async def amessager(record):
@@ -64,9 +64,10 @@ class SpecPrint:
         self.stream = sys.stdout
 
     def __call__(self, record):
-        # print(f"{record['level']}: {record['datetime']:%H:%Mh} [{record['name']}] {record['message']} {record['elapsed']}")
+        from datetime import datetime, timezone
+        dt = datetime.fromtimestamp(record["created"], tz=timezone.utc)
         self.stream.write(
-            f"{record['level']}: {record['datetime']:%H:%Mh} [{record['name']}] {record['message']} {record['elapsed']} {record['extra']}\n"
+            f"{record['level']}: {dt:%H:%Mh} [{record['name']}] {record['message']} {record['elapsed']} {record['extra']}\n"
         )
 
     def __repr__(self):

@@ -1,5 +1,5 @@
 import sys
-from datetime import datetime, timezone
+from time import time
 from io import StringIO
 
 from plainlog._dev import (
@@ -17,7 +17,7 @@ def record(**overrides):
         "msg": "test message",
         "message": "test message",
         "name": "test_logger",
-        "datetime": datetime(2024, 1, 15, 10, 30, 0, 123456, tzinfo=timezone.utc),
+        "created": time(),
         "extra": {"key1": "val1", "key2": 42},
         "kwargs": {},
         "context": {},
@@ -117,7 +117,7 @@ class TestConsoleRenderer:
 
     def test_no_timestamp(self):
         r = ConsoleRenderer()
-        out = r(record(datetime=None))
+        out = r(record(created=None))
         assert "test message" in out
 
     def test_no_level(self):
@@ -218,7 +218,7 @@ class TestConsoleRenderer:
         r = ConsoleRenderer(short_level=True)
         out = r(
             record(
-                datetime=None, level=None, extra={}, kwargs={}, context={}, name=None
+                created=None, level=None, extra={}, kwargs={}, context={}, name=None
             )
         )
         assert "test message" in out

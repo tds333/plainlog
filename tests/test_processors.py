@@ -49,8 +49,6 @@ class TestAddCallerInfo:
         assert "path" in result
         assert "module" in result
         assert result["module"] == "test_processors"
-        assert "process_id" in result
-        assert "process_name" in result
         assert "thread_id" in result
         assert "thread_name" in result
 

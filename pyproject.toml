@@ -2,23 +2,18 @@
 # requires = ["hatchling"]
 # build-backend = "hatchling.build"
 
-[build-system]
-requires = ["uv_build>=0.11,<1.0"]
-build-backend = "uv_build"
-
 [project]
 name = "plainlog"
-version = "0.3.1"
-description = 'Logging made simple and easy.'
+version = "0.4.0"
+description = "Logging made simple and easy."
 readme = "README.md"
 requires-python = ">=3.10"
 license = "Apache-2.0 OR MIT"
 license-files = ["LICENSES/*"]
-keywords = []
 authors = [{ name = "Wolfgang Langner", email = "tds333@mailbox.org" }]
+keywords = []
 classifiers = [
   "Development Status :: 4 - Beta",
-  "Topic :: System :: Logging",
   "Intended Audience :: Developers",
   "Natural Language :: English",
   # "License :: OSI Approved :: MIT License",
@@ -32,6 +27,7 @@ classifiers = [
   "Programming Language :: Python :: 3.14",
   "Programming Language :: Python :: 3.15",
   "Programming Language :: Python :: Implementation :: CPython",
+  "Topic :: System :: Logging",
 ]
 dependencies = []
 
@@ -40,6 +36,17 @@ Documentation = "https://github.com/tds333/plainlog#readme"
 Issues = "https://github.com/tds333/plainlog/issues"
 Source = "https://github.com/tds333/plainlog"
 
+[dependency-groups]
+dev = ["pytest", "pytest-cov", "pytest-examples"]
+docs = [
+  "mkdocs-autorefs>=1.4.4",
+  "mkdocstrings-python>=2.0.3",
+  "zensical>=0.0.42",
+]
+
+[build-system]
+requires = ["uv_build>=0.11,<1.0"]
+build-backend = "uv_build"
 
 [tool.coverage.run]
 parallel = true
@@ -54,7 +61,6 @@ show_missing = true
 skip_covered = true
 exclude_lines = ["no cov", "if __name__ == .__main__.:", "if TYPE_CHECKING:"]
 
-
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
@@ -62,28 +68,21 @@ testpaths = ["tests"]
 [tool.ruff]
 exclude = [".env", ".venv", "venv"]
 line-length = 88
+
 [tool.ruff.lint]
 select = [
-  "E", # pycodestyle errors
-  "W", # pycodestyle warnings
-  "F", # pyflakes
-  "I", # isort
-  "C", # flake8-comprehensions
-  "B", # flake8-bugbear
+  "E",  # pycodestyle errors
+  "W",  # pycodestyle warnings
+  "F",  # pyflakes
+  "I",  # isort
+  "C",  # flake8-comprehensions
+  "B",  # flake8-bugbear
 ]
 ignore = [
-  "E501", # line too long, handled by black
-  "B008", # do not perform function calls in argument defaults
-  "C901", # too complex
+  "E501",  # line too long, handled by black
+  "B008",  # do not perform function calls in argument defaults
+  "C901",  # too complex
 ]
 
 [tool.ty.rules]
-#division-by-zero = "ignore"
-
-[dependency-groups]
-dev = ["pytest", "pytest-cov", "pytest-examples"]
-docs = [
-    "mkdocs-autorefs>=1.4.4",
-    "mkdocstrings-python>=2.0.3",
-    "zensical>=0.0.42",
-]
+# division-by-zero = "ignore"

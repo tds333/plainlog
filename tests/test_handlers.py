@@ -27,8 +27,8 @@ from plainlog.handlers import (
 
 
 def make_record(msg="test", level=None):
+    from time import time
     from plainlog._logger import (
-        get_now_utc,
         logger_core,
         logger_process,
         plainlog_context,
@@ -40,7 +40,7 @@ def make_record(msg="test", level=None):
         "msg": msg,
         "message": str(msg),
         "name": "test",
-        "datetime": get_now_utc(),
+        "created": time(),
         "process_id": logger_process.ident,
         "process_name": logger_process.name,
         "context": {**plainlog_context.get({})},

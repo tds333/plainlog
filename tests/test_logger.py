@@ -165,7 +165,7 @@ def test_logger_msg_dict(thandler):
     record = thandler.first()
 
     assert record["msg"] == message
-    assert record["message"] == str(message)
+    assert "message" not in record
     assert record["level"] == LEVEL_INFO
 
 

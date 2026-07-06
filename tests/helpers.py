@@ -1,6 +1,7 @@
+from time import time
+
 from plainlog._logger import (
     LEVEL_DEBUG,
-    get_now_utc,
     logger_core,
     logger_process,
     plainlog_context,
@@ -15,7 +16,7 @@ def make_record(msg, level=None, name="root", kwargs=None):
         "msg": msg,  # raw message as in std logging
         "message": str(msg),
         "name": name,
-        "datetime": get_now_utc(),
+        "created": time(),
         "process_id": logger_process.ident,
         "process_name": logger_process.name,
         "context": {**plainlog_context.get({})},

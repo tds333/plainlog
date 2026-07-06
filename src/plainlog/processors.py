@@ -11,7 +11,6 @@ import sys
 import time
 from datetime import datetime, timezone
 from functools import lru_cache
-from multiprocessing import current_process
 from os.path import basename, splitext
 from pathlib import Path
 from threading import current_thread
@@ -37,15 +36,12 @@ def add_caller_info(record: Record, level=3) -> Record:
     file_path = code.co_filename
     file_name = basename(file_path)
     thread = current_thread()
-    process = current_process()
     record["function"] = code.co_name
     record["line"] = frame.f_lineno
     record["path"] = Path(file_path)
     record["module"] = splitext(file_name)[0]
     record["file_name"] = file_name
     record["file_path"] = file_path
-    record["process_id"] = process.ident
-    record["process_name"] = process.name
     record["thread_id"] = thread.ident
     record["thread_name"] = thread.name
 
