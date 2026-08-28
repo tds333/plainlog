@@ -234,12 +234,13 @@ class WrapStandardHandler:
         return self(record)
 
     def __call__(self, record: Record) -> Record:
-        message = str(record.get("message", ""))
+        msg = str(record.get("msg", ""))
+        message = str(record.get("message", msg))
         exc = record.get("exception")
         file_path = record["file"].path if "file" in record else ""
         lrecord = self.factory(
             record["name"],
-            record["level"].no,
+            record["level"],
             file_path,
             record.get("line", 0),
             message,
@@ -331,7 +332,7 @@ class FingersCrossedHandler:
             self._handler.process(record)
         else:
             self.buffered_records.append(record)
-            return record["level"].no >= self._level
+            return record["level"] >= self._level
 
         return False
 

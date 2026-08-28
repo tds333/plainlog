@@ -54,7 +54,7 @@ Also the formating for development log output is inspired from structlog. The lo
 From loguru the concept of a logger and core is taken. But with cleaner separation.
 The separation in plainlog is also seen with configuration, it is done on the core and not mixed up with the logger.
 Also the separation in handling log records is done with a queue and extra thread in the core.
-The logger has the feature to add something to the `context` or use the `contextualize` context manager.
+The logger has the feature to add context variables (merged into the record's `extra`) via `logger.bind(**kwargs)` or the `contextualize` context manager.
 
 From logbook the idea of the fingerscrossed handler was taken.
 

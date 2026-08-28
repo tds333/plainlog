@@ -1,7 +1,9 @@
+import logging
 import sys
 from time import time
 from io import StringIO
 
+from plainlog._base import RecordException
 from plainlog._dev import (
     ConsoleRenderer,
     _pad,
@@ -12,15 +14,17 @@ from plainlog._logger import LEVEL_INFO
 
 
 def record(**overrides):
+    level = overrides.get("level", LEVEL_INFO)
     r = {
-        "level": LEVEL_INFO,
+        "level": level,
+        "level_name": (
+            logging.getLevelName(level) if level is not None else None
+        ),
         "msg": "test message",
         "message": "test message",
         "name": "test_logger",
         "created": time(),
         "extra": {"key1": "val1", "key2": 42},
-        "kwargs": {},
-        "context": {},
     }
     r.update(overrides)
     return r
@@ -165,20 +169,21 @@ class TestConsoleRenderer:
         try:
             raise ValueError("test error")
         except ValueError:
-            rec = record(exc_info=sys.exc_info())
+            rec = record(exception=RecordException(*sys.exc_info()))
             out = r(rec)
         assert "ValueError" in out
         assert "test error" in out
 
     def test_exc_info_non_tuple(self):
         r = ConsoleRenderer()
-        rec = record(exc_info=True)
+        rec = record(exception=RecordException(ValueError, ValueError("x"), None))
         out = r(rec)
         assert out
+        assert "ValueError" in out
 
     def test_exception_record(self):
         r = ConsoleRenderer()
-        rec = record(exception="RuntimeError: boom")
+        rec = record(exception=RecordException(RuntimeError, RuntimeError("boom"), None))
         out = r(rec)
         assert "RuntimeError" in out
 
@@ -191,7 +196,8 @@ class TestConsoleRenderer:
     def test_stack_and_exception(self):
         r = ConsoleRenderer()
         rec = record(
-            stack="Traceback ...", exc_info=(ValueError, ValueError("x"), None)
+            stack="Traceback ...",
+            exception=RecordException(ValueError, ValueError("x"), None),
         )
         out = r(rec)
         assert "Traceback" in out
@@ -202,7 +208,7 @@ class TestConsoleRenderer:
         try:
             raise Exception("default fmt")
         except Exception:
-            rec = record(exc_info=sys.exc_info())
+            rec = record(exception=RecordException(*sys.exc_info()))
             out = r(rec)
         assert "default fmt" in out
 

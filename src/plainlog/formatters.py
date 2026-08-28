@@ -11,9 +11,9 @@ from ._utils import eval_format, get_processed_extra
 def format_message(record):
     msg = record.get("msg", "")
     message = record.get("message", "")
-    kwargs = record.get("kwargs", {})
-    if msg and kwargs:
-        message = eval_format(msg, kwargs)
+    extra = record.get("extra", {})
+    if isinstance(msg, str) and extra:
+        message = eval_format(msg, extra)
     if not message and msg:
         message = str(msg)
 
@@ -21,7 +21,7 @@ def format_message(record):
 
 
 class SimpleFormatter:
-    DEFAULT_FORMAT = "{datetime} {level.name:<8} [{name}] {message}"
+    DEFAULT_FORMAT = "{datetime} {level_name:<8} [{name}] {message}"
 
     def __init__(self, fmt=None):
         self._fmt = fmt if fmt is not None else self.DEFAULT_FORMAT
@@ -37,7 +37,7 @@ class SimpleFormatter:
 
 
 class DefaultFormatter:
-    DEFAULT_FORMAT = "{datetime:%H:%M:%S.%f} {level.name:<8} [{name}] {message} {extra}"
+    DEFAULT_FORMAT = "{datetime:%H:%M:%S.%f} {level_name:<8} [{name}] {message} {extra}"
 
     def __init__(self):
         self._fmt = DefaultFormatter.DEFAULT_FORMAT
@@ -96,19 +96,14 @@ class JsonFormatter:
             }
 
         message = format_message(record)
-        # extra = {**record["extra"], **record["context"], **record["kwargs"]}
         extra = get_processed_extra(record)
 
-        created = record["created"]
-        sec = int(created)
-        ts_str = time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(sec))
         serializable = {
             "message": message,
             "name": record["name"],
-            "datetime": f"{ts_str}.{int((created - sec) * 1_000_000):06d}Z",
-            "timestamp": record["created"],
-            "level_name": record["level"].name,
-            "level_no": record["level"].no,
+            "created": record["created"],
+            "level_name": record["level_name"],
+            "level_no": record["level"],
             "extra": extra,
             "process_id": record["process_id"],
             "process_name": record["process_name"],

@@ -49,16 +49,16 @@ class TestJsonFormatter:
         result = f(record)
         json_result = json.loads(result)
         import time
+
         created = record["created"]
         sec = int(created)
         ts_str = time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(sec))
         serializable = {
             "message": "my message",
             "name": record["name"],
-            "datetime": f"{ts_str}.{int((created - sec) * 1_000_000):06d}Z",
-            "timestamp": record["created"],
-            "level_name": record["level"].name,
-            "level_no": record["level"].no,
+            "created": record["created"],
+            "level_name": record["level_name"],
+            "level_no": record["level"],
             "extra": record["extra"],
             "process_id": record["process_id"],
             "process_name": record["process_name"],

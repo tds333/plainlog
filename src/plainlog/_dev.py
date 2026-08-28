@@ -177,10 +177,9 @@ class ConsoleRenderer:
                 + self._styles.reset
                 + " "
             )
-        level = record.get("level", None)
+        level = record.get("level_name", None)
         if level is not None:
             if self._short_level:
-                level = level.name
                 sio.write(
                     self._level_to_color.get(level, "")
                     + "["
@@ -189,7 +188,6 @@ class ConsoleRenderer:
                     + self._styles.reset
                 )
             else:
-                level = level.name
                 sio.write(
                     self._level_to_color.get(level, "")
                     + _pad(level, self._longest_level + 1)
@@ -224,7 +222,6 @@ class ConsoleRenderer:
 
         stack = record.get("stack", None)
         exc = record.get("exception", None)
-        exc_info = record.get("exc_info", None)
 
         extra_dict_keys: Iterable[str] = extra.keys()
         if self._sort_keys:
@@ -245,16 +242,11 @@ class ConsoleRenderer:
 
         if stack is not None:
             sio.write("\n" + stack)
-            if exc_info or exc is not None:
+            if exc is not None:
                 sio.write("\n\n" + "=" * 79 + "\n")
 
-        if exc_info:
-            if not isinstance(exc_info, tuple):
-                exc_info = sys.exc_info()
-
-            self._exception_formatter(sio, exc_info)
-        elif exc is not None:
-            sio.write("\n" + exc)
+        if exc is not None:
+            self._exception_formatter(sio, (exc.type, exc.value, exc.traceback))
         # sio.write("\n")
 
         return sio.getvalue()

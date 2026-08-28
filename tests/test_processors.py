@@ -1,39 +1,35 @@
+import logging
 from unittest.mock import patch
 
-from plainlog._base import RecordException
 from plainlog._logger import LEVEL_DEBUG, LEVEL_INFO
 from plainlog.processors import (
     Duration,
     FilterList,
     WhitelistLevel,
     add_caller_info,
-    context_to_extra,
     dynamic_name,
     elapsed,
     eval_extra,
-    eval_kwargs,
-    eval_lambda,
     filter_all,
     filter_by_level,
     filter_by_name,
     filter_None,
-    kwargs_to_extra,
     preformat_message,
-    preprocess_exc_info,
     remove_items,
 )
 
 
 def record(msg="test", name="test", level=None, extra=None, kwargs=None):
     level = LEVEL_DEBUG if level is None else level
+    extra = {} if extra is None else extra
+    kwargs = {} if kwargs is None else kwargs
     return {
         "level": level,
+        "level_name": logging.getLevelName(level),
         "msg": msg,
         "message": str(msg),
         "name": name,
-        "extra": extra or {},
-        "kwargs": kwargs or {},
-        "context": {},
+        "extra": {**extra, **kwargs},
     }
 
 
@@ -83,33 +79,6 @@ class TestDynamicName:
             assert result["name"] == "old"
 
 
-class TestEvalKwargs:
-    def test_evaluates_callable_kwargs(self):
-        r = record(kwargs={"a": lambda: "resolved"})
-        result = eval_kwargs(r)
-        assert result["kwargs"]["a"] == "resolved"
-
-    def test_empty_kwargs(self):
-        r = record()
-        result = eval_kwargs(r)
-        assert result is r
-
-
-class TestEvalLambda:
-    def test_evaluates_lambda_kwargs(self):
-        r = record(kwargs={"a": lambda: "resolved"})
-        result = eval_lambda(r)
-        assert result["kwargs"]["a"] == "resolved"
-
-    def test_skips_function_kwargs(self):
-        def myfunc():
-            return "x"
-
-        r = record(kwargs={"a": myfunc})
-        result = eval_lambda(r)
-        assert result["kwargs"]["a"] is myfunc
-
-
 class TestEvalExtra:
     def test_evaluates_lambda_extra(self):
         r = record(extra={"a": lambda: "resolved"})
@@ -130,80 +99,15 @@ class TestEvalExtra:
         assert result is r
 
 
-class TestPreprocessExcInfo:
-    def test_skips_when_no_exc_info(self):
-        r = record()
-        result = preprocess_exc_info(r)
-        assert "exc_info" not in result
-        assert "exception" not in result
-
-    def test_extracts_exc_info_when_true(self):
-        r = record(kwargs={"exc_info": True})
-        try:
-            raise ValueError("boom")
-        except ValueError:
-            result = preprocess_exc_info(r)
-            assert "exc_info" in result
-            assert "exception" in result
-            exc_type, exc_val, exc_tb = result["exc_info"]
-            assert exc_type is ValueError
-            assert isinstance(result["exception"], RecordException)
-
-    def test_removes_exc_info_from_kwargs(self):
-        r = record(kwargs={"exc_info": True})
-        try:
-            raise ValueError("x")
-        except ValueError:
-            result = preprocess_exc_info(r)
-            assert "exc_info" not in result["kwargs"]
-
-
-class TestKwargsToExtra:
-    def test_moves_kwargs_to_extra(self):
-        r = record(kwargs={"user": "alice", "role": "admin"})
-        result = kwargs_to_extra(r)
-        assert result["extra"]["user"] == "alice"
-        assert result["extra"]["role"] == "admin"
-
-    def test_empty_kwargs(self):
-        r = record()
-        result = kwargs_to_extra(r)
-        assert result is r
-
-    def test_merges_with_existing_extra(self):
-        r = record(extra={"existing": 1}, kwargs={"new": 2})
-        result = kwargs_to_extra(r)
-        assert result["extra"] == {"existing": 1, "new": 2}
-
-
-class TestContextToExtra:
-    def test_moves_context_to_extra(self):
-        r = record()
-        r["context"] = {"request_id": "abc"}
-        result = context_to_extra(r)
-        assert result["extra"]["request_id"] == "abc"
-
-    def test_empty_context(self):
-        r = record()
-        result = context_to_extra(r)
-        assert result is r
-
-    def test_merges_with_existing_extra(self):
-        r = record(extra={"base": 1})
-        r["context"] = {"req": "x"}
-        result = context_to_extra(r)
-        assert result["extra"] == {"base": 1, "req": "x"}
-
-
 class TestPreformatMessage:
     def test_skips_preformatted(self):
-        r = record(msg="{val}", kwargs={"val": "data"})
+        r = record(msg="{val}", extra={"val": "data"})
         r["preformatted"] = True
         result = preformat_message(r)
         assert result["message"] == "{val}"
 
     def test_formats_message(self):
-        r = record(msg="{val}", kwargs={"val": lambda: "data"})
+        r = record(msg="{val}", extra={"val": lambda: "data"})
         result = preformat_message(r)
         assert result["message"] == "data"
         assert result["preformatted"] is True
@@ -214,7 +118,7 @@ class TestPreformatMessage:
         assert result["message"] == "plain"
 
     def test_format_silently_ignores_errors(self):
-        r = record(msg="{missing}", kwargs={"other": "val"})
+        r = record(msg="{missing}", extra={"other": "val"})
         result = preformat_message(r)
         assert "missing" in result["message"]
 
@@ -400,21 +304,21 @@ class TestDuration:
     def test_stop_computes_duration(self):
         d = Duration()
         d._starts["task1"] = 1000.0
-        r = record(msg="", kwargs={"stop": "task1"})
+        r = record(msg="", extra={"stop": "task1"})
         with patch("time.time", return_value=1005.0):
             result = d(r)
         assert "task1" in result["message"]
-        assert result["kwargs"]["duration"] == 5.0
+        assert result["extra"]["duration"] == 5.0
 
     def test_stop_no_start(self):
         d = Duration()
-        r = record(kwargs={"stop": "never_started"})
+        r = record(extra={"stop": "never_started"})
         result = d(r)
         assert "Duration:" not in result.get("message", "")
 
     def test_start_no_message(self):
         d = Duration(add_message=False)
-        r = record(kwargs={"start": "silent"})
+        r = record(extra={"start": "silent"})
         result = d(r)
         assert "silent" in d._starts
         assert result["message"] == "test"
@@ -423,9 +327,9 @@ class TestDuration:
         d = Duration(add_message=False)
         d._starts["x"] = 1000.0
         with patch("time.time", return_value=1005.0):
-            r = record(kwargs={"stop": "x"})
+            r = record(extra={"stop": "x"})
             result = d(r)
-        assert result["kwargs"]["duration"] == 5.0
+        assert result["extra"]["duration"] == 5.0
 
     def test_no_start_or_stop(self):
         d = Duration()

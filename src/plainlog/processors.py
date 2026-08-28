@@ -7,7 +7,6 @@ Processors useful regardless of the logging framework.
 """
 
 import contextlib
-import sys
 import time
 from datetime import datetime, timezone
 from functools import lru_cache
@@ -16,9 +15,9 @@ from pathlib import Path
 from threading import current_thread
 from typing import Callable, Protocol
 
-from ._base import Record, RecordException
+from ._base import Record
 from ._frames import get_frame
-from ._utils import eval_dict, eval_format, eval_lambda_dict
+from ._utils import eval_format, eval_lambda_dict
 
 start_time: datetime = datetime.now(timezone.utc)
 
@@ -57,16 +56,9 @@ def dynamic_name(record: Record) -> Record:
     return record
 
 
-def eval_kwargs(record: Record) -> Record:
-    kwargs = record.get("kwargs", {})
-    eval_dict(kwargs)
-
-    return record
-
-
-def eval_lambda(record: Record) -> Record:
-    kwargs = record.get("kwargs", {})
-    eval_lambda_dict(kwargs)
+def eval_lambda_extra(record: Record) -> Record:
+    extra = record.get("extra", {})
+    eval_lambda_dict(extra)
 
     return record
 
@@ -78,42 +70,12 @@ def eval_extra(record: Record) -> Record:
     return record
 
 
-def preprocess_exc_info(record: Record) -> Record:
-    kwargs = record.get("kwargs", {})
-    exc_info = kwargs.pop("exc_info", False)
-    if exc_info:
-        type_, value, traceback = sys.exc_info()
-        exception = RecordException(type_, value, traceback)
-        record["exc_info"] = (type_, value, traceback)
-        record["exception"] = exception
-
-    return record
-
-
-def kwargs_to_extra(record: Record) -> Record:
-    kwargs = record.get("kwargs", {})
-    if kwargs:
-        extra = record.get("extra", {})
-        extra.update(kwargs)
-
-    return record
-
-
-def context_to_extra(record: Record) -> Record:
-    context = record.get("context", {})
-    if context:
-        extra = record.get("extra", {})
-        extra.update(context)
-
-    return record
-
-
 def preformat_message(record: Record) -> Record:
     preformatted = record.get("preformatted", False)
     if preformatted:
         return record
     msg = record.get("msg", "")
-    kwargs = record.get("kwargs", {})
+    kwargs = record.get("extra", {})
     if msg and kwargs:
         with contextlib.suppress(Exception):
             record["message"] = eval_format(msg, kwargs)
@@ -163,7 +125,7 @@ def filter_by_level(level_per_module) -> Callable:
             if level is False:
                 return {}
             if level is not None:
-                if record["level"].no < level:
+                if record["level"] < level:
                     return {}
             index = name.rfind(".")
             name = name[:index] if index != -1 else ""
@@ -219,7 +181,7 @@ class WhitelistLevel:
 
     def __call__(self, record: Record) -> Record:
         name = record["name"]
-        level_no = record["level"].no
+        level_no = record["level"]
         name_parts = self.partition(name)
 
         whitelisted: bool = not name_parts.isdisjoint(self._whitelist_names)
@@ -241,10 +203,10 @@ class Duration:
         self._add_message = add_message
 
     def __call__(self, record: Record) -> Record:
-        kwargs = record.get("kwargs", {})
+        extra = record.get("extra", {})
         message = record.get("message", "")
-        start = kwargs.get("start", None)
-        stop = kwargs.get("stop", None)
+        start = extra.get("start", None)
+        stop = extra.get("stop", None)
         if start:
             self._starts[str(start)] = time.time()
             if not message and self._add_message:
@@ -254,11 +216,7 @@ class Duration:
             start_time = self._starts.pop(str(stop), None)
             if start_time:
                 duration = time.time() - start_time
-                # extra = record.get("extra", {})
-                # extra["duration_key"] = stop
-                # extra["duration"] = duration
-                # kwargs["duration_key"] = stop
-                kwargs["duration"] = duration
+                extra["duration"] = duration
                 if not message and self._add_message:
                     message = f"Stop {stop!r}. Duration: {duration:.6f} seconds."
                     record["message"] = message

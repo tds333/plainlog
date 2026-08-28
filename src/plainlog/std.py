@@ -5,6 +5,7 @@
 import logging
 from typing import Union
 
+from ._base import RecordException
 from ._logger import logger_core, plainlog_context
 
 
@@ -36,13 +37,11 @@ class StdInterceptHandler(logging.Handler):
 
     def emit(self, record) -> None:
         core = self._core
-        level = core.level(record.levelno)
-        level_no, _ = level
+        level = record.levelno
 
-        if core.min_level_no > level_no or self.level > level_no:
+        if core.min_level_no > level or self.level > level:
             return
 
-        kwargs: dict = {}
         extra: dict = {}
         for key, value in record.__dict__.items():
             if key not in self._known_keys:
@@ -50,16 +49,18 @@ class StdInterceptHandler(logging.Handler):
 
         log_record = {
             "level": level,
+            "level_name": logging.getLevelName(level),
             "msg": record.msg,  # raw message as in std logging
             "message": record.getMessage(),
             "name": record.name,
             "created": record.created,
             "process_id": record.process,
             "process_name": record.processName,
-            "context": {**plainlog_context.get({})},
-            "extra": {**extra},
+            "extra": {**extra, **plainlog_context.get({})},
             "args": record.args,
-            "kwargs": kwargs,
+            "exception": (
+                RecordException(*record.exc_info) if record.exc_info else None
+            ),
             "preformatted": True,
             "function": record.funcName,
             "line": record.lineno,
@@ -69,7 +70,6 @@ class StdInterceptHandler(logging.Handler):
             "thread_name": record.threadName,
             "stack_info": record.stack_info,
             "exc_text": record.exc_text,
-            "exc_info": record.exc_info,
         }
         # since Python 3.12 there is taskName available
         if hasattr(record, "taskName"):  # pragma: no cover

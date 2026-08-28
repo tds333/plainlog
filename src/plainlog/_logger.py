@@ -25,19 +25,21 @@ from typing import (
 )
 
 from . import _env
-from ._base import HandlerProtocol, Level, Msg, Record, RecordException
+from ._base import HandlerProtocol, Msg, Record, RecordException
 from ._frames import get_frame
 
 plainlog_context: ContextVar[dict] = ContextVar("plainlog_context")
 logger_process = current_process()
+logger_process_ident = logger_process.ident
+logger_process_name = logger_process.name
 
 # predefined for performance reason
-LEVEL_NOTSET: Level = Level(logging.NOTSET, "NOTSET")
-LEVEL_DEBUG: Level = Level(logging.DEBUG, "DEBUG")
-LEVEL_INFO: Level = Level(logging.INFO, "INFO")
-LEVEL_WARNING: Level = Level(logging.WARNING, "WARNING")
-LEVEL_ERROR: Level = Level(logging.ERROR, "ERROR")
-LEVEL_CRITICAL: Level = Level(logging.CRITICAL, "CRITICAL")
+LEVEL_NOTSET: int = logging.NOTSET
+LEVEL_DEBUG: int = logging.DEBUG
+LEVEL_INFO: int = logging.INFO
+LEVEL_WARNING: int = logging.WARNING
+LEVEL_ERROR: int = logging.ERROR
+LEVEL_CRITICAL: int = logging.CRITICAL
 
 
 class Command(str, Enum):
@@ -47,8 +49,6 @@ class Command(str, Enum):
     EVENT = "EVENT"
 
 
-LevelInput = Union[int, str, Level]
-Levels = Dict[LevelInput, Level]
 Callables = Union[Callable, Iterable[Callable]]
 
 
@@ -70,35 +70,15 @@ def _validate_name(name: str) -> str:
     return name
 
 
-def _get_levels() -> Levels:
-    levels: Levels = {}
-    for no, name in logging._levelToName.items():
-        level = Level(no, name)
-        levels[no] = level
-        levels[name] = level
-        levels[level] = level
-        levels[name[0]] = level
-
-    return levels
-
-
-def _validate_level(level) -> Level:
-    levels = _get_levels()
-    try:
-        ret = levels[level]
-    except Exception as e:
-        raise ValueError(f"Invalid log level {level}") from e
-
-    return ret
+_validate_level = getattr(logging, "_checkLevel")  # noqa: B009
+get_level_name = logging.getLevelName
 
 
 class Core:
     def __init__(self, name: Optional[str] = None) -> None:
         self._name: str = "CORE" if name is None else _validate_name(name)
         self._min_level_no: int = logging.NOTSET
-        self._levels: Levels = _get_levels()
         self._handler: Optional[HandlerProtocol] = None
-        # self._extra: dict = {}
         self._print_errors = False
         self._queue: SimpleQueue = SimpleQueue()
         self._thread: Thread = Thread(
@@ -125,12 +105,12 @@ class Core:
     def _put(self, command: Command, message: Any = None) -> None:
         self._queue.put((command, message))
 
-    def log(self, log_record: Record) -> Record:
+    def log(self, log_record: Record) -> bool:
         if self._handler is not None:
             try:
                 log_record = self._handler.preprocess(log_record)
                 if not log_record:  # Stop processing if Handler decides so
-                    return log_record
+                    return False
             except Exception as ex:
                 if self._print_errors:
                     print(
@@ -139,9 +119,9 @@ class Core:
                     )
             self._queue.put((Command.LOG, log_record))
 
-            return log_record
+            return True
 
-        return {}
+        return False
 
     def stop(self) -> None:
         self._put(Command.STOP)
@@ -152,19 +132,11 @@ class Core:
     def is_alive(self) -> bool:
         return self._thread.is_alive()
 
-    def level(self, level: Union[str, int, Level]) -> Level:
-        ret = self._levels.get(level)
-
-        if ret is None:
-            raise ValueError(f"Invalid level {level!r}. Does not exist.")
-
-        return ret
-
     def configure(
         self,
         *,
         handler: Union[HandlerProtocol, None],
-        level: Optional[Union[str, int, Level]] = None,
+        level: Optional[Union[str, int]] = None,
         print_errors=None,
     ) -> None:
         if level is not None:
@@ -211,8 +183,7 @@ class Core:
                     (handler, level, print_errors),
                 ):
                     if level is not None:
-                        self._levels = _get_levels()
-                        self._min_level_no = self.level(level).no
+                        self._min_level_no = level
                     if print_errors is not None:
                         self._print_errors = bool(print_errors)
                     if self_handler is not None:
@@ -307,7 +278,6 @@ class Logger:
 
     @property
     def extra(self) -> dict:
-        # return deepcopy(self._extra)
         return copy(self._extra)
 
     def new(
@@ -432,37 +402,34 @@ class Logger:
         finally:
             Logger.reset_context(token)
 
-    def _log(self, level: Level, msg: Msg, kwargs: dict) -> Record:
+    def _log(self, level: int, msg: Msg, kwargs: dict) -> bool:
         core = self._core
 
-        if core._handler is None or core.min_level_no > level[0]:
-            return {}
+        if core._handler is None or core.min_level_no > level:
+            return False
 
         current_time = time()
-        exc_info = kwargs.pop("exc_info", False)
+        exc_info = kwargs.get("exc_info", False)
         ctx = plainlog_context.get({})
 
         log_record: Record = {
             "level": level,
+            "level_name": get_level_name(level),
             "msg": msg,  # raw message as in std logging
             "name": self._name,
             "created": current_time,
-            "process_id": logger_process.ident,
-            "process_name": logger_process.name,
-            "context": ctx.copy() if ctx else ctx,
-            "extra": self._extra.copy() if self._extra else self._extra,
-            "kwargs": kwargs,
+            "process_id": logger_process_ident,
+            "process_name": logger_process_name,
+            "extra": {**self._extra, **ctx, **kwargs},
+            "exception": None,
         }
 
         if exc_info:
             exc_tuple = sys.exc_info()
             exception = RecordException(*exc_tuple)
-            log_record["exc_info"] = exc_tuple
             log_record["exception"] = exception
 
-        log_record = core.log(log_record)
-
-        return log_record
+        return core.log(log_record)
 
     def debug(self, msg: Msg, **kwargs) -> None:  # noqa: N805
         """Log *msg* at DEBUG level."""
@@ -496,22 +463,22 @@ class Logger:
         kwargs["exc_info"] = kwargs.get("exc_info", True)
         self._log(LEVEL_ERROR, msg, kwargs)
 
-    def log(self, level: LevelInput, msg: Msg, **kwargs) -> None:
+    def log(self, level: str | int, msg: Msg, **kwargs) -> None:
         """Log msg at the given level.
 
         Args:
-            level: Log level as int, str, or Level named tuple.
+            level: Log level as int or str.
             msg: The message to log.
             **kwargs: Additional record fields.
         """
-        level = self._core.level(level)
+        level = _validate_level(level)
         self._log(level, msg, kwargs)
 
     def configure(
         self,
         *,
         handler: Optional[HandlerProtocol] = None,
-        level: Optional[Union[str, int, Level]] = None,
+        level: Optional[Union[str, int]] = None,
         print_errors: Optional[bool] = None,
     ) -> None:
         """Configure the shared Core handler, level, and error printing.
@@ -525,20 +492,18 @@ class Logger:
         """
         self._core.configure(handler=handler, level=level, print_errors=print_errors)
 
-    def __call__(
-        self, level: LevelInput = LEVEL_DEBUG, msg: Msg = "", **kwargs
-    ) -> Record:
+    def __call__(self, level: str | int = LEVEL_DEBUG, msg: Msg = "", **kwargs) -> bool:
         """Callable interface: logger(level, msg, **kwargs).
 
         Args:
-            level: Log level as int, str, or Level. Defaults to DEBUG.
+            level: Log level as int or str. Defaults to DEBUG.
             msg: The message to log. Defaults to ``""``.
             **kwargs: Additional record fields.
 
         Returns:
-            The created Record dict, or ``{}`` if filtered out.
+            True if processed False if not
         """
-        level = self._core.level(level)
+        level = _validate_level(level)
         return self._log(level, msg, kwargs)
 
 

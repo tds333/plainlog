@@ -1,33 +1,6 @@
 import pickle
 
-from plainlog._base import Level, RecordException
-
-
-def test_level_creation():
-    level = Level(10, "DEBUG")
-    assert level.no == 10
-    assert level.name == "DEBUG"
-
-
-def test_level_repr():
-    level = Level(20, "INFO")
-    assert repr(level) == "(no=20, name='INFO')"
-
-
-def test_level_format():
-    level = Level(30, "WARNING")
-    assert f"{level}" == "WARNING"
-    assert f"{level:>10}" == "   WARNING"
-
-
-def test_level_equality():
-    assert Level(10, "DEBUG") == Level(10, "DEBUG")
-    assert Level(10, "DEBUG") != Level(20, "INFO")
-
-
-def test_level_hash():
-    s = {Level(10, "DEBUG")}
-    assert Level(10, "DEBUG") in s
+from plainlog._base import RecordException
 
 
 def test_record_exception_creation():

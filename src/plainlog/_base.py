@@ -12,24 +12,6 @@ Record = Dict[str, Any]
 """Type alias for a log record — a plain dictionary."""
 
 
-class Level(NamedTuple):
-    """Log level as a ``(no, name)`` named tuple.
-
-    Attributes:
-        no: Numeric log level (e.g. 10, 20, 30).
-        name: Canonical name (e.g. ``"DEBUG"``, ``"INFO"``).
-    """
-
-    no: int
-    name: str
-
-    def __repr__(self) -> str:
-        return "(no=%r, name=%r)" % (self.no, self.name)
-
-    def __format__(self, spec):
-        return self.name.__format__(spec)
-
-
 class RecordException(NamedTuple):
     """Pickle-safe exception info attached to log records.
 

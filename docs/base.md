@@ -9,12 +9,9 @@ throughout the library.
 |-------|-------------|
 | `Msg` | Log message content — accepts any type. |
 | `Record` | A log record — a plain Python ``dict``. |
+| `level` | Log level — a plain ``int`` (e.g. ``10``, ``20``, ``30``). The human-readable name is stored as ``level_name`` on each record. |
 
 ## API Reference
-
-### Level
-
-::: plainlog._base.Level
 
 ### RecordException
 

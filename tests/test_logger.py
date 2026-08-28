@@ -6,7 +6,7 @@ from contextlib import closing
 import pytest
 
 from plainlog import logger
-from plainlog._base import Level, Record
+from plainlog._base import Record
 from plainlog._logger import (
     LEVEL_CRITICAL,
     LEVEL_DEBUG,
@@ -63,16 +63,14 @@ def test_validate_name_raises_on_non_string():
 
 def test_validate_level_by_int():
     result = _validate_level(10)
-    assert isinstance(result, Level)
-    assert result.no == 10
-    assert result.name == "DEBUG"
+    assert isinstance(result, int)
+    assert result == 10
 
 
 def test_validate_level_by_name():
     result = _validate_level("INFO")
-    assert isinstance(result, Level)
-    assert result.no == 20
-    assert result.name == "INFO"
+    assert isinstance(result, int)
+    assert result == 20
 
 
 def test_validate_level_by_level():
@@ -82,7 +80,7 @@ def test_validate_level_by_level():
 
 
 def test_validate_level_raises_on_invalid():
-    with pytest.raises(ValueError, match="Invalid log level"):
+    with pytest.raises(ValueError, match="Unknown level"):
         _validate_level("INVALID")
 
 
@@ -135,7 +133,7 @@ def test_logger_exception(thandler):
 
     assert record["msg"] == message
     assert record["level"] == LEVEL_ERROR
-    assert record["exc_info"]
+    assert record["exception"]
 
 
 def test_logger_critical(thandler):
@@ -171,17 +169,16 @@ def test_logger_msg_dict(thandler):
 
 def test_logger_call(thandler):
     message = "log in DEBUG"
-    record = logger(msg=message)
-
-    assert record["msg"] == message
-    assert record["level"] == LEVEL_DEBUG
+    assert logger(msg=message) is True
 
     record = thandler.first()
 
     assert record["msg"] == message
     assert record["level"] == LEVEL_DEBUG
 
-    record = logger(level="INFO", msg=message)
+    assert logger(level="INFO", msg=message) is True
+
+    record = thandler.records[-1]
 
     assert record["msg"] == message
     assert record["level"] == LEVEL_INFO
@@ -239,7 +236,7 @@ def test_logger_context(thandler):
     try:
         logger.info("with context")
         record = thandler.first()
-        assert record["context"]["user"] == "alice"
+        assert record["extra"]["user"] == "alice"
         assert record["msg"] == "with context"
     finally:
         Logger.reset_context(token)
@@ -249,12 +246,12 @@ def test_logger_contextualize(thandler):
     with Logger.contextualize(request_id="abc"):
         logger.info("inside context")
         record = thandler.first()
-        assert record["context"]["request_id"] == "abc"
+        assert record["extra"]["request_id"] == "abc"
 
     thandler.clear()
     logger.info("after context")
     record = thandler.first()
-    assert "request_id" not in record["context"]
+    assert "request_id" not in record["extra"]
 
 
 def test_logger_context_isolation(thandler):
@@ -263,21 +260,16 @@ def test_logger_context_isolation(thandler):
     try:
         logger.info("latest wins")
         record = thandler.first()
-        assert record["context"]["trace"] == "second"
+        assert record["extra"]["trace"] == "second"
     finally:
         Logger.reset_context(token)
-
-
-def test_core_level_invalid():
-    with pytest.raises(ValueError, match="Invalid level"):
-        logger_core.level("NONEXISTENT")
 
 
 def test_core_log_no_handler_returns_empty():
     core = Core(name="NO_HANDLER_LOG")
     with closing(core):
         record = core.log({"msg": "direct"})
-        assert record == {}
+        assert record is False
 
 
 class ErrorOnPreprocess(BaseHandler):
@@ -376,7 +368,7 @@ def test_logger_no_handler():
         assert log.warning(message) is None
         assert log.error(message) is None
         assert log.critical(message) is None
-        assert log(msg=message) == {}
+        assert log(msg=message) is False
 
 
 class FilterOnPreprocess(BaseHandler):
@@ -387,7 +379,7 @@ class FilterOnPreprocess(BaseHandler):
 def test_core_preprocess_filter(thandler):
     logger.configure(handler=FilterOnPreprocess(), level="DEBUG")
     result = logger(msg="should be filtered")
-    assert result == {}
+    assert result is False
 
 
 def test_core_close_when_not_alive():

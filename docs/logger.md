@@ -32,7 +32,7 @@ logger.critical("critical message")
 ```
 
 Each level method accepts a message and optional keyword arguments that are
-stored in the record's ``kwargs`` dict.
+merged into the record's ``extra`` dict (accessible via ``record["extra"]``).
 
 ### Log with a specific level
 

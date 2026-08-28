@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from plainlog._base import Level, RecordException
+from plainlog._base import RecordException
 from plainlog._logger import LEVEL_DEBUG, LEVEL_ERROR
 from plainlog.formatters import DefaultFormatter, SimpleFormatter
 from plainlog.handlers import (
@@ -29,23 +29,21 @@ from plainlog.handlers import (
 def make_record(msg="test", level=None):
     from time import time
     from plainlog._logger import (
-        logger_core,
         logger_process,
         plainlog_context,
     )
 
     level = LEVEL_DEBUG if level is None else level
     return {
-        "level": logger_core.level(level),
+        "level": level,
+        "level_name": logging.getLevelName(level),
         "msg": msg,
         "message": str(msg),
         "name": "test",
         "created": time(),
         "process_id": logger_process.ident,
         "process_name": logger_process.name,
-        "context": {**plainlog_context.get({})},
-        "extra": {"a": 1},
-        "kwargs": {},
+        "extra": {**plainlog_context.get({}), "a": 1},
     }
 
 
@@ -406,7 +404,7 @@ class TestFingersCrossedHandler:
         sub = BaseHandler()
         h = FingersCrossedHandler(sub, action_level=40, buffer_size=10)
         record = make_record("low", LEVEL_DEBUG)
-        record["level"] = Level(10, "DEBUG")
+        record["level"] = 10
         h.process(record)
         assert len(h.buffered_records) == 1
         assert h._action_triggered is False
@@ -421,11 +419,11 @@ class TestFingersCrossedHandler:
 
         h = FingersCrossedHandler(Spy(), action_level=40, buffer_size=10)
         debug = make_record("debug", LEVEL_DEBUG)
-        debug["level"] = Level(10, "DEBUG")
+        debug["level"] = 10
         h.process(debug)
 
         error = make_record("error", LEVEL_ERROR)
-        error["level"] = Level(40, "ERROR")
+        error["level"] = 40
         h.process(error)
 
         assert results == ["debug", "error"]
@@ -441,15 +439,15 @@ class TestFingersCrossedHandler:
 
         h = FingersCrossedHandler(Spy(), action_level=40, buffer_size=10)
         d1 = make_record("first", LEVEL_DEBUG)
-        d1["level"] = Level(10, "DEBUG")
+        d1["level"] = 10
         h.process(d1)
 
         tr = make_record("trigger", LEVEL_ERROR)
-        tr["level"] = Level(40, "ERROR")
+        tr["level"] = 40
         h.process(tr)
 
         aft = make_record("after", LEVEL_DEBUG)
-        aft["level"] = Level(10, "DEBUG")
+        aft["level"] = 10
         h.process(aft)
 
         assert results == ["first", "trigger", "after"]
@@ -484,17 +482,17 @@ class TestFingersCrossedHandler:
 
         h = FingersCrossedHandler(Spy(), action_level=40, reset=True, buffer_size=10)
         d1 = make_record("d1", LEVEL_DEBUG)
-        d1["level"] = Level(10, "DEBUG")
+        d1["level"] = 10
         h.process(d1)
 
         tr = make_record("trigger", LEVEL_ERROR)
-        tr["level"] = Level(40, "ERROR")
+        tr["level"] = 40
         h.process(tr)
 
         assert results == ["d1", "trigger"]
 
         d2 = make_record("d2", LEVEL_DEBUG)
-        d2["level"] = Level(10, "DEBUG")
+        d2["level"] = 10
         h.process(d2)
 
         assert results == ["d1", "trigger"]
@@ -505,7 +503,7 @@ class TestFingersCrossedHandler:
         h = FingersCrossedHandler(sub, action_level=40)
         h._action_triggered = True
         record = make_record("post", LEVEL_DEBUG)
-        record["level"] = Level(10, "DEBUG")
+        record["level"] = 10
         result = h.enqueue(record)
         assert result is False
 
