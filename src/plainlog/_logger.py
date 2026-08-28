@@ -16,10 +16,8 @@ from threading import Event, Thread
 from time import time
 from typing import (
     Any,
-    Callable,
     Dict,
     Generator,
-    Iterable,
     Optional,
     Union,
 )
@@ -49,15 +47,11 @@ class Command(str, Enum):
     EVENT = "EVENT"
 
 
-Callables = Union[Callable, Iterable[Callable]]
-
-
 def _validate_extra(extra: Optional[Dict[str, Any]]) -> Dict[str, Any]:
     ret: Dict[str, Any] = {}
     if extra is not None:
         if not isinstance(extra, collections.abc.Mapping):
             raise ValueError("Extra must be a Mapping (dict like) object.")
-        # ret = deepcopy(extra)
         ret = copy(extra)
 
     return ret
@@ -170,7 +164,6 @@ class Core:
             match value:
                 case (Command.LOG, log_record):
                     if self_handler is not None:
-                        # record: Record = copy(log_record)
                         record: Record = log_record
                         try:
                             self_handler.process(record)
@@ -351,7 +344,7 @@ class Logger:
         Returns:
             A new Logger without the specified extra keys.
         """
-        extra: Dict[str, Any] = self._extra.copy()
+        extra: Dict[str, Any] = copy(self._extra)
         for key in args:
             extra.pop(key, None)
 
@@ -411,6 +404,11 @@ class Logger:
         current_time = time()
         exc_info = kwargs.get("exc_info", False)
         ctx = plainlog_context.get({})
+        exception = None
+
+        if exc_info:
+            exc_tuple = sys.exc_info()
+            exception = RecordException(*exc_tuple)
 
         log_record: Record = {
             "level": level,
@@ -420,14 +418,9 @@ class Logger:
             "created": current_time,
             "process_id": logger_process_ident,
             "process_name": logger_process_name,
+            "exception": exception,
             "extra": {**self._extra, **ctx, **kwargs},
-            "exception": None,
         }
-
-        if exc_info:
-            exc_tuple = sys.exc_info()
-            exception = RecordException(*exc_tuple)
-            log_record["exception"] = exception
 
         return core.log(log_record)
 

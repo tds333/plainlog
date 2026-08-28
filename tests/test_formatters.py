@@ -48,11 +48,7 @@ class TestJsonFormatter:
         record = make_record("my message")
         result = f(record)
         json_result = json.loads(result)
-        import time
 
-        created = record["created"]
-        sec = int(created)
-        ts_str = time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(sec))
         serializable = {
             "message": "my message",
             "name": record["name"],

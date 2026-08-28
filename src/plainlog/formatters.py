@@ -2,7 +2,6 @@
 #
 # SPDX-License-Identifier: Apache-2.0 OR MIT
 import json
-import time
 from datetime import datetime, timezone
 
 from ._utils import eval_format, get_processed_extra
