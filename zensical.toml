@@ -51,6 +51,7 @@ nav = [
   { "Handlers" = "handlers.md" },
   { "Base Types" = "base.md" },
   { "Plainlog vs stdlib" = "comparison_to_stdlib.md" },
+  { "Changelog" = "changelog.md" },
 ]
 
 # With the "extra_css" option you can add your own CSS styling to customize

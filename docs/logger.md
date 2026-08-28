@@ -134,6 +134,16 @@ from plainlog import logger
 child = logger.new()
 ```
 
+To explicitly derive the logger name from the current module, pass
+``__name__``:
+
+```python
+from plainlog import logger
+
+log = logger.new(__name__)
+log.info("logged with the module name as logger name")
+```
+
 ---
 
 ## API Reference
