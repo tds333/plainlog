@@ -44,8 +44,9 @@ class ProcessingHandler:
     """Handler that runs preprocessors and processors around a wrapped handler.
 
     Preprocessors execute in the application thread before the record is
-    enqueued. Processors execute in the Core's background thread after
-    dequeueing.
+    enqueued, followed by the wrapped handler's own ``preprocess``.
+    Processors execute in the Core's background thread after dequeueing,
+    followed by the wrapped handler's ``process``.
 
     Args:
         preprocessors: List of callables run before enqueueing.
@@ -73,6 +74,8 @@ class ProcessingHandler:
             record = preprocessor(record)
             if not record:
                 return record
+        if self._handler is not None:
+            record = self._handler.preprocess(record)
 
         return record
 

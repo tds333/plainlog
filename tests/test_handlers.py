@@ -149,6 +149,30 @@ class TestProcessingHandler:
     def test_close_skips_when_no_handler(self):
         ProcessingHandler().close()
 
+    def test_preprocess_calls_subhandler_preprocess(self):
+        sub = BaseHandler()
+        seen = []
+        sub.preprocess = lambda r: (seen.append(r) or r)
+
+        def add_marker(r):
+            r = dict(r)
+            r["marked"] = True
+            return r
+
+        h = ProcessingHandler(preprocessors=[add_marker], handler=sub)
+        record = make_record()
+        result = h.preprocess(record)
+
+        assert seen == [result]
+        assert result.get("marked") is True
+
+    def test_preprocess_skips_subhandler_when_dropped(self):
+        sub = BaseHandler()
+        sub.preprocess = lambda r: pytest.fail("should not be called")
+
+        h = ProcessingHandler(preprocessors=[lambda r: {}], handler=sub)
+        assert h.preprocess(make_record()) == {}
+
 
 class TestCollectHandler:
     def test_init_defaults(self):
