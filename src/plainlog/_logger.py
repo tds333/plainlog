@@ -539,5 +539,9 @@ def _reset_for_fork() -> None:
     logger_core._start_worker()
 
 
-if hasattr(os, "register_at_fork"):
-    os.register_at_fork(after_in_child=_reset_for_fork)
+def _register_fork_hook() -> None:
+    if hasattr(os, "register_at_fork"):
+        os.register_at_fork(after_in_child=_reset_for_fork)
+
+
+_register_fork_hook()

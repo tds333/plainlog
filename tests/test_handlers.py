@@ -30,6 +30,7 @@ from plainlog.handlers import (
 
 def make_record(msg="test", level=None):
     from time import time
+
     from plainlog._logger import (
         logger_process,
         plainlog_context,
@@ -607,6 +608,19 @@ class TestFileHandlerEdgeCases:
         finally:
             Path(path).unlink(missing_ok=True)
 
+    def test_reopen_on_deleted_file(self):
+        with tempfile.NamedTemporaryFile(mode="w+", suffix=".log", delete=False) as f:
+            path = f.name
+        try:
+            h = FileHandler(path, watch=True)
+            h.process(make_record("open"))
+            Path(path).unlink()
+            h.process(make_record("after delete"))
+            assert Path(path).exists()
+            h.close()
+        finally:
+            Path(path).unlink(missing_ok=True)
+
 
 class TestAsyncHandler:
     def test_init_and_repr(self):
@@ -722,3 +736,61 @@ class TestAsyncHandler:
             handler.close()
         finally:
             loop.close()
+
+    def test_process_with_done_future(self):
+        collected = []
+
+        class CollectingAsyncHandler(AsyncHandler):
+            async def write(self, message):
+                collected.append(message)
+
+        loop = asyncio.new_event_loop()
+
+        def run_loop():
+            asyncio.set_event_loop(loop)
+            loop.run_forever()
+
+        t = threading.Thread(target=run_loop, daemon=True)
+        t.start()
+        for _ in range(100):
+            if loop.is_running():
+                break
+            time.sleep(0.001)
+        try:
+            handler = CollectingAsyncHandler(loop=loop)
+            handler.process(make_record("first"))
+            # Wait until the first write's future has completed.
+            for _ in range(100):
+                if any(f.done() for f in handler._futures):
+                    break
+                time.sleep(0.001)
+            # A second process while a done future exists must prune it.
+            handler.process(make_record("second"))
+            handler.close()
+            assert len(collected) == 2
+        finally:
+            loop.call_soon_threadsafe(loop.stop)
+            t.join(timeout=2)
+            loop.close()
+
+    def test_process_loop_raises_runtimeerror(self, monkeypatch):
+        class FakeLoop:
+            def is_running(self):
+                return True
+
+        class PlainAsyncHandler(AsyncHandler):
+            def write(self, message):
+                return None
+
+        handler = PlainAsyncHandler(loop=FakeLoop())
+        monkeypatch.setattr(
+            asyncio,
+            "run_coroutine_threadsafe",
+            lambda coro, loop: (_ for _ in ()).throw(
+                RuntimeError("loop not running")
+            ),
+        )
+        record = make_record()
+        result = handler.process(record)
+        assert result is record
+        assert handler._futures == set()

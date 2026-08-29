@@ -10,6 +10,7 @@ from plainlog.processors import (
     dynamic_name,
     elapsed,
     eval_extra,
+    eval_lambda_extra,
     filter_all,
     filter_by_level,
     filter_by_name,
@@ -96,6 +97,18 @@ class TestEvalExtra:
     def test_empty_extra(self):
         r = record()
         result = eval_extra(r)
+        assert result is r
+
+
+class TestEvalLambdaExtra:
+    def test_evaluates_lambda_extra(self):
+        r = record(extra={"a": lambda: "resolved"})
+        result = eval_lambda_extra(r)
+        assert result["extra"]["a"] == "resolved"
+
+    def test_empty_extra(self):
+        r = record()
+        result = eval_lambda_extra(r)
         assert result is r
 
 

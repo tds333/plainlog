@@ -2,6 +2,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0 OR MIT
 import multiprocessing as mp
+import os
 import threading
 import time
 import warnings
@@ -86,6 +87,23 @@ def test_close_idempotent():
     core.close()
 
     assert not core.is_alive()
+
+
+def test_wait_for_processed_dead_core():
+    core = Core()
+    core.close()
+    # Must return immediately on a dead worker, not block on an Event
+    # the worker will never set.
+    core.wait_for_processed()
+    assert not core.is_alive()
+
+
+def test_register_fork_hook_skipped_without_register_at_fork(monkeypatch):
+    import plainlog._logger as mod
+
+    monkeypatch.delattr(os, "register_at_fork", raising=False)
+    # Should not raise and should skip registration (false branch).
+    mod._register_fork_hook()
 
 
 def test_reset_for_fork_restarts_worker():
