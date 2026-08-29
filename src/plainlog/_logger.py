@@ -5,6 +5,7 @@ import atexit
 import collections.abc
 import contextlib
 import logging
+import os
 import sys
 import traceback
 from contextvars import ContextVar
@@ -74,11 +75,7 @@ class Core:
         self._min_level_no: int = logging.NOTSET
         self._handler: Optional[HandlerProtocol] = None
         self._print_errors = False
-        self._queue: SimpleQueue = SimpleQueue()
-        self._thread: Thread = Thread(
-            target=self._worker, daemon=True, name="plainlog-worker"
-        )
-        self._thread.start()
+        self._start_worker()
 
     def __repr__(self) -> str:
         name = self.name
@@ -100,15 +97,16 @@ class Core:
         self._queue.put((command, message))
 
     def log(self, log_record: Record) -> bool:
-        if self._handler is not None:
+        handler = self._handler
+        if handler is not None:
             try:
-                log_record = self._handler.preprocess(log_record)
+                log_record = handler.preprocess(log_record)
                 if not log_record:  # Stop processing if Handler decides so
                     return False
             except Exception as ex:
                 if self._print_errors:
                     print(
-                        f"Error in handler.preprocess() for handler {self._handler!r}. Error: {ex!r}",
+                        f"Error in handler.preprocess() for handler {handler!r}. Error: {ex!r}",
                         file=sys.stderr,
                     )
             self._queue.put((Command.LOG, log_record))
@@ -133,6 +131,9 @@ class Core:
         level: Optional[Union[str, int]] = None,
         print_errors=None,
     ) -> None:
+        if not self.is_alive():
+            return
+
         if level is not None:
             level = _validate_level(level)
 
@@ -141,6 +142,9 @@ class Core:
         self.wait_for_processed(_env.DEFAULT_WAIT_TIMEOUT)
 
     def wait_for_processed(self, timeout: Optional[float] = None) -> None:
+        if not self._thread.is_alive():
+            return
+
         event: Event = Event()
         self._put(Command.EVENT, event)
         event.wait(timeout)
@@ -150,6 +154,11 @@ class Core:
             self.configure(level=None, handler=None, print_errors=False)
             self.stop()
             self.join()
+
+    def _start_worker(self) -> None:
+        self._queue = SimpleQueue()
+        self._thread = Thread(target=self._worker, daemon=True, name="plainlog-worker")
+        self._thread.start()
 
     def _worker(self) -> None:
         queue_get = self._queue.get
@@ -517,3 +526,18 @@ Usage::
 
     logger.info("hello world")
 """
+
+
+def _reset_for_fork() -> None:
+    global logger_process, logger_process_ident, logger_process_name
+
+    proc = current_process()
+    logger_process = proc
+    logger_process_ident = proc.ident
+    logger_process_name = proc.name
+
+    logger_core._start_worker()
+
+
+if hasattr(os, "register_at_fork"):
+    os.register_at_fork(after_in_child=_reset_for_fork)
