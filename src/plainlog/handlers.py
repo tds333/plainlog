@@ -153,16 +153,13 @@ class StreamHandler:
         return record
 
     def process(self, record: Record) -> Record:
-        return self(record)
-
-    def close(self) -> None:
-        pass
-
-    def __call__(self, record: Record) -> Record:
         message = self._formatter(record)
         self.write(message)
 
         return record
+
+    def close(self) -> None:
+        pass
 
     def __repr__(self) -> str:
         return (
@@ -235,9 +232,6 @@ class WrapStandardHandler:
         return record
 
     def process(self, record: Record) -> Record:
-        return self(record)
-
-    def __call__(self, record: Record) -> Record:
         msg = str(record.get("msg", ""))
         message = str(record.get("message", msg))
         exc = record.get("exception")

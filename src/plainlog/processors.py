@@ -116,6 +116,16 @@ def filter_by_name(parent) -> Callable:
     return namefilter
 
 
+def allow_by_name(parent) -> Callable:
+    def allow_name(record: Record) -> Record:
+        name = record["name"]
+        if name and name.startswith(parent):
+            return record
+        return {}
+
+    return allow_name
+
+
 def filter_by_level(level_per_module) -> Callable:
     def levelfilter(record: Record) -> Record:
         name = record["name"]
