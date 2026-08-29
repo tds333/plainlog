@@ -7,6 +7,7 @@ import os
 import pathlib
 import stat
 import sys
+from asyncio import CancelledError
 from collections import deque
 from concurrent.futures import Future
 from typing import IO, Any
@@ -473,26 +474,40 @@ class AsyncHandler:
 
     Args:
         loop: The ``asyncio.AbstractEventLoop`` to schedule writes on.
-            Defaults to the currently running loop.
+            If ``None`` (default) and a loop is currently running in the
+            building thread, that loop is captured; otherwise the handler
+            is a no-op until a loop is supplied. Construction never raises.
         formatter: Callable that takes a record and returns a string.
             Defaults to `SimpleFormatter`.
     """
 
     def __init__(self, loop=None, formatter=None) -> None:
-        self.loop = asyncio.get_running_loop() if loop is None else loop
+        if loop is None:
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = None
+        self.loop = loop
         self._formatter = SimpleFormatter() if formatter is None else formatter
         self.terminator = "\n"
-        self.last_future: Future[Any] | None = None
+        self._futures: set = set()
 
     def preprocess(self, record: Record) -> Record:
         return record
 
     def process(self, record: Record) -> Record:
         message = self._formatter(record)
-        if self.loop.is_running():
-            self.last_future = asyncio.run_coroutine_threadsafe(
-                self.write(message), self.loop
-            )
+        loop = self.loop
+        if loop is None or not loop.is_running():
+            return record
+        try:
+            future = asyncio.run_coroutine_threadsafe(self.write(message), loop)
+        except RuntimeError:
+            return record
+        done = [f for f in self._futures if f.done()]
+        for f in done:
+            self._futures.discard(f)
+        self._futures.add(future)
 
         return record
 
@@ -500,8 +515,15 @@ class AsyncHandler:
         pass
 
     def close(self) -> None:
-        if self.last_future is not None:
-            self.last_future.result(_env.DEFAULT_WAIT_TIMEOUT)
+        for future in self._futures:
+            try:
+                if isinstance(future, Future):
+                    future.result(_env.DEFAULT_WAIT_TIMEOUT)
+                else:
+                    future.result()
+            except (TimeoutError, CancelledError):
+                pass
+        self._futures.clear()
 
     def __repr__(self) -> str:
         return (

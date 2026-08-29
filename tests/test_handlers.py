@@ -3,6 +3,8 @@ import io
 import logging
 import sys
 import tempfile
+import threading
+import time
 from pathlib import Path
 
 import pytest
@@ -641,11 +643,11 @@ class TestAsyncHandler:
             record = make_record("async")
             result = h.process(record)
             assert result is record
-            assert h.last_future is not None
+            assert len(h._futures) == 1
 
         asyncio.run(run())
 
-    def test_close_with_last_future(self):
+    def test_close_with_pending_future(self):
         from concurrent.futures import Future
 
         loop = asyncio.new_event_loop()
@@ -653,7 +655,7 @@ class TestAsyncHandler:
             h = AsyncHandler(loop=loop)
             f: Future = Future()
             f.set_result(None)
-            h.last_future = f
+            h._futures.add(f)
             h.close()
         finally:
             loop.close()
@@ -663,5 +665,60 @@ class TestAsyncHandler:
         try:
             h = AsyncHandler(loop=loop)
             h.close()
+        finally:
+            loop.close()
+
+    def test_init_no_loop_no_crash(self):
+        # Constructing without a running loop must not raise.
+        handler = AsyncHandler()
+        assert handler.loop is None
+
+    def test_process_no_loop_skips(self):
+        handler = AsyncHandler()
+        record = make_record()
+        result = handler.process(record)
+        assert result is record
+        assert handler._futures == set()
+
+    def test_close_flushes_all_futures(self):
+        collected = []
+
+        class CollectingAsyncHandler(AsyncHandler):
+            async def write(self, message):
+                collected.append(message)
+
+        loop = asyncio.new_event_loop()
+
+        def run_loop():
+            asyncio.set_event_loop(loop)
+            loop.run_forever()
+
+        t = threading.Thread(target=run_loop, daemon=True)
+        t.start()
+        for _ in range(100):
+            if loop.is_running():
+                break
+            time.sleep(0.001)
+        try:
+            handler = CollectingAsyncHandler(loop=loop)
+            for i in range(5):
+                handler.process(make_record(f"msg-{i}"))
+            handler.close()
+            assert len(collected) == 5
+            for i in range(5):
+                assert any(f"msg-{i}" in c for c in collected)
+        finally:
+            loop.call_soon_threadsafe(loop.stop)
+            t.join(timeout=2)
+            loop.close()
+
+    def test_close_with_cancelled_future(self):
+        loop = asyncio.new_event_loop()
+        try:
+            handler = AsyncHandler(loop=loop)
+            future = loop.create_future()
+            future.cancel()
+            handler._futures.add(future)
+            handler.close()
         finally:
             loop.close()
