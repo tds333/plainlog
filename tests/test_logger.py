@@ -269,32 +269,11 @@ def test_core_log_no_handler_returns_empty():
     core = Core(name="NO_HANDLER_LOG")
     with closing(core):
         record = core.log({"msg": "direct"})
-        assert record is False
-
-
-class ErrorOnPreprocess(BaseHandler):
-    def preprocess(self, record):
-        raise RuntimeError("preprocess failed")
-
-
-def test_core_preprocess_error_prints_to_stderr(thandler, capsys):
-    logger.configure(handler=ErrorOnPreprocess(), level="DEBUG", print_errors=True)
-    logger.info("trigger preprocess error")
-    logger_core.wait_for_processed()
-    output = capsys.readouterr().err
-    assert "Error in handler.preprocess()" in output
-    assert "preprocess failed" in output
-
-
-def test_core_preprocess_error_silent_without_print_errors(thandler):
-    logger.configure(
-        handler=ErrorOnPreprocess(), level="DEBUG", print_errors=False
-    )
-    logger.info("trigger preprocess error")
+        assert record is None
 
 
 class ErrorOnProcess(BaseHandler):
-    def process(self, record):
+    def __call__(self, record):
         raise RuntimeError("process failed")
 
 
@@ -317,7 +296,7 @@ class ErrorOnCloseHandler(BaseHandler):
     def close(self):
         raise RuntimeError("close failed")
 
-    def process(self, record):
+    def __call__(self, record):
         return record
 
 
@@ -369,17 +348,6 @@ def test_logger_no_handler():
         assert log.error(message) is None
         assert log.critical(message) is None
         assert log(msg=message) is False
-
-
-class FilterOnPreprocess(BaseHandler):
-    def preprocess(self, record):
-        return {}
-
-
-def test_core_preprocess_filter(thandler):
-    logger.configure(handler=FilterOnPreprocess(), level="DEBUG")
-    result = logger(msg="should be filtered")
-    assert result is False
 
 
 def test_core_close_when_not_alive():
@@ -477,7 +445,7 @@ def test_core():
             self.records = []
             super().__init__()
 
-        def process(self, record) -> Record:
+        def __call__(self, record) -> Record:
             self.records.append(record)
             return record
 
@@ -500,10 +468,7 @@ def test_core():
 
 
 class HandlerWithoutClose:
-    def preprocess(self, record):
-        return record
-
-    def process(self, record):
+    def __call__(self, record):
         return record
 
 

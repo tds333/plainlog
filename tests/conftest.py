@@ -33,7 +33,7 @@ class DummyHandler(BaseHandler):
     def __init__(self):
         self._records = []
 
-    def process(self, record):
+    def __call__(self, record):
         self._records.append(record)
         return record
 

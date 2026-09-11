@@ -105,7 +105,8 @@ def main():
     log = log.bind(bla=5)
     log.info("mit extra")
 
-    log = log.new(processors=pa)
+    # processors are configured via ProcessingHandler, not Logger.new
+    log = log.bind(my_special_info=0)
     log.warning("warn me")
 
     log = first_log
@@ -248,7 +249,8 @@ def main4():
     lc = LoggerClass()
     lc.do()
     lc.do_context()
-    log = log.new(preprocessors=filter_by_name("LoggerClass"))
+    # processors are configured via ProcessingHandler, e.g.
+    # ProcessingHandler(processors=[filter_by_name("LoggerClass")], handler=...)
     log.debug("with")
     log.new("LoggerClass").info("should filter")
     with log.contextualize(some_ctx="my context info"):

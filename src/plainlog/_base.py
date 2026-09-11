@@ -51,11 +51,9 @@ class HandlerProtocol(Protocol):
     """Protocol that every plainlog handler must implement.
 
     Methods:
-        preprocess: Run in the application thread. Return ``{}`` to drop.
-        process: Run in the Core's background thread. Return ``{}`` to drop.
+        __call__: Run in the Core's background thread. Return ``{}`` to drop.
         close: Cleanup resources.
     """
 
-    def preprocess(self, record: Record) -> Record: ...  # pragma: no cover
-    def process(self, record: Record) -> Record: ...  # pragma: no cover
     def close(self) -> None: ...  # pragma: no cover
+    def __call__(self, record: Record) -> Record: ...

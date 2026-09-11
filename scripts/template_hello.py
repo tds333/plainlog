@@ -13,7 +13,7 @@ from time import time
 
 from plainlog import logger
 from plainlog._base import Record
-from plainlog.handlers import DevelopHandler
+from plainlog.handlers import ConsoleHandler
 from plainlog.warnings import capture_warnings
 
 try:
@@ -43,10 +43,10 @@ def eval_template(record: Record) -> Record:
     return record
 
 
-class EvalTemplatHandler(DevelopHandler):
-    def process(self, record):
+class EvalTemplatHandler(ConsoleHandler):
+    def __call__(self, record):
         record = eval_template(record)
-        return super().process(record)
+        return super().__call__(record)
 
 
 capture_warnings(True)

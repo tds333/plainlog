@@ -25,7 +25,7 @@ from typing import (
 
 from . import _env
 from ._base import HandlerProtocol, Msg, Record, RecordException
-from ._frames import get_frame
+from ._frames import add_caller_info, get_frame
 
 plainlog_context: ContextVar[dict] = ContextVar("plainlog_context")
 logger_process = current_process()
@@ -39,6 +39,8 @@ LEVEL_INFO: int = logging.INFO
 LEVEL_WARNING: int = logging.WARNING
 LEVEL_ERROR: int = logging.ERROR
 LEVEL_CRITICAL: int = logging.CRITICAL
+
+start_time = time()
 
 
 class Command(str, Enum):
@@ -96,24 +98,8 @@ class Core:
     def _put(self, command: Command, message: Any = None) -> None:
         self._queue.put((command, message))
 
-    def log(self, log_record: Record) -> bool:
-        handler = self._handler
-        if handler is not None:
-            try:
-                log_record = handler.preprocess(log_record)
-                if not log_record:  # Stop processing if Handler decides so
-                    return False
-            except Exception as ex:
-                if self._print_errors:
-                    print(
-                        f"Error in handler.preprocess() for handler {handler!r}. Error: {ex!r}",
-                        file=sys.stderr,
-                    )
-            self._queue.put((Command.LOG, log_record))
-
-            return True
-
-        return False
+    def log(self, log_record: Record) -> None:
+        self._queue.put((Command.LOG, log_record))
 
     def stop(self) -> None:
         self._put(Command.STOP)
@@ -175,7 +161,7 @@ class Core:
                     if self_handler is not None:
                         record: Record = log_record
                         try:
-                            self_handler.process(record)
+                            self_handler(record)
                         except Exception as ex:
                             if self._print_errors:
                                 self._print_error(log_record, self_handler, ex)
@@ -256,18 +242,20 @@ class Logger:
         core: The shared Core this logger writes to.
     """
 
-    __slots__ = ("_core", "_name", "_extra")
+    __slots__ = ("_core", "_name", "_extra", "_verbose")
 
     # core should be the same for every logger
     def __init__(
         self,
         core: Core,
         name: str,
-        extra: Optional[Dict[str, Any]],
+        extra: Optional[Dict[str, Any]] = None,
+        verbose: Optional[bool] = None,
     ):
         self._core = core
         self._name = _validate_name(name)
         self._extra = _validate_extra(extra)
+        self._verbose = False if not verbose else True
 
     def __repr__(self) -> str:
         name = self._name
@@ -286,6 +274,7 @@ class Logger:
         self,
         name: Optional[str] = None,
         extra=None,
+        verbose=False,
     ):
         """Create a child logger, optionally auto-detecting the caller name.
 
@@ -319,14 +308,14 @@ class Logger:
         name = self._name if name is None else name
         extra = self._extra if extra is None else extra
 
-        return self.__class__(self._core, name, extra)
+        return self.__class__(self._core, name, extra, verbose)
 
     def __getstate__(self) -> object:
-        return self._name, self._extra
+        return self._name, self._extra, self._verbose
 
     def __setstate__(self, state) -> None:
         global logger_core
-        self._name, self._extra = state
+        self._name, self._extra, self._verbose = state
         self._core = logger_core
 
     def bind(self, **kwargs) -> "Logger":
@@ -339,9 +328,7 @@ class Logger:
             A new Logger with the combined extra dict.
         """
         return self.__class__(
-            self._core,
-            self._name,
-            {**self._extra, **kwargs},
+            self._core, self._name, {**self._extra, **kwargs}, self._verbose
         )
 
     def unbind(self, *args) -> "Logger":
@@ -357,7 +344,7 @@ class Logger:
         for key in args:
             extra.pop(key, None)
 
-        return self.__class__(self._core, self._name, extra)
+        return self.__class__(self._core, self._name, extra, self._verbose)
 
     @staticmethod
     def context(**kwargs):
@@ -431,7 +418,12 @@ class Logger:
             "extra": {**self._extra, **ctx, **kwargs},
         }
 
-        return core.log(log_record)
+        if self._verbose:
+            add_caller_info(log_record, 4)
+
+        core.log(log_record)
+
+        return True
 
     def debug(self, msg: Msg, **kwargs) -> None:  # noqa: N805
         """Log *msg* at DEBUG level."""
@@ -482,6 +474,7 @@ class Logger:
         handler: Optional[HandlerProtocol] = None,
         level: Optional[Union[str, int]] = None,
         print_errors: Optional[bool] = None,
+        verbose: Optional[bool] = None,
     ) -> None:
         """Configure the shared Core handler, level, and error printing.
 
@@ -492,6 +485,8 @@ class Logger:
             level: Minimum log level.
             print_errors: Print handler errors to stderr.
         """
+        if verbose is not None:
+            self._verbose = bool(verbose)
         self._core.configure(handler=handler, level=level, print_errors=print_errors)
 
     def __call__(self, level: str | int = LEVEL_DEBUG, msg: Msg = "", **kwargs) -> bool:
@@ -513,11 +508,7 @@ logger_core: Core = Core()
 
 atexit.register(logger_core.close)
 
-logger: Logger = Logger(
-    core=logger_core,
-    name="root",
-    extra={},
-)
+logger: Logger = Logger(core=logger_core, name="root", extra={}, verbose=False)
 """Module-level Logger convenience instance.
 
 Usage::

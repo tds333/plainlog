@@ -16,12 +16,13 @@ def _default(level=None, **kwargs) -> None:
 
 
 def _develop(level=None, **kwargs) -> None:
-    from .handlers import DevelopHandler
+    from .handlers import ConsoleHandler
 
     logger.configure(
-        handler=DevelopHandler(sys.stderr, colors=True),
+        handler=ConsoleHandler(sys.stderr, colors=True),
         level=level,
         print_errors=True,
+        verbose=True,
     )
 
 

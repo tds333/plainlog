@@ -38,16 +38,16 @@ This guaranties nothing is blocking your code, so you simply can use the logger 
 You don't have to care about performance, the hot path of the logger is minimal and fast.
 It creates a dict and puts it into a queue. The core handles the rest in an extra thread, not blocking anything.
 
-The concept of preprocessors and processors is special. A preprocessor runs in the context of the logger (application Thread), a processor in the context of the core (logger core Thread).
-So you can enrich log record information in the context of the call or later in the context of processing.
+The concept of processors is special. A processor runs in the context of the core (logger core Thread).
+So you can enrich log record information in the context of processing, without blocking the caller.
 
 For easy usage and configuration a list of profiles is available.
-They add documented (pre)-processors and handlers and everything is ready to be used.
+They add documented processors and handlers and everything is ready to be used.
 
 
 ### What is from other libraries?
 
-From structlog the idea of processors are taken. But simplified and separated. In plainlog it is a simple list of preprocessors and processors
+From structlog the idea of processors are taken. But simplified. In plainlog it is a simple list of processors
 and they are executed in order. No wrapping and complicated parameter handling.
 Also the formating for development log output is inspired from structlog. The logger has the feature to `bind` and `unbind` extra variables.
 
@@ -71,14 +71,14 @@ But powerful enough to handle everyones logging needs.
 
 ### In short
 
-- Logging is done at the logger level, also preprocessing. 
+- Logging is done at the logger level. 
 - Configuration with handlers and processors on the core level.
 - Clean separation, the logger is fast and pushes to a queue where the core handles the records in an extra thread. It does not block.
 - Same interface for sync and async code.
 - There is no hierarchy as in standard logging. There are loggers and they share one core.
-- Everything is fully configurable and can be as minimal as possible. The amount of preprocessors, processors and handlers are under your control.
+- Everything is fully configurable and can be as minimal as possible. The amount of processors and handlers are under your control.
 - It is really fast. 
-- Handlers, preprocessors, processors all use a simple call interface. They must be callable and get the log record dictionary.
+- Handlers and processors all use a simple call interface. They must be callable and get the log record dictionary.
 - Profiles are there for simple configuration.
 - Working with the library should be fun and increase productivity.
 

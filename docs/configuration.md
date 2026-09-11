@@ -43,7 +43,7 @@ logger.info("ready")
 | Profile | Handler | Output | Notes |
 |---------|---------|--------|-------|
 | ``default`` | [`DefaultHandler`](handlers.md#defaulthandler) | stdout | Compact default format |
-| ``develop`` | [`DevelopHandler`](handlers.md#develophandler) | stderr | Colorized, caller info, error printing |
+| ``develop`` | [`ConsoleHandler`](handlers.md#consolehandler) | stderr | Colorized, caller info (verbose), error printing |
 | ``simple`` | [`StreamHandler`](handlers.md#streamhandler) | stderr | Minimal format |
 | ``console_no_color`` | [`ConsoleHandler`](handlers.md#consolehandler) | stderr | No ANSI codes, error printing |
 

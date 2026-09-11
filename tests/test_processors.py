@@ -6,7 +6,6 @@ from plainlog.processors import (
     Duration,
     FilterList,
     WhitelistLevel,
-    add_caller_info,
     dynamic_name,
     elapsed,
     eval_extra,
@@ -32,34 +31,6 @@ def record(msg="test", name="test", level=None, extra=None, kwargs=None):
         "name": name,
         "extra": {**extra, **kwargs},
     }
-
-
-class TestAddCallerInfo:
-    def test_adds_caller_info(self):
-        r = record()
-        result = add_caller_info(r, level=1)
-        assert "function" in result
-        assert result["function"] == "test_adds_caller_info"
-        assert "line" in result
-        assert "file_name" in result
-        assert "file_path" in result
-        assert "path" in result
-        assert "module" in result
-        assert result["module"] == "test_processors"
-        assert "thread_id" in result
-        assert "thread_name" in result
-
-    def test_skips_if_function_already_present(self):
-        r = record()
-        r["function"] = "existing"
-        result = add_caller_info(r)
-        assert result["function"] == "existing"
-
-    def test_does_not_overwrite_existing_keys(self):
-        r = record()
-        r["function"] = "custom"
-        result = add_caller_info(r)
-        assert result["function"] == "custom"
 
 
 class TestDynamicName:

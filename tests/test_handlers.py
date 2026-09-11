@@ -15,10 +15,8 @@ from plainlog.formatters import DefaultFormatter, SimpleFormatter
 from plainlog.handlers import (
     AsyncHandler,
     BaseHandler,
-    CollectHandler,
     ConsoleHandler,
     DefaultHandler,
-    DevelopHandler,
     FileHandler,
     FingersCrossedHandler,
     JsonHandler,
@@ -51,15 +49,10 @@ def make_record(msg="test", level=None):
 
 
 class TestBaseHandler:
-    def test_preprocess_passthrough(self):
+    def test_call_passthrough(self):
         h = BaseHandler()
         record = make_record()
-        assert h.preprocess(record) is record
-
-    def test_process_passthrough(self):
-        h = BaseHandler()
-        record = make_record()
-        assert h.process(record) is record
+        assert h(record) is record
 
     def test_close_does_nothing(self):
         BaseHandler().close()
@@ -68,70 +61,41 @@ class TestBaseHandler:
 class TestProcessingHandler:
     def test_init_with_defaults(self):
         h = ProcessingHandler()
-        assert h._preprocessors == []
         assert h._processors == []
-        assert h._handler is None
 
-    def test_preprocess_with_preprocessors(self):
-        calls = []
-
-        def p1(r):
-            calls.append("p1")
-            return r
-
-        def p2(r):
-            calls.append("p2")
-            return r
-
-        h = ProcessingHandler(preprocessors=[p1, p2])
-        record = make_record()
-        h.preprocess(record)
-        assert calls == ["p1", "p2"]
-
-    def test_preprocess_stops_on_empty(self):
-        def p1(r):
-            return {}
-
-        def p2(r):
-            pytest.fail("should not be called")
-
-        h = ProcessingHandler(preprocessors=[p1, p2])
-        assert h.preprocess(make_record()) == {}
-
-    def test_process_with_processors(self):
+    def test_call_with_processors(self):
         calls = []
 
         def proc(r):
             calls.append("proc")
             return r
 
-        h = ProcessingHandler(processors=[proc])
-        h.process(make_record())
+        h = ProcessingHandler([proc])
+        h(make_record())
         assert calls == ["proc"]
 
-    def test_process_stops_on_empty(self):
+    def test_call_stops_on_empty(self):
         def p1(r):
             return {}
 
         def p2(r):
             pytest.fail("should not be called")
 
-        h = ProcessingHandler(processors=[p1, p2])
-        assert h.process(make_record()) == {}
+        h = ProcessingHandler([p1, p2])
+        assert h(make_record()) == {}
 
-    def test_process_forwards_to_subhandler(self):
-        sub = BaseHandler()
-        spy = []
+    def test_call_forwards_to_subhandler(self):
+        seen = []
 
-        def wrap(r):
-            spy.append(r)
-            return r
+        class Spy(BaseHandler):
+            def __call__(self, record):
+                seen.append(record)
+                return record
 
-        sub.process = wrap
-        h = ProcessingHandler(processors=[], handler=sub)
+        h = ProcessingHandler([Spy()])
         record = make_record()
-        h.process(record)
-        assert spy == [record]
+        h(record)
+        assert seen == [record]
 
     def test_close_forwards_to_subhandler(self):
         class CloseSpy(BaseHandler):
@@ -142,90 +106,24 @@ class TestProcessingHandler:
                 self.closed = True
 
         sub = CloseSpy()
-        h = ProcessingHandler(handler=sub)
+        h = ProcessingHandler([sub])
         h.close()
         assert sub.closed
 
     def test_close_skips_when_no_handler(self):
         ProcessingHandler().close()
 
-    def test_preprocess_calls_subhandler_preprocess(self):
-        sub = BaseHandler()
-        seen = []
-        sub.preprocess = lambda r: (seen.append(r) or r)
-
-        def add_marker(r):
-            r = dict(r)
-            r["marked"] = True
-            return r
-
-        h = ProcessingHandler(preprocessors=[add_marker], handler=sub)
-        record = make_record()
-        result = h.preprocess(record)
-
-        assert seen == [result]
-        assert result.get("marked") is True
-
-    def test_preprocess_skips_subhandler_when_dropped(self):
-        sub = BaseHandler()
-        sub.preprocess = lambda r: pytest.fail("should not be called")
-
-        h = ProcessingHandler(preprocessors=[lambda r: {}], handler=sub)
-        assert h.preprocess(make_record()) == {}
-
-
-class TestCollectHandler:
-    def test_init_defaults(self):
-        h = CollectHandler()
-        assert h._handlers == []
-
-    def test_preprocess_chains(self):
+    def test_call_chains(self):
         results = []
 
         class Spy(BaseHandler):
-            def preprocess(self, record):
-                results.append("pre")
-                return record
-
-        h = CollectHandler(handlers=[Spy(), Spy()])
-        h.preprocess(make_record())
-        assert results == ["pre", "pre"]
-
-    def test_preprocess_stops_on_empty(self):
-        class Empty(BaseHandler):
-            def preprocess(self, record):
-                return {}
-
-        class NeverCalled(BaseHandler):
-            def preprocess(self, record):
-                pytest.fail("should not be called")
-
-        h = CollectHandler(handlers=[Empty(), NeverCalled()])
-        assert h.preprocess(make_record()) == {}
-
-    def test_process_chains(self):
-        results = []
-
-        class Spy(BaseHandler):
-            def process(self, record):
+            def __call__(self, record):
                 results.append("proc")
                 return record
 
-        h = CollectHandler(handlers=[Spy(), Spy()])
-        h.process(make_record())
+        h = ProcessingHandler([Spy(), Spy()])
+        h(make_record())
         assert results == ["proc", "proc"]
-
-    def test_process_stops_on_empty(self):
-        class Empty(BaseHandler):
-            def process(self, record):
-                return {}
-
-        class NeverCalled(BaseHandler):
-            def process(self, record):
-                pytest.fail("should not be called")
-
-        h = CollectHandler(handlers=[Empty(), NeverCalled()])
-        assert h.process(make_record()) == {}
 
     def test_close_calls_all(self):
         results = []
@@ -234,7 +132,7 @@ class TestCollectHandler:
             def close(self):
                 results.append("close")
 
-        h = CollectHandler(handlers=[Spy(), Spy()])
+        h = ProcessingHandler([Spy(), Spy()])
         h.close()
         assert results == ["close", "close"]
 
@@ -259,11 +157,11 @@ class TestStreamHandler:
         assert "StreamHandler" in repr(h)
         assert "SimpleFormatter" in repr(h)
 
-    def test_process_writes_to_stream(self):
+    def test_call_writes_to_stream(self):
         buf = io.StringIO()
         h = StreamHandler(stream=buf)
         record = make_record("hello")
-        h.process(record)
+        h(record)
         assert "hello" in buf.getvalue()
 
     def test_write_flushable(self):
@@ -292,10 +190,10 @@ class TestStreamHandler:
         h.write("hello")
         assert buf.getvalue() == "hello---\n"
 
-    def test_preprocess_passthrough(self):
+    def test_call_returns_record(self):
         h = StreamHandler()
         record = make_record()
-        assert h.preprocess(record) is record
+        assert h(record) is record
 
 
 class TestDefaultHandler:
@@ -303,11 +201,11 @@ class TestDefaultHandler:
         h = DefaultHandler()
         assert isinstance(h._formatter, DefaultFormatter)
 
-    def test_process(self):
+    def test_call(self):
         buf = io.StringIO()
         h = DefaultHandler(stream=buf)
         record = make_record("hi")
-        h.process(record)
+        h(record)
         assert buf.getvalue()
 
 
@@ -316,35 +214,18 @@ class TestConsoleHandler:
         h = ConsoleHandler()
         assert "ConsoleRenderer" in repr(h._formatter)
 
-    def test_process(self):
+    def test_call(self):
         buf = io.StringIO()
         h = ConsoleHandler(stream=buf)
         record = make_record("hello")
-        h.process(record)
+        h(record)
         assert buf.getvalue()
 
     def test_init_no_color(self):
         buf = io.StringIO()
         h = ConsoleHandler(stream=buf, colors=False)
-        h.process(make_record("plain"))
+        h(make_record("plain"))
         assert "plain" in buf.getvalue()
-
-
-class TestDevelopHandler:
-    def test_preprocess_adds_caller_info(self):
-        h = DevelopHandler()
-        record = make_record("dev")
-        result = h.preprocess(record)
-        assert "file_name" in result
-        assert "function" in result
-        assert "line" in result
-
-    def test_process(self):
-        buf = io.StringIO()
-        h = DevelopHandler(stream=buf)
-        record = make_record("dev_msg")
-        h.process(record)
-        assert "dev_msg" in buf.getvalue()
 
 
 class TestWrapStandardHandler:
@@ -354,20 +235,15 @@ class TestWrapStandardHandler:
         assert "WrapStandardHandler" in repr(h)
         assert "StreamHandler" in repr(h)
 
-    def test_process_returns_record(self):
+    def test_call_returns_record(self):
         std = logging.StreamHandler(sys.stdout)
         h = WrapStandardHandler(std)
         record = make_record("wrapped")
         record["file"] = type("F", (), {"path": __file__})()
         record["line"] = 1
         record["function"] = "test_func"
-        result = h.process(record)
+        result = h(record)
         assert result is record
-
-    def test_preprocess_passthrough(self):
-        h = WrapStandardHandler(logging.StreamHandler(sys.stdout))
-        record = make_record()
-        assert h.preprocess(record) is record
 
     def test_close(self):
         std = logging.StreamHandler(sys.stdout)
@@ -389,7 +265,7 @@ class TestWrapStandardHandler:
             exc_info = sys.exc_info()
             record["exception"] = RecordException(*exc_info)
         capsys.readouterr()
-        h.process(record)
+        h(record)
         err_output = capsys.readouterr().err.split("\n")[0]
         assert "Logging error" in err_output or err_output == ""
         assert h is not None
@@ -400,11 +276,11 @@ class TestJsonHandler:
         h = JsonHandler()
         assert "JsonFormatter" in repr(h._formatter)
 
-    def test_process(self):
+    def test_call(self):
         buf = io.StringIO()
         h = JsonHandler(stream=buf)
         record = make_record("json_msg")
-        h.process(record)
+        h(record)
         output = buf.getvalue()
         assert "json_msg" in output
         import json
@@ -416,7 +292,7 @@ class TestJsonHandler:
         buf = io.StringIO()
         h = JsonHandler(stream=buf, sort_keys=True, indent=2)
         record = make_record("sorted")
-        h.process(record)
+        h(record)
         assert '"message": "sorted"' in buf.getvalue()
 
 
@@ -432,7 +308,7 @@ class TestFingersCrossedHandler:
         h = FingersCrossedHandler(sub, action_level=40, buffer_size=10)
         record = make_record("low", LEVEL_DEBUG)
         record["level"] = 10
-        h.process(record)
+        h(record)
         assert len(h.buffered_records) == 1
         assert h._action_triggered is False
 
@@ -440,18 +316,18 @@ class TestFingersCrossedHandler:
         results = []
 
         class Spy(BaseHandler):
-            def process(self, record):
+            def __call__(self, record):
                 results.append(record["msg"])
                 return record
 
         h = FingersCrossedHandler(Spy(), action_level=40, buffer_size=10)
         debug = make_record("debug", LEVEL_DEBUG)
         debug["level"] = 10
-        h.process(debug)
+        h(debug)
 
         error = make_record("error", LEVEL_ERROR)
         error["level"] = 40
-        h.process(error)
+        h(error)
 
         assert results == ["debug", "error"]
         assert h._action_triggered is True
@@ -460,22 +336,22 @@ class TestFingersCrossedHandler:
         results = []
 
         class Spy(BaseHandler):
-            def process(self, record):
+            def __call__(self, record):
                 results.append(record["msg"])
                 return record
 
         h = FingersCrossedHandler(Spy(), action_level=40, buffer_size=10)
         d1 = make_record("first", LEVEL_DEBUG)
         d1["level"] = 10
-        h.process(d1)
+        h(d1)
 
         tr = make_record("trigger", LEVEL_ERROR)
         tr["level"] = 40
-        h.process(tr)
+        h(tr)
 
         aft = make_record("after", LEVEL_DEBUG)
         aft["level"] = 10
-        h.process(aft)
+        h(aft)
 
         assert results == ["first", "trigger", "after"]
 
@@ -488,11 +364,11 @@ class TestFingersCrossedHandler:
         sub = BaseHandler()
         FingersCrossedHandler(sub).close()
 
-    def test_preprocess_forwards(self):
+    def test_call_returns_record(self):
         sub = BaseHandler()
         h = FingersCrossedHandler(sub)
         record = make_record()
-        assert h.preprocess(record) is record
+        assert h(record) is record
 
     def test_rollover_empty(self):
         sub = BaseHandler()
@@ -503,24 +379,24 @@ class TestFingersCrossedHandler:
         results = []
 
         class Spy(BaseHandler):
-            def process(self, record):
+            def __call__(self, record):
                 results.append(record["msg"])
                 return record
 
         h = FingersCrossedHandler(Spy(), action_level=40, reset=True, buffer_size=10)
         d1 = make_record("d1", LEVEL_DEBUG)
         d1["level"] = 10
-        h.process(d1)
+        h(d1)
 
         tr = make_record("trigger", LEVEL_ERROR)
         tr["level"] = 40
-        h.process(tr)
+        h(tr)
 
         assert results == ["d1", "trigger"]
 
         d2 = make_record("d2", LEVEL_DEBUG)
         d2["level"] = 10
-        h.process(d2)
+        h(d2)
 
         assert results == ["d1", "trigger"]
         assert h._action_triggered is False
@@ -542,7 +418,7 @@ class TestFileHandler:
         try:
             h = FileHandler(path)
             record = make_record("file test")
-            h.process(record)
+            h(record)
             content = Path(path).read_text(encoding="utf8")
             assert "file test" in content
             h.close()
@@ -554,7 +430,7 @@ class TestFileHandler:
             path = Path(tmp) / "delayed.log"
             h = FileHandler(str(path), delay=True)
             assert not path.exists()
-            h.process(make_record("now"))
+            h(make_record("now"))
             content = path.read_text(encoding="utf8")
             assert "now" in content
             h.close()
@@ -564,7 +440,7 @@ class TestFileHandler:
             path = f.name
         try:
             h = FileHandler(path, watch=True, delay=True)
-            h.process(make_record("open"))
+            h(make_record("open"))
             assert Path(path).stat()
             h.close()
             assert h._file is None
@@ -605,10 +481,10 @@ class TestFileHandler:
         finally:
             Path(path).unlink(missing_ok=True)
 
-    def test_preprocess_passthrough(self):
+    def test_call_returns_record(self):
         h = FileHandler("/tmp/nonexistent/test.log", delay=True)
         record = make_record()
-        assert h.preprocess(record) is record
+        assert h(record) is record
 
 
 class TestFileHandlerEdgeCases:
@@ -637,9 +513,9 @@ class TestFileHandlerEdgeCases:
             path = f.name
         try:
             h = FileHandler(path, watch=True)
-            h.process(make_record("open"))
+            h(make_record("open"))
             Path(path).unlink()
-            h.process(make_record("after delete"))
+            h(make_record("after delete"))
             assert Path(path).exists()
             h.close()
         finally:
@@ -656,30 +532,30 @@ class TestAsyncHandler:
         finally:
             loop.close()
 
-    def test_preprocess_passthrough(self):
+    def test_call_returns_record(self):
         loop = asyncio.new_event_loop()
         try:
             h = AsyncHandler(loop=loop)
             record = make_record()
-            assert h.preprocess(record) is record
+            assert h(record) is record
         finally:
             loop.close()
 
-    def test_process_skips_when_loop_not_running(self):
+    def test_call_skips_when_loop_not_running(self):
         loop = asyncio.new_event_loop()
         try:
             h = AsyncHandler(loop=loop)
             record = make_record()
-            result = h.process(record)
+            result = h(record)
             assert result is record
         finally:
             loop.close()
 
-    def test_process_with_running_loop(self):
+    def test_call_with_running_loop(self):
         async def run():
             h = AsyncHandler()
             record = make_record("async")
-            result = h.process(record)
+            result = h(record)
             assert result is record
             assert len(h._futures) == 1
 
@@ -711,10 +587,10 @@ class TestAsyncHandler:
         handler = AsyncHandler()
         assert handler.loop is None
 
-    def test_process_no_loop_skips(self):
+    def test_call_no_loop_skips(self):
         handler = AsyncHandler()
         record = make_record()
-        result = handler.process(record)
+        result = handler(record)
         assert result is record
         assert handler._futures == set()
 
@@ -740,7 +616,7 @@ class TestAsyncHandler:
         try:
             handler = CollectingAsyncHandler(loop=loop)
             for i in range(5):
-                handler.process(make_record(f"msg-{i}"))
+                handler(make_record(f"msg-{i}"))
             handler.close()
             assert len(collected) == 5
             for i in range(5):
@@ -761,7 +637,7 @@ class TestAsyncHandler:
         finally:
             loop.close()
 
-    def test_process_with_done_future(self):
+    def test_call_with_done_future(self):
         collected = []
 
         class CollectingAsyncHandler(AsyncHandler):
@@ -782,14 +658,14 @@ class TestAsyncHandler:
             time.sleep(0.001)
         try:
             handler = CollectingAsyncHandler(loop=loop)
-            handler.process(make_record("first"))
+            handler(make_record("first"))
             # Wait until the first write's future has completed.
             for _ in range(100):
                 if any(f.done() for f in handler._futures):
                     break
                 time.sleep(0.001)
-            # A second process while a done future exists must prune it.
-            handler.process(make_record("second"))
+            # A second call while a done future exists must prune it.
+            handler(make_record("second"))
             handler.close()
             assert len(collected) == 2
         finally:
@@ -797,7 +673,7 @@ class TestAsyncHandler:
             t.join(timeout=2)
             loop.close()
 
-    def test_process_loop_raises_runtimeerror(self, monkeypatch):
+    def test_call_loop_raises_runtimeerror(self, monkeypatch):
         class FakeLoop:
             def is_running(self):
                 return True
@@ -810,11 +686,9 @@ class TestAsyncHandler:
         monkeypatch.setattr(
             asyncio,
             "run_coroutine_threadsafe",
-            lambda coro, loop: (_ for _ in ()).throw(
-                RuntimeError("loop not running")
-            ),
+            lambda coro, loop: (_ for _ in ()).throw(RuntimeError("loop not running")),
         )
         record = make_record()
-        result = handler.process(record)
+        result = handler(record)
         assert result is record
         assert handler._futures == set()

@@ -17,17 +17,13 @@ from plainlog._logger import logger_core
 from plainlog.configure import _profiles, apply_log_profile
 from plainlog.formatters import JsonFormatter, SimpleFormatter
 from plainlog.handlers import ProcessingHandler, StreamHandler
-from plainlog.processors import add_caller_info
 
 
 class NullHandler:
     """Handler that discards records — measures pure overhead."""
 
-    def preprocess(self, record: Record) -> Record:
+    def __call__(self, record: Record) -> Record:
         return {}
-
-    def process(self, record: Record) -> Record:
-        return record
 
     def close(self) -> None:
         pass
@@ -146,9 +142,9 @@ def setup_plainlog_caller() -> None:
     logger.configure(
         level="DEBUG",
         handler=ProcessingHandler(
-            preprocessors=[add_caller_info],
-            handler=StreamHandler(open(DEVNULL, "w"), SimpleFormatter("{message}")),
+            [StreamHandler(open(DEVNULL, "w"), SimpleFormatter("{message}"))],
         ),
+        verbose=True,
     )
 
 
@@ -157,12 +153,13 @@ def plainlog_log() -> None:
 
 
 def setup_plainlog_develop() -> None:
-    from plainlog.handlers import DevelopHandler
+    from plainlog.handlers import ConsoleHandler
 
     logger.configure(
         level="DEBUG",
-        handler=DevelopHandler(open(DEVNULL, "w"), colors=False),
+        handler=ConsoleHandler(open(DEVNULL, "w"), colors=False),
         print_errors=True,
+        verbose=True,
     )
 
 
@@ -297,7 +294,9 @@ def run() -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Benchmark plainlog vs stdlib logging")
     parser.add_argument("--iterations", type=int, default=N, help="Iterations per run")
-    parser.add_argument("--runs", type=int, default=RUNS, help="Number of runs per scenario")
+    parser.add_argument(
+        "--runs", type=int, default=RUNS, help="Number of runs per scenario"
+    )
     args = parser.parse_args()
     N, RUNS = args.iterations, args.runs
     run()

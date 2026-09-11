@@ -20,7 +20,6 @@ from .formatters import (
     JsonFormatter,
     SimpleFormatter,
 )
-from .processors import add_caller_info
 
 
 class BaseHandler:
@@ -30,103 +29,49 @@ class BaseHandler:
     Useful as a base class or placeholder.
     """
 
-    def preprocess(self, record: Record) -> Record:
-        return record
-
-    def process(self, record: Record) -> Record:
-        return record
-
     def close(self) -> None:
         pass
 
+    def __call__(self, record: Record) -> Record:
+        return record
+
 
 class ProcessingHandler:
-    """Handler that runs preprocessors and processors around a wrapped handler.
-
-    Preprocessors execute in the application thread before the record is
-    enqueued, followed by the wrapped handler's own ``preprocess``.
-    Processors execute in the Core's background thread after dequeueing,
-    followed by the wrapped handler's ``process``.
+    """Handler that runs processors or other handlers in order.
 
     Args:
-        preprocessors: List of callables run before enqueueing.
-        processors: List of callables run after dequeueing.
-        handler: Wrapped `HandlerProtocol` to call after processors.
+        processors: List of callables run each other.
 
     Example::
 
         from plainlog.handlers import ProcessingHandler, StreamHandler
-        from plainlog.processors import add_caller_info
+        from plainlog.processors import preformat_message
 
-        handler = ProcessingHandler(
-            preprocessors=[add_caller_info],
-            handler=StreamHandler(),
-        )
+        handler = ProcessingHandler([preformat_message, StreamHandler()])
     """
 
-    def __init__(self, preprocessors=None, processors=None, handler=None):
-        self._preprocessors = [] if preprocessors is None else preprocessors
+    def __init__(self, processors=None):
         self._processors = [] if processors is None else processors
-        self._handler = handler
 
-    def preprocess(self, record: Record) -> Record:
-        for preprocessor in self._preprocessors:
-            record = preprocessor(record)
-            if not record:
-                return record
-        if self._handler is not None:
-            record = self._handler.preprocess(record)
-
-        return record
-
-    def process(self, record: Record) -> Record:
+    def __call__(self, record: Record) -> Record:
         for processor in self._processors:
             record = processor(record)
             if not record:  # stop processing
                 return record
-        if self._handler is not None:
-            record = self._handler.process(record)
 
         return record
 
     def close(self) -> None:
-        if self._handler is not None:
-            self._handler.close()
-
-
-class CollectHandler:
-    """Handler that dispatches records to multiple sub-handlers.
-
-    Each record is passed through every sub-handler's ``preprocess`` and
-    ``process`` methods in order. If any handler returns a falsy record,
-    processing stops.
-
-    Args:
-        handlers: Iterable of `HandlerProtocol` instances.
-    """
-
-    def __init__(self, handlers=None):
-        self._handlers = [] if handlers is None else handlers
-
-    def preprocess(self, record: Record) -> Record:
-        for handler in self._handlers:
-            record = handler.preprocess(record)
-            if not record:  # stop processing
-                return record
-
-        return record
-
-    def process(self, record: Record) -> Record:
-        for handler in self._handlers:
-            record = handler.process(record)
-            if not record:  # stop processing
-                return record
-
-        return record
-
-    def close(self) -> None:
-        for handler in self._handlers:
-            handler.close()
+        for processor in self._processors:
+            if (
+                processor is not None
+                and hasattr(processor, "close")
+                and callable(processor.close)
+            ):
+                try:
+                    processor.close()
+                except Exception:
+                    pass
 
 
 class StreamHandler:
@@ -149,10 +94,7 @@ class StreamHandler:
         self._flushable = callable(getattr(stream, "flush", None))
         self.terminator = "\n"
 
-    def preprocess(self, record: Record) -> Record:
-        return record
-
-    def process(self, record: Record) -> Record:
+    def __call__(self, record: Record) -> Record:
         message = self._formatter(record)
         self.write(message)
 
@@ -198,18 +140,6 @@ class ConsoleHandler(StreamHandler):
         super().__init__(stream, ConsoleRenderer(colors=colors))
 
 
-class DevelopHandler(ConsoleHandler):
-    """ConsoleHandler that enriches records with caller info during preprocessing.
-
-    Automatically adds function name, line number, module, and file path
-    to each record via `add_caller_info()`.
-    """
-
-    def preprocess(self, record: Record) -> Record:
-        record = add_caller_info(record, level=5)
-        return record
-
-
 class WrapStandardHandler:
     """Wraps a stdlib ``logging.Handler`` to receive plainlog records.
 
@@ -228,10 +158,7 @@ class WrapStandardHandler:
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(handler={self._handler!r})"
 
-    def preprocess(self, record: Record) -> Record:
-        return record
-
-    def process(self, record: Record) -> Record:
+    def __call__(self, record: Record) -> Record:
         msg = str(record.get("msg", ""))
         message = str(record.get("message", msg))
         exc = record.get("exception")
@@ -327,7 +254,7 @@ class FingersCrossedHandler:
 
     def enqueue(self, record):
         if self._action_triggered:
-            self._handler.process(record)
+            self._handler(record)
         else:
             self.buffered_records.append(record)
             return record["level"] >= self._level
@@ -337,14 +264,11 @@ class FingersCrossedHandler:
     def rollover(self) -> None:
         while self.buffered_records:
             record = self.buffered_records.popleft()
-            self._handler.process(record)
+            self._handler(record)
 
         self._action_triggered = not self._reset
 
-    def preprocess(self, record: Record) -> Record:
-        return self._handler.preprocess(record)
-
-    def process(self, record: Record) -> Record:
+    def __call__(self, record: Record) -> Record:
         if self.enqueue(record):
             self.rollover()
 
@@ -398,10 +322,7 @@ class FileHandler:
         if not delay:
             self._create_file()
 
-    def preprocess(self, record: Record) -> Record:
-        return record
-
-    def process(self, record: Record) -> Record:
+    def __call__(self, record: Record) -> Record:
         message = self._formatter(record)
         self.write(message)
 
@@ -489,10 +410,7 @@ class AsyncHandler:
         self.terminator = "\n"
         self._futures: set = set()
 
-    def preprocess(self, record: Record) -> Record:
-        return record
-
-    def process(self, record: Record) -> Record:
+    def __call__(self, record: Record) -> Record:
         message = self._formatter(record)
         loop = self.loop
         if loop is None or not loop.is_running():

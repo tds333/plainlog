@@ -18,7 +18,7 @@ class CountingHandler(BaseHandler):
         self.count = 0
         self._lock = threading.Lock()
 
-    def process(self, record):
+    def __call__(self, record):
         with self._lock:
             self.count += 1
         return record
@@ -130,7 +130,7 @@ def _child_log(q):
     from plainlog.handlers import BaseHandler
 
     class QHandler(BaseHandler):
-        def process(self, record):
+        def __call__(self, record):
             q.put(record["msg"])
             return record
 

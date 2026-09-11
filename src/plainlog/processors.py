@@ -10,41 +10,17 @@ import contextlib
 import time
 from datetime import datetime, timezone
 from functools import lru_cache
-from os.path import basename, splitext
-from pathlib import Path
-from threading import current_thread
 from typing import Callable, Protocol
 
 from ._base import Record
 from ._frames import get_frame
 from ._utils import eval_format, eval_lambda_dict
 
-start_time: datetime = datetime.now(timezone.utc)
+start_time: float = time.time()
 
 
 class ProcessorProtocol(Protocol):
     def __call__(self, record: Record) -> Record: ...  # pragma: no cover
-
-
-def add_caller_info(record: Record, level=3) -> Record:
-    if "function" in record:
-        return record
-    frame = get_frame(level)
-    # name = frame.f_globals["__name__"]
-    code = frame.f_code
-    file_path = code.co_filename
-    file_name = basename(file_path)
-    thread = current_thread()
-    record["function"] = code.co_name
-    record["line"] = frame.f_lineno
-    record["path"] = Path(file_path)
-    record["module"] = splitext(file_name)[0]
-    record["file_name"] = file_name
-    record["file_path"] = file_path
-    record["thread_id"] = thread.ident
-    record["thread_name"] = thread.name
-
-    return record
 
 
 def dynamic_name(record: Record) -> Record:
@@ -234,5 +210,6 @@ class Duration:
 
 
 def elapsed(record) -> Record:
-    record["elapsed"] = datetime.now(timezone.utc) - start_time
+    global start_time
+    record["elapsed"] = time.time() - start_time
     return record
