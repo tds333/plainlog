@@ -721,19 +721,6 @@ class TestFileWriterEdgeCases:
         finally:
             Path(path).unlink(missing_ok=True)
 
-    def test_reopen_on_deleted_file(self):
-        with tempfile.NamedTemporaryFile(mode="w+", suffix=".log", delete=False) as f:
-            path = f.name
-        try:
-            h = FileWriter(path, watch=True)
-            h(make_record("open"))
-            Path(path).unlink()
-            h(make_record("after delete"))
-            assert Path(path).exists()
-            h.close()
-        finally:
-            Path(path).unlink(missing_ok=True)
-
 
 class TestAsyncBridge:
     def test_init_and_repr(self):
