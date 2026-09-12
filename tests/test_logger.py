@@ -21,7 +21,6 @@ from plainlog._logger import (
     _validate_name,
     logger_core,
 )
-from plainlog.handlers import BaseHandler
 
 
 def test_logger_repr():
@@ -227,8 +226,8 @@ def test_logger_pickle_global_core():
     assert restored.extra == {"a": 1}
 
 
-def test_core_handler_property(thandler):
-    assert logger_core.handler is thandler
+def test_core_processors_property(thandler):
+    assert logger_core.processors == (thandler,)
 
 
 def test_logger_context(thandler):
@@ -272,13 +271,13 @@ def test_core_log_no_handler_returns_empty():
         assert record is None
 
 
-class ErrorOnProcess(BaseHandler):
+class ErrorOnProcess:
     def __call__(self, record):
         raise RuntimeError("process failed")
 
 
 def test_core_process_error_prints_to_stderr(thandler, capsys):
-    logger.configure(handler=ErrorOnProcess(), level="DEBUG", print_errors=True)
+    logger.configure(processors=[ErrorOnProcess()], level="DEBUG", print_errors=True)
     logger.info("trigger process error")
     logger_core.wait_for_processed()
     output = capsys.readouterr().err
@@ -287,12 +286,12 @@ def test_core_process_error_prints_to_stderr(thandler, capsys):
 
 
 def test_core_process_error_silent_without_print_errors(thandler):
-    logger.configure(handler=ErrorOnProcess(), level="DEBUG", print_errors=False)
+    logger.configure(processors=[ErrorOnProcess()], level="DEBUG", print_errors=False)
     logger.info("trigger process error")
     logger_core.wait_for_processed()
 
 
-class ErrorOnCloseHandler(BaseHandler):
+class ErrorOnCloseHandler:
     def close(self):
         raise RuntimeError("close failed")
 
@@ -302,15 +301,15 @@ class ErrorOnCloseHandler(BaseHandler):
 
 def test_core_close_error_prints_to_stderr(thandler, capsys):
     logger.configure(
-        handler=ErrorOnCloseHandler(), level="DEBUG", print_errors=True
+        processors=[ErrorOnCloseHandler()], level="DEBUG", print_errors=True
     )
     logger_core.wait_for_processed()
-    logger.configure(handler=None, level=None)
+    logger.configure(processors=(), level=None)
     output = capsys.readouterr().err
-    assert "Error in handler.close()" in output
+    assert "Error in close() for processor" in output
     assert "close failed" in output
     # Reset back to thandler for fixture teardown
-    logger.configure(handler=thandler, level="DEBUG", print_errors=False)
+    logger.configure(processors=[thandler], level="DEBUG", print_errors=False)
 
 
 def test_print_error_to_stderr(capsys):
@@ -340,7 +339,7 @@ def test_logger_no_handler():
     message = "should not be logged"
     core = Core(name="NO_HANDLER")
     with closing(core):
-        core.configure(handler=None, level="DEBUG")
+        core.configure(processors=(), level="DEBUG")
         log = Logger(core, name="test", extra={})
         assert log.debug(message) is None
         assert log.info(message) is None
@@ -407,24 +406,25 @@ def test_logger_new_auto_name():
     assert "test_logger_new_auto_name" in log.name
 
 
-class BareHandler(BaseHandler):
-    pass
+class BareHandler:
+    def __call__(self, record: Record) -> Record:
+        return record
 
 
 def test_core_handler_no_close():
     core = Core(name="NO_CLOSE")
     with closing(core):
-        core.configure(handler=BareHandler(), level="DEBUG")
-        core.configure(handler=BaseHandler(), level="DEBUG")
+        core.configure(processors=[BareHandler()], level="DEBUG")
+        core.configure(processors=[BareHandler()], level="DEBUG")
 
 
 def test_core_worker_log_when_handler_cleared():
     core = Core(name="LOG_CLEARED")
     with closing(core):
-        dh = BaseHandler()
-        core.configure(handler=dh, level="DEBUG")
+        dh = BareHandler()
+        core.configure(processors=[dh], level="DEBUG")
         core.wait_for_processed()
-        core.configure(handler=None)
+        core.configure(processors=())
         core.wait_for_processed()
         core._put(Command.LOG, {"msg": "orphaned"})
         core.wait_for_processed()
@@ -440,10 +440,9 @@ def test_core():
     records = []
     message = "other core debug"
 
-    class DummyHandler(BaseHandler):
+    class DummyHandler:
         def __init__(self) -> None:
             self.records = []
-            super().__init__()
 
         def __call__(self, record) -> Record:
             self.records.append(record)
@@ -458,8 +457,7 @@ def test_core():
     core_test = Core(name="CORE_TEST")
     dummy_handler = DummyHandler()
     with closing(core_test):
-        # core_test.configure(processors=dummy_processor)
-        core_test.configure(handler=dummy_handler)
+        core_test.configure(processors=[dummy_handler])
         logger_test = Logger(core_test, name="test", extra={})
         logger_test.debug(message)
 
@@ -475,8 +473,8 @@ class HandlerWithoutClose:
 def test_core_handler_without_close():
     core = Core(name="NO_CLOSE_ATTR")
     with closing(core):
-        core.configure(handler=HandlerWithoutClose(), level="DEBUG")
-        core.configure(handler=BaseHandler(), level="DEBUG")
+        core.configure(processors=[HandlerWithoutClose()], level="DEBUG")
+        core.configure(processors=[BareHandler()], level="DEBUG")
 
 
 def test_logger_new_at_module_top_level():

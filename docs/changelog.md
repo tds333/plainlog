@@ -5,6 +5,44 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **Everything is a processor.** `configure(handler=...)` is replaced by
+  `configure(processors=[...])`. The Core runs an ordered processor list; pass
+  `[]`/`()` to clear it and `None` to leave it unchanged. The usual pipeline is
+  a formatter followed by a handler (e.g. `[JsonFormatter(), Stream()]`).
+- **Formatters are processors.** `SimpleFormatter`, `DefaultFormatter`,
+  `JsonFormatter` and `ConsoleRenderer` now set `record["message"]` and return
+  the record instead of returning a string.
+- **Merged `formatters.py` and `handlers.py` into `plainlog.processors`.** The
+  `plainlog.formatters` and `plainlog.handlers` modules are gone.
+- **Handler renames.** `StreamHandler` → `Stream`, `FileHandler` → `FileWriter`,
+  `AsyncHandler` → `AsyncBridge`, `FingersCrossedHandler` → `FingersCrossed`.
+- **`JsonHandler`, `ConsoleHandler` and `DefaultHandler` removed.** Build the
+  equivalent pipeline from a formatter plus `Stream`.
+- Tests consolidated into `tests/test_processors.py`.
+- Documentation reorganized; `docs/handlers.md` is now `docs/processors.md`.
+
+### Added
+
+- `SubProcessor` — runs a nested processor pipeline on a copy of the record.
+- `allow_by_name` processor.
+- `ProcessorProtocol`, `ProcessorCloseProtocol` and `UniversalProcessorProtocol`
+  in `plainlog._base`.
+- Fork support: the Core worker is restarted in forked child processes.
+
+### Removed
+
+- `BaseHandler`, `ProcessingHandler` and the preprocessor concept.
+- `preformat_message`.
+
+### Fixed
+
+- Thread-safety of concurrent logging and reconfiguration.
+- Async handler (`AsyncBridge`) reliability.
+
 ## [0.4.0] - 2026-08-28
 
 ### Changed
@@ -49,5 +87,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initial documentation site and runnable doc examples (`pytest-examples`).
 - More tests and benchmark coverage.
 
+[Unreleased]: https://github.com/tds333/plainlog/compare/0.4.0...HEAD
 [0.4.0]: https://github.com/tds333/plainlog/compare/0.3.0...0.4.0
 [0.3.0]: https://github.com/tds333/plainlog/compare/0.2.0...0.3.0

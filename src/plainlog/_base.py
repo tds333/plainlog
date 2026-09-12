@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0 OR MIT
 import pickle
 from types import TracebackType
-from typing import Any, Dict, NamedTuple, Optional, Protocol
+from typing import Any, Dict, NamedTuple, Optional, Protocol, Union
 
 # Msg = str
 Msg = Any
@@ -47,13 +47,13 @@ class RecordException(NamedTuple):
             return (RecordException, (self.type, self.value, None))
 
 
-class HandlerProtocol(Protocol):
-    """Protocol that every plainlog handler must implement.
-
-    Methods:
-        __call__: Run in the Core's background thread. Return ``{}`` to drop.
-        close: Cleanup resources.
-    """
-
-    def close(self) -> None: ...  # pragma: no cover
+class ProcessorProtocol(Protocol):
     def __call__(self, record: Record) -> Record: ...
+
+
+class ProcessorCloseProtocol(ProcessorProtocol, Protocol):
+    def close(self) -> None: ...
+    def __call__(self, record: Record) -> Record: ...
+
+
+UniversalProcessorProtocol = Union[ProcessorProtocol, ProcessorCloseProtocol]

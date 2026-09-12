@@ -113,7 +113,7 @@ class TestConsoleRenderer:
 
     def test_basic_output(self):
         r = ConsoleRenderer()
-        out = r(record())
+        out = r(record())["message"]
         assert "test message" in out
         assert "key1" in out
         assert "val1" in out
@@ -121,47 +121,47 @@ class TestConsoleRenderer:
 
     def test_no_timestamp(self):
         r = ConsoleRenderer()
-        out = r(record(created=None))
+        out = r(record(created=None))["message"]
         assert "test message" in out
 
     def test_no_level(self):
         r = ConsoleRenderer()
-        out = r(record(level=None))
+        out = r(record(level=None))["message"]
         assert "test message" in out
 
     def test_short_level(self):
         r = ConsoleRenderer()
-        out = r(record())
+        out = r(record())["message"]
         assert "[I]" in out
 
     def test_long_level_display(self):
         r = ConsoleRenderer(short_level=False)
-        out = r(record())
+        out = r(record())["message"]
         assert "INFO " in out
 
     def test_omits_log_name(self):
         r = ConsoleRenderer(log_name=False)
-        out = r(record())
+        out = r(record())["message"]
         assert "test_logger" not in out
 
     def test_no_extra(self):
         r = ConsoleRenderer()
-        out = r(record(extra={}, kwargs={}, context={}))
+        out = r(record(extra={}, kwargs={}, context={}))["message"]
         assert "test message" in out
 
     def test_no_event_padding_without_extra_or_name(self):
         r = ConsoleRenderer()
-        out = r(record(extra={}, kwargs={}, context={}, name=None))
+        out = r(record(extra={}, kwargs={}, context={}, name=None))["message"]
         assert out
 
     def test_sort_keys(self):
         r = ConsoleRenderer(sort_keys=False)
-        out = r(record())
+        out = r(record())["message"]
         assert "key1" in out
 
     def test_non_string_event(self):
         r = ConsoleRenderer()
-        out = r(record(msg={"a": 1}, message={"a": 1}))
+        out = r(record(msg={"a": 1}, message={"a": 1}))["message"]
         assert "{'a': 1}" in out
 
     def test_exc_info_tuple(self):
@@ -170,27 +170,27 @@ class TestConsoleRenderer:
             raise ValueError("test error")
         except ValueError:
             rec = record(exception=RecordException(*sys.exc_info()))
-            out = r(rec)
+            out = r(rec)["message"]
         assert "ValueError" in out
         assert "test error" in out
 
     def test_exc_info_non_tuple(self):
         r = ConsoleRenderer()
         rec = record(exception=RecordException(ValueError, ValueError("x"), None))
-        out = r(rec)
+        out = r(rec)["message"]
         assert out
         assert "ValueError" in out
 
     def test_exception_record(self):
         r = ConsoleRenderer()
         rec = record(exception=RecordException(RuntimeError, RuntimeError("boom"), None))
-        out = r(rec)
+        out = r(rec)["message"]
         assert "RuntimeError" in out
 
     def test_stack(self):
         r = ConsoleRenderer()
         rec = record(stack="Traceback ...")
-        out = r(rec)
+        out = r(rec)["message"]
         assert "Traceback" in out
 
     def test_stack_and_exception(self):
@@ -199,7 +199,7 @@ class TestConsoleRenderer:
             stack="Traceback ...",
             exception=RecordException(ValueError, ValueError("x"), None),
         )
-        out = r(rec)
+        out = r(rec)["message"]
         assert "Traceback" in out
         assert "ValueError" in out
 
@@ -209,13 +209,13 @@ class TestConsoleRenderer:
             raise Exception("default fmt")
         except Exception:
             rec = record(exception=RecordException(*sys.exc_info()))
-            out = r(rec)
+            out = r(rec)["message"]
         assert "default fmt" in out
 
     def test_logger_name_with_extra_pads_event(self):
         r = ConsoleRenderer(pad_event=10)
         rec = record(name="mod", extra={"k": "v"}, kwargs={}, context={})
-        out = r(rec)
+        out = r(rec)["message"]
         assert "test message" in out
         assert "mod" in out
         assert "k" in out
@@ -226,5 +226,5 @@ class TestConsoleRenderer:
             record(
                 created=None, level=None, extra={}, kwargs={}, context={}, name=None
             )
-        )
+        )["message"]
         assert "test message" in out

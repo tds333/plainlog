@@ -24,8 +24,8 @@ from plainlog import logger  # auto-configures "develop" at DEBUG
 
 ## Profiles
 
-A profile is a named preset that configures the logger's handler, level, and
-options in one call. Use `apply_log_profile()` to
+A profile is a named preset that configures the logger's processors, level,
+and options in one call. Use `apply_log_profile()` to
 activate one:
 
 ```python
@@ -40,33 +40,33 @@ logger.info("ready")
 
 #### Convenience Profiles
 
-| Profile | Handler | Output | Notes |
-|---------|---------|--------|-------|
-| ``default`` | [`DefaultHandler`](handlers.md#defaulthandler) | stdout | Compact default format |
-| ``develop`` | [`ConsoleHandler`](handlers.md#consolehandler) | stderr | Colorized, caller info (verbose), error printing |
-| ``simple`` | [`StreamHandler`](handlers.md#streamhandler) | stderr | Minimal format |
-| ``console_no_color`` | [`ConsoleHandler`](handlers.md#consolehandler) | stderr | No ANSI codes, error printing |
+| Profile | Processors | Output | Notes |
+|---------|------------|--------|-------|
+| ``default`` | [`DefaultFormatter`](processors.md#defaultformatter) + [`Stream`](processors.md#stream) | stdout | Compact default format |
+| ``develop`` | `ConsoleRenderer` + [`Stream`](processors.md#stream) | stderr | Colorized, caller info (verbose), error printing |
+| ``simple`` | [`SimpleFormatter`](processors.md#simpleformatter) + [`Stream`](processors.md#stream) | stderr | Minimal format |
+| ``console_no_color`` | `ConsoleRenderer` + [`Stream`](processors.md#stream) | stderr | No ANSI codes, error printing |
 
 #### Structured / JSON Output
 
-| Profile | Handler | Output | Notes |
-|---------|---------|--------|-------|
-| ``cloud`` | [`JsonHandler`](handlers.md#jsonhandler) | stderr | Compact JSON, no indent |
-| ``json`` | [`JsonHandler`](handlers.md#jsonhandler) | stderr | Pretty-printed JSON (indent=2) |
-| ``fast`` | [`StreamHandler`](handlers.md#streamhandler) | stderr | SimpleFormatter, no extras |
+| Profile | Processors | Output | Notes |
+|---------|------------|--------|-------|
+| ``cloud`` | [`JsonFormatter`](processors.md#jsonformatter) + [`Stream`](processors.md#stream) | stderr | Compact JSON, no indent |
+| ``json`` | [`JsonFormatter`](processors.md#jsonformatter) + [`Stream`](processors.md#stream) | stderr | Pretty-printed JSON (indent=2) |
+| ``fast`` | [`SimpleFormatter`](processors.md#simpleformatter) + [`Stream`](processors.md#stream) | stderr | SimpleFormatter, no extras |
 
 #### File Output
 
-| Profile | Handler | Output | Notes |
-|---------|---------|--------|-------|
-| ``file`` | [`FileHandler`](handlers.md#filehandler) | ``plainlog.log`` | With rotation watching |
-| ``fingerscrossed_file`` | [`FingersCrossedHandler`](handlers.md#fingerscrossedhandler) wrapping FileHandler | ``plainlog.log`` | Buffer until action level |
+| Profile | Processors | Output | Notes |
+|---------|------------|--------|-------|
+| ``file`` | [`FileWriter`](processors.md#filewriter) | ``plainlog.log`` | With rotation watching |
+| ``fingerscrossed_file`` | [`SimpleFormatter`](processors.md#simpleformatter) + [`FingersCrossed`](processors.md#fingerscrossed) wrapping [`FileWriter`](processors.md#filewriter) | ``plainlog.log`` | Buffer until action level |
 
 #### Buffered / Conditional
 
-| Profile | Handler | Notes |
-|---------|---------|-------|
-| ``fingerscrossed`` | [`FingersCrossedHandler`](handlers.md#fingerscrossedhandler) wrapping ConsoleHandler | stderr, colorized, buffer until ERROR |
+| Profile | Processors | Notes |
+|---------|------------|-------|
+| ``fingerscrossed`` | `ConsoleRenderer` + [`FingersCrossed`](processors.md#fingerscrossed) wrapping [`Stream`](processors.md#stream) | stderr, colorized, buffer until ERROR |
 
 Additional kwargs: ``action_level``, ``buffer_size``, ``reset``.
 
@@ -74,7 +74,7 @@ Additional kwargs: ``action_level``, ``buffer_size``, ``reset``.
 
 | Profile | Effect |
 |---------|--------|
-| ``empty`` | Removes all handlers (silent logging) |
+| ``empty`` | Removes all processors (silent logging) |
 | ``no_init`` | Does nothing — logger stays as-is |
 | ``std_handler_default`` | Installs `StdInterceptHandler` on stdlib root, then applies ``default`` |
 | ``std_handler_develop`` | Installs StdInterceptHandler on stdlib root, then applies ``develop`` |
@@ -88,11 +88,11 @@ Use `add_profile()` to register your own:
 ```python
 from plainlog import logger
 from plainlog.configure import add_profile, apply_log_profile
-from plainlog.handlers import ConsoleHandler
+from plainlog.processors import SimpleFormatter, Stream
 
 def my_profile(level=None, **kwargs):
     logger.configure(
-        handler=ConsoleHandler(colors=False),
+        processors=[SimpleFormatter(), Stream()],
         level=level,
     )
 
@@ -110,10 +110,10 @@ Instead of profiles, call `configure()` directly:
 
 ```python
 from plainlog import logger
-from plainlog.handlers import FileHandler
+from plainlog.processors import FileWriter
 
 logger.configure(
-    handler=FileHandler("app.log"),
+    processors=[FileWriter("app.log")],
     level="DEBUG",
     print_errors=True,
 )

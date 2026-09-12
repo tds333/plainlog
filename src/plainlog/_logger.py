@@ -19,13 +19,20 @@ from typing import (
     Any,
     Dict,
     Generator,
+    Iterable,
     Optional,
     Union,
 )
 
 from . import _env
-from ._base import HandlerProtocol, Msg, Record, RecordException
+from ._base import (
+    Msg,
+    Record,
+    RecordException,
+    UniversalProcessorProtocol,
+)
 from ._frames import add_caller_info, get_frame
+from ._utils import handle_close
 
 plainlog_context: ContextVar[dict] = ContextVar("plainlog_context")
 logger_process = current_process()
@@ -75,7 +82,7 @@ class Core:
     def __init__(self, name: Optional[str] = None) -> None:
         self._name: str = "CORE" if name is None else _validate_name(name)
         self._min_level_no: int = logging.NOTSET
-        self._handler: Optional[HandlerProtocol] = None
+        self._processors: tuple[UniversalProcessorProtocol, ...] = ()
         self._print_errors = False
         self._start_worker()
 
@@ -88,8 +95,8 @@ class Core:
         return self._name
 
     @property
-    def handler(self) -> Optional[HandlerProtocol]:
-        return self._handler
+    def processors(self) -> tuple[UniversalProcessorProtocol, ...]:
+        return self._processors
 
     @property
     def min_level_no(self) -> int:
@@ -113,7 +120,7 @@ class Core:
     def configure(
         self,
         *,
-        handler: Union[HandlerProtocol, None],
+        processors: Optional[Iterable[UniversalProcessorProtocol]],
         level: Optional[Union[str, int]] = None,
         print_errors=None,
     ) -> None:
@@ -123,7 +130,7 @@ class Core:
         if level is not None:
             level = _validate_level(level)
 
-        self._put(Command.CONFIGURE, (handler, level, print_errors))
+        self._put(Command.CONFIGURE, (processors, level, print_errors))
 
         self.wait_for_processed(_env.DEFAULT_WAIT_TIMEOUT)
 
@@ -137,7 +144,7 @@ class Core:
 
     def close(self) -> None:
         if self.is_alive():
-            self.configure(level=None, handler=None, print_errors=False)
+            self.configure(level=None, processors=(), print_errors=False)
             self.stop()
             self.join()
 
@@ -148,7 +155,7 @@ class Core:
 
     def _worker(self) -> None:
         queue_get = self._queue.get
-        self_handler = self._handler
+        processors = tuple(self._processors)
 
         while True:
             try:
@@ -158,37 +165,35 @@ class Core:
 
             match value:
                 case (Command.LOG, log_record):
-                    if self_handler is not None:
-                        record: Record = log_record
+                    record: Record = log_record
+                    for processor in processors:
                         try:
-                            self_handler(record)
+                            record = processor(record)
+                            if not record:
+                                continue
                         except Exception as ex:
                             if self._print_errors:
-                                self._print_error(log_record, self_handler, ex)
+                                self._print_error(log_record, processor, ex)
 
                 case (
                     Command.CONFIGURE,
-                    (handler, level, print_errors),
+                    (c_processors, level, print_errors),
                 ):
                     if level is not None:
                         self._min_level_no = level
                     if print_errors is not None:
                         self._print_errors = bool(print_errors)
-                    if self_handler is not None:
-                        if hasattr(self_handler, "close") and callable(
-                            self_handler.close
-                        ):
+                    if c_processors is not None:
+                        for processor in processors:
                             try:
-                                self_handler.close()
-                                self._handler = self_handler = None
+                                handle_close(processor)
                             except Exception as ex:
                                 if self._print_errors:
                                     print(
-                                        f"Error in handler.close() for handler {self_handler.__class__.__name__!r}. Error: {ex!r}",
+                                        f"Error in close() for processor {processor.__class__.__name__!r}. Error: {ex!r}",
                                         file=sys.stderr,
                                     )
-                    if handler is not None:
-                        self._handler = self_handler = handler
+                        self._processors = processors = tuple(c_processors)
 
                 case (Command.STOP, _):
                     break
@@ -394,7 +399,7 @@ class Logger:
     def _log(self, level: int, msg: Msg, kwargs: dict) -> bool:
         core = self._core
 
-        if core._handler is None or core.min_level_no > level:
+        if not core._processors or core.min_level_no > level:
             return False
 
         current_time = time()
@@ -471,23 +476,26 @@ class Logger:
     def configure(
         self,
         *,
-        handler: Optional[HandlerProtocol] = None,
+        processors: Optional[Iterable[UniversalProcessorProtocol]] = None,
         level: Optional[Union[str, int]] = None,
         print_errors: Optional[bool] = None,
         verbose: Optional[bool] = None,
     ) -> None:
-        """Configure the shared Core handler, level, and error printing.
+        """Configure the shared Core processors, level, and error printing.
 
         Shortcut for `Core.configure()`.
 
         Args:
-            handler: Handler to install, or ``None`` to remove.
+            processors: Processors to install, or ``None`` to leave
+                unchanged. Pass an empty iterable to remove all processors.
             level: Minimum log level.
-            print_errors: Print handler errors to stderr.
+            print_errors: Print processor errors to stderr.
         """
         if verbose is not None:
             self._verbose = bool(verbose)
-        self._core.configure(handler=handler, level=level, print_errors=print_errors)
+        self._core.configure(
+            processors=processors, level=level, print_errors=print_errors
+        )
 
     def __call__(self, level: str | int = LEVEL_DEBUG, msg: Msg = "", **kwargs) -> bool:
         """Callable interface: logger(level, msg, **kwargs).

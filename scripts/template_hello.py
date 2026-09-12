@@ -13,7 +13,7 @@ from time import time
 
 from plainlog import logger
 from plainlog._base import Record
-from plainlog.handlers import ConsoleHandler
+from plainlog.processors import Stream
 from plainlog.warnings import capture_warnings
 
 try:
@@ -43,7 +43,7 @@ def eval_template(record: Record) -> Record:
     return record
 
 
-class EvalTemplatHandler(ConsoleHandler):
+class EvalTemplatHandler(Stream):
     def __call__(self, record):
         record = eval_template(record)
         return super().__call__(record)
@@ -55,7 +55,7 @@ log = logger.new()
 
 
 def main():
-    logger.configure(handler=EvalTemplatHandler(), level="DEBUG")
+    logger.configure(processors=[EvalTemplatHandler()], level="DEBUG")
 
     name = "My name"
     log = logger.new()

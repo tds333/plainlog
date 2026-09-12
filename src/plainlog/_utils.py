@@ -43,3 +43,8 @@ def get_processed_extra(record: dict) -> dict:
     extra = eval_lambda_dict(extra)
 
     return extra
+
+
+def handle_close(processor):
+    if hasattr(processor, "close") and callable(processor.close):
+        processor.close()

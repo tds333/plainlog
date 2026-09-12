@@ -5,7 +5,6 @@ import pytest
 
 from plainlog import logger
 from plainlog._logger import logger_core
-from plainlog.handlers import BaseHandler
 
 
 class DummyHandlerOld:
@@ -29,7 +28,7 @@ class DummyHandlerOld:
         self._records.clear()
 
 
-class DummyHandler(BaseHandler):
+class DummyHandler:
     def __init__(self):
         self._records = []
 
@@ -54,11 +53,11 @@ class DummyHandler(BaseHandler):
 def thandler():
     dh = DummyHandler()
 
-    logger.configure(level="DEBUG", handler=dh)
+    logger.configure(level="DEBUG", processors=[dh])
 
     yield dh
 
-    logger.configure(level="DEBUG", handler=None)
+    logger.configure(level="DEBUG", processors=())
     dh.clear()
 
 

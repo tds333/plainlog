@@ -7,19 +7,23 @@ from ._logger import logger
 
 
 def _default(level=None, **kwargs) -> None:
-    from .handlers import DefaultHandler
+    from .processors import DefaultFormatter, Stream
 
     logger.configure(
         level=level,
-        handler=DefaultHandler(),
+        processors=[DefaultFormatter(), Stream(sys.stdout)],
     )
 
 
 def _develop(level=None, **kwargs) -> None:
-    from .handlers import ConsoleHandler
+    from .processors import ConsoleRenderer, Stream, format_message
 
     logger.configure(
-        handler=ConsoleHandler(sys.stderr, colors=True),
+        processors=[
+            format_message,
+            ConsoleRenderer(colors=True),
+            Stream(stream=sys.stderr),
+        ],
         level=level,
         print_errors=True,
         verbose=True,
@@ -27,122 +31,124 @@ def _develop(level=None, **kwargs) -> None:
 
 
 def _fingerscrossed(level=None, **kwargs) -> None:
-    from .handlers import ConsoleHandler, FingersCrossedHandler
+    from .processors import (
+        ConsoleRenderer,
+        FingersCrossed,
+        Stream,
+        format_message,
+    )
 
     action_level = kwargs.get("action_level")
     buffer_size = kwargs.get("buffer_size")
     reset = kwargs.get("reset")
 
-    handler = FingersCrossedHandler(
-        ConsoleHandler(sys.stderr, colors=True),
+    handler = FingersCrossed(
+        Stream(sys.stderr),
         action_level=action_level,
         reset=reset,
         buffer_size=buffer_size,
     )
 
     logger.configure(
-        handler=handler,
+        processors=[format_message, ConsoleRenderer(colors=True), handler],
         level=level,
         print_errors=True,
     )
 
 
 def _simple(level=None, **kwargs) -> None:
-    from .formatters import SimpleFormatter
-    from .handlers import StreamHandler
+    from .processors import SimpleFormatter, Stream
 
     stream = kwargs.get("stream", sys.stderr)
-    handler = StreamHandler(stream, SimpleFormatter())
+    processors = [SimpleFormatter(), Stream(stream)]
     logger.configure(
         level=level,
-        handler=handler,
+        processors=processors,
     )
 
 
 def _cloud(level=None, **kwargs) -> None:
-    from .handlers import JsonHandler
+    from .processors import JsonFormatter, Stream
 
     stream = kwargs.get("stream", sys.stderr)
-    handler = JsonHandler(stream=stream)
     logger.configure(
         level=level,
-        handler=handler,
+        processors=[JsonFormatter(), Stream(stream=stream)],
     )
 
 
 def _json(level=None, **kwargs) -> None:
-    from .handlers import JsonHandler
+    from .processors import JsonFormatter, Stream
 
     stream = kwargs.get("stream", sys.stderr)
-    handler = JsonHandler(stream=stream, indent=2)
 
     logger.configure(
         level=level,
-        handler=handler,
+        processors=[JsonFormatter(indent=2), Stream(stream=stream)],
     )
 
 
 def _file(level=None, **kwargs) -> None:
-    from .handlers import FileHandler
+    from .processors import FileWriter, SimpleFormatter
 
     filename = kwargs.get("filename", "plainlog.log")
     watch = True
-    handler = FileHandler(filename, watch=watch)
 
     logger.configure(
         level=level,
-        handler=handler,
+        processors=[SimpleFormatter(), FileWriter(filename, watch=watch)],
     )
 
 
 def _fingerscrossed_file(level=None, **kwargs) -> None:
-    from .handlers import FileHandler, FingersCrossedHandler
+    from .processors import FileWriter, FingersCrossed, SimpleFormatter
 
     filename = kwargs.get("filename", "plainlog.log")
     action_level = kwargs.get("action_level")
     buffer_size = kwargs.get("buffer_size")
     reset = kwargs.get("reset")
 
-    handler = FingersCrossedHandler(
-        FileHandler(filename, watch=True),
+    handler = FingersCrossed(
+        FileWriter(filename, watch=True),
         action_level=action_level,
         reset=reset,
         buffer_size=buffer_size,
     )
     logger.configure(
         level=level,
-        handler=handler,
+        processors=[SimpleFormatter(), handler],
     )
 
 
 def _console_no_color(level=None, **kwargs):
-    from .handlers import ConsoleHandler
+    from .processors import ConsoleRenderer, Stream, format_message
 
     stream = kwargs.get("stream", sys.stderr)
 
-    handler = ConsoleHandler(stream, colors=False)
     logger.configure(
         level=level,
-        handler=handler,
+        processors=[
+            format_message,
+            ConsoleRenderer(colors=False),
+            Stream(stream=stream),
+        ],
         print_errors=True,
     )
 
 
 def _fast(level=None, **kwargs):
-    from .formatters import SimpleFormatter
-    from .handlers import StreamHandler
+    from .processors import SimpleFormatter, Stream
 
     stream = kwargs.get("stream", sys.stderr)
-    handler = StreamHandler(stream, SimpleFormatter())
 
     logger.configure(
-        handler=handler,
+        processors=[SimpleFormatter(), Stream(stream)],
         level=level,
     )
 
 
 def _empty(level=None, **kwargs):
-    logger.configure(handler=None, level=level)
+    logger.configure(processors=(), level=level)
 
 
 def _no_init(level=None, **kwargs):

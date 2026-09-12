@@ -5,12 +5,12 @@ from plainlog import logger
 from plainlog._logger import logger_core
 
 # from plainlog._rich_handler import RichHandler
-from plainlog.handlers import (
-    AsyncHandler,
+from plainlog.processors import (
+    AsyncBridge,
 )
 
 
-class MyAsyncHandler(AsyncHandler):
+class MyAsyncBridge(AsyncBridge):
     async def write(self, message):
         print("async: ", message)
 
@@ -52,7 +52,7 @@ class LoggerClass:
 
 
 async def main():
-    logger.configure(handler=MyAsyncHandler())
+    logger.configure(processors=[MyAsyncBridge()])
     log = logger.new()
     log.debug("hello")
 

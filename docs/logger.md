@@ -69,16 +69,16 @@ apply_log_profile("develop", level="DEBUG")
 logger.info("now with colors and caller info")
 ```
 
-### Direct handler setup
+### Direct processor setup
 
 ```python
 from plainlog import logger
-from plainlog.handlers import StreamHandler
+from plainlog.processors import SimpleFormatter, Stream
 
-logger.configure(handler=StreamHandler())
+logger.configure(processors=[SimpleFormatter(), Stream()])
 ```
 
-See [Handlers](handlers.md) for all available handlers.
+See [Processors, Formatters & Handlers](processors.md) for everything available.
 
 ---
 

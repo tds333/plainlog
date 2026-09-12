@@ -17,6 +17,10 @@ throughout the library.
 
 ::: plainlog._base.RecordException
 
-### HandlerProtocol
+### ProcessorProtocol
 
-::: plainlog._base.HandlerProtocol
+::: plainlog._base.ProcessorProtocol
+
+### ProcessorCloseProtocol
+
+::: plainlog._base.ProcessorCloseProtocol

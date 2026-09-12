@@ -15,8 +15,11 @@ from plainlog import logger
 from plainlog._base import Record
 from plainlog._logger import logger_core
 from plainlog.configure import _profiles, apply_log_profile
-from plainlog.formatters import JsonFormatter, SimpleFormatter
-from plainlog.handlers import ProcessingHandler, StreamHandler
+from plainlog.processors import (
+    JsonFormatter,
+    SimpleFormatter,
+    Stream,
+)
 
 
 class NullHandler:
@@ -121,29 +124,27 @@ def setup_plainlog_empty() -> None:
 
 
 def setup_plainlog_null() -> None:
-    logger.configure(level="WARNING", handler=NullHandler())
+    logger.configure(level="WARNING", processors=[NullHandler()])
 
 
 def setup_plainlog_simple() -> None:
     logger.configure(
         level="DEBUG",
-        handler=StreamHandler(open(DEVNULL, "w"), SimpleFormatter("{message}")),
+        processors=[SimpleFormatter("{message}"), Stream(open(DEVNULL, "w"))],
     )
 
 
 def setup_plainlog_json() -> None:
     logger.configure(
         level="DEBUG",
-        handler=StreamHandler(open(DEVNULL, "w"), JsonFormatter()),
+        processors=[JsonFormatter(), Stream(open(DEVNULL, "w"))],
     )
 
 
 def setup_plainlog_caller() -> None:
     logger.configure(
         level="DEBUG",
-        handler=ProcessingHandler(
-            [StreamHandler(open(DEVNULL, "w"), SimpleFormatter("{message}"))],
-        ),
+        processors=[SimpleFormatter("{message}"), Stream(open(DEVNULL, "w"))],
         verbose=True,
     )
 
@@ -153,11 +154,15 @@ def plainlog_log() -> None:
 
 
 def setup_plainlog_develop() -> None:
-    from plainlog.handlers import ConsoleHandler
+    from plainlog.processors import ConsoleRenderer, Stream, format_message
 
     logger.configure(
         level="DEBUG",
-        handler=ConsoleHandler(open(DEVNULL, "w"), colors=False),
+        processors=[
+            format_message,
+            ConsoleRenderer(colors=False),
+            Stream(open(DEVNULL, "w")),
+        ],
         print_errors=True,
         verbose=True,
     )
@@ -226,9 +231,8 @@ DEVNULL_FD = open(DEVNULL, "w")
 def _make_profile_bench(name: str) -> dict:
     def setup():
         apply_log_profile(name, level="DEBUG")
-        # redirect handler output to devnull after profile applies its handler
-        h = logger_core._handler
-        if h is not None:
+        # redirect handler output to devnull after profile applies its processors
+        for h in logger_core.processors:
             _silence_handler(h)
 
     return {"name": f"profile {name}", "setup": setup, "func": plainlog_log}

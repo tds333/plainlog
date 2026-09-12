@@ -10,10 +10,9 @@ import warnings
 import pytest
 
 from plainlog._logger import Core, Logger, _reset_for_fork, logger_core
-from plainlog.handlers import BaseHandler
 
 
-class CountingHandler(BaseHandler):
+class CountingHandler:
     def __init__(self):
         self.count = 0
         self._lock = threading.Lock()
@@ -37,7 +36,7 @@ def test_concurrent_reconfigure_and_log():
     handler = CountingHandler()
     log = Logger(core=core, name="root", extra={})
 
-    log.configure(handler=handler, level="DEBUG")
+    log.configure(processors=[handler], level="DEBUG")
 
     stop = False
     threads = []
@@ -48,7 +47,7 @@ def test_concurrent_reconfigure_and_log():
 
     def configure_loop():
         while not stop:
-            log.configure(handler=handler, level="DEBUG")
+            log.configure(processors=[handler], level="DEBUG")
 
     for _ in range(4):
         threads.append(threading.Thread(target=log_loop))
@@ -69,12 +68,12 @@ def test_concurrent_reconfigure_and_log():
 
 def test_close_then_configure_no_hang():
     core = Core()
-    core.configure(handler=CountingHandler(), level="DEBUG")
+    core.configure(processors=[CountingHandler()], level="DEBUG")
     core.close()
     assert not core.is_alive()
 
     start = time.monotonic()
-    core.configure(handler=CountingHandler(), level="DEBUG")
+    core.configure(processors=[CountingHandler()], level="DEBUG")
     elapsed = time.monotonic() - start
 
     assert elapsed < 1.0
@@ -82,7 +81,7 @@ def test_close_then_configure_no_hang():
 
 def test_close_idempotent():
     core = Core()
-    core.configure(handler=CountingHandler(), level="DEBUG")
+    core.configure(processors=[CountingHandler()], level="DEBUG")
     core.close()
     core.close()
 
@@ -127,14 +126,13 @@ def test_reset_for_fork_restarts_worker():
 
 def _child_log(q):
     from plainlog import logger
-    from plainlog.handlers import BaseHandler
 
-    class QHandler(BaseHandler):
+    class QHandler:
         def __call__(self, record):
             q.put(record["msg"])
             return record
 
-    logger.configure(handler=QHandler(), level="DEBUG")
+    logger.configure(processors=[QHandler()], level="DEBUG")
     logger.info("child-message")
     logger_core.wait_for_processed()
 

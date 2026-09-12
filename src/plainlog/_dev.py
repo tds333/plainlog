@@ -12,8 +12,8 @@ from datetime import datetime, timezone
 from io import StringIO
 from typing import Any, Iterable, Protocol, TextIO, Type, Union
 
+from ._base import Record
 from ._utils import get_processed_extra
-from .formatters import format_message
 
 __all__ = [
     "ConsoleRenderer",
@@ -165,7 +165,7 @@ class ConsoleRenderer:
         else:
             return repr(val)
 
-    def __call__(self, record) -> str:
+    def __call__(self, record: Record) -> Record:
         sio = StringIO()
 
         created = record.get("created")
@@ -193,8 +193,9 @@ class ConsoleRenderer:
                     + _pad(level, self._longest_level + 1)
                     + self._styles.reset
                 )
-
-        event = format_message(record)
+        msg = record.get("msg", "")
+        event = record.get("message", msg)
+        # event = format_message(record)
         if not isinstance(event, str):
             event = str(event)
 
@@ -249,7 +250,9 @@ class ConsoleRenderer:
             self._exception_formatter(sio, (exc.type, exc.value, exc.traceback))
         # sio.write("\n")
 
-        return sio.getvalue()
+        record["message"] = sio.getvalue()
+
+        return record
 
     @staticmethod
     def get_default_level_styles(colors: bool = True) -> dict:
