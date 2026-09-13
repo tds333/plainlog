@@ -413,7 +413,7 @@ class Logger:
         }
 
         if self._verbose:
-            add_caller_info(log_record, 4)
+            add_caller_info(log_record, 3)
 
         core.log(log_record)
 

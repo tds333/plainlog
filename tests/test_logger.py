@@ -515,3 +515,62 @@ def test_logger_new_at_module_top_level():
     from tests._helper_new_at_module_level import LOGGER_NAME
 
     assert LOGGER_NAME == "tests._helper_new_at_module_level"
+
+
+class _CapturingHandler:
+    def __init__(self):
+        self.records = []
+
+    def __call__(self, record):
+        self.records.append(record)
+        return record
+
+
+def _verbose_log_site(log):
+    log.info("verbose message")
+    return _verbose_log_site.__code__.co_firstlineno
+
+
+def test_verbose_adds_caller_info():
+    handler = _CapturingHandler()
+    core = Core(name="VERBOSE")
+    with closing(core):
+        core.configure(processors=[handler], level="DEBUG")
+        log = Logger(core, name="test", extra={}, verbose=True)
+        base_line = _verbose_log_site(log)
+        core.wait_for_processed()
+        record = handler.records[0]
+        assert record["function"] == "_verbose_log_site"
+        assert record["line"] == base_line + 1
+        assert record["module"] == "test_logger"
+        assert record["file_name"] == "test_logger.py"
+        assert record["file_path"].endswith("test_logger.py")
+        assert "thread_name" in record
+
+
+def test_verbose_false_omits_caller_info():
+    handler = _CapturingHandler()
+    core = Core(name="NON_VERBOSE")
+    with closing(core):
+        core.configure(processors=[handler], level="DEBUG")
+        log = Logger(core, name="test", extra={}, verbose=False)
+        log.info("plain message")
+        core.wait_for_processed()
+        record = handler.records[0]
+        assert "function" not in record
+        assert "line" not in record
+
+
+def test_configure_toggles_verbose():
+    handler = _CapturingHandler()
+    core = Core(name="TOGGLE_VERBOSE")
+    with closing(core):
+        core.configure(processors=[handler], level="DEBUG")
+        log = Logger(core, name="test", extra={})
+        log.info("before")
+        log.configure(verbose=True)
+        log.info("after")
+        core.wait_for_processed()
+        assert "function" not in handler.records[0]
+        assert handler.records[1]["function"] == "test_configure_toggles_verbose"
+
