@@ -363,4 +363,3 @@ inherited_members = true
 show_source = false
 
 [project.plugins.autorefs]
-enable = true
