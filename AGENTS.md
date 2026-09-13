@@ -10,8 +10,8 @@ Public API: `from plainlog import logger`. Entrypoint: `src/plainlog/__init__.py
 | Command | What |
 |---------|------|
 | `make test` | Run tests (current Python) |
-| `make cov` | Tests + coverage report |
-| `make tests` | Run across all supported Python versions (3.10–3.15, incl. free-threaded) |
+| `make test-cov` | Tests + coverage report |
+| `make test-all` | Run across all supported Python versions (3.10–3.15, incl. free-threaded) |
 | `make lint` | `uvx ruff check src/` |
 | `make format` | `uvx ruff format src/` |
 | `make type-check` | `uvx ty check src/` |
@@ -34,7 +34,7 @@ There is no required command ordering — lint/type-check/test are independent.
 - No external test dependencies beyond pytest plugins.
 - Code blocks in `README.md` and `docs/*.md` are tested via `pytest-examples`
   (`tests/test_examples.py`). Keep them runnable standalone (full imports).
-- Coverage: `make cov` — 97% average.
+- Coverage: `make test-cov` — 100%.
 - Processor/formatter/handler tests are consolidated in `tests/test_processors.py`.
 - avoid test classes use functions instead, classes only if to test methods of a class
 

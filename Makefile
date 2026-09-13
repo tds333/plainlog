@@ -8,8 +8,8 @@ export UV_MANAGED_PYTHON ?= 1
 build: ## Build
 	uv build
 
-.PHONY: cov
-cov: ## Run tests with coverage
+.PHONY: test-cov
+test-cov: ## Run tests with coverage
 	uv run pytest --cov-report=term-missing --cov-config=pyproject.toml --cov=src
 
 ##@ Quality
@@ -17,12 +17,12 @@ cov: ## Run tests with coverage
 test: ## Run tests in current Python
 	uv run pytest
 
-.PHONY: devel-test
-devel-test: ## Run verbose tests in current Python
+.PHONY: test-devel
+test-devel: ## Run verbose tests in current Python
 	uv run pytest -v --lf
 
-.PHONY: tests
-tests: ## Run tests in all supporte Python versions
+.PHONY: test-all
+test-all: ## Run tests in all supporte Python versions
 	for py_v in $(PY_VERSIONS); do \
 		uv run --isolated -p $$py_v pytest; \
 	done
