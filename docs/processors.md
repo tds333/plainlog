@@ -13,7 +13,7 @@ Every processor is a callable with the signature `__call__(record: Record) -> Re
 may optionally provide a `close()` method for cleanup:
 
 - **`__call__(record: Record) -> Record`** — runs in the Core's background thread after
-  dequeueing. This is where I/O happens. Return a empty dict `{}`
+  dequeueing. This is where I/O happens. Return an empty dict `{}`
   to stop processing for that record.
 - **`close()`** — cleanup resources (close files, wait for futures, etc.). Optional.
 

@@ -21,15 +21,15 @@ You need `make` and `uv` as package and environment manager, for more informatio
 
 ## Idea
 
-Main goal is to be a plain easy to use logging library.
+The main goal is to be a plain, easy-to-use logging library.
 Simple, small, and fast.
 
 If you are too lazy for long configuration settings simply use the provided log profiles.
 Advanced configuration can be done with environment variables or in the code.
 
-No dependencies to other libraries, pure Python.
+No dependencies on other libraries, pure Python.
 
-You have a logger and simply use this. Records are handled by processors in extra Thread.
+You have a logger and simply use this. Records are handled by processors in an extra thread.
 A processor can be a simple callable, receiving a log record and returning one.
 They are executed in order.
 
@@ -37,12 +37,12 @@ They are executed in order.
 
 Plainlog wants to be simple and fast. It should work the same way in async and sync code.
 Because of this there is a clean separation between a logger and the core. This separation is done with a thread safe queue.
-This guaranties nothing is blocking your code, so you simply can use the logger in an async context.
+This guarantees nothing is blocking your code, so you can simply use the logger in an async context.
 
 You don't have to care about performance, the hot path of the logger is minimal and fast.
 It creates a dict and puts it into a queue. The core handles the rest in an extra thread, not blocking anything.
 
-The concept of processors is special. A processor runs in the context of the core (logger core Thread).
+The concept of processors is special. A processor runs in the context of the core (logger core thread).
 So you can enrich log record information in the context of processing, without blocking the caller.
 
 For easy usage and configuration a list of profiles is available.
@@ -51,9 +51,9 @@ They add documented processors and handlers and everything is ready to be used.
 
 ### What is from other libraries?
 
-From structlog the idea of processors are taken. But simplified. In plainlog it is a simple list of processors
+From structlog the idea of processors is taken. But simplified. In plainlog it is a simple list of processors
 and they are executed in order. No wrapping and complicated parameter handling.
-Also the formating for development log output is inspired from structlog. The logger has the feature to `bind` and `unbind` extra variables.
+Also the formatting for development log output is inspired from structlog. The logger has the feature to `bind` and `unbind` extra variables.
 
 From loguru the concept of a logger and core is taken. But with cleaner separation.
 The separation in plainlog is also seen with configuration, it is done on the core and not mixed up with the logger.
@@ -62,7 +62,7 @@ The logger has the feature to add context variables (merged into the record's `e
 
 From logbook the idea of the fingerscrossed handler was taken.
 
-From twisted logging, the idea a record is simply a dictionary. Nothing more, nothing special.
+From Twisted logging, the idea a record is simply a dictionary. Nothing more, nothing special.
 
 From the Python standard library the log levels (numbers and names) are taken. Even if you add your own there, plainlog
 takes them and adds them internally. But plainlog does not invent own log levels or add some more. (as loguru does)
@@ -71,7 +71,7 @@ The concept of handlers and formatters is also there. But everything simplified.
 A handler can have a formatter but this is up to the user.
 
 In contrast to all other libraries, the interface is plain and simple. Not too much methods to remember. Simple and easy configuration.
-But powerful enough to handle everyones logging needs.
+But powerful enough to handle everyone's logging needs.
 
 ### In short
 
@@ -88,18 +88,18 @@ But powerful enough to handle everyones logging needs.
 
 ### Why I created it?
 
-After I have seen and used a lot of different log libraries I cam to loguru. Powerful and easy to use, but with some hard corners.
+After I have seen and used a lot of different log libraries I came to loguru. Powerful and easy to use, but with some hard corners.
 I use a lot of async frameworks and code. But most of them don't really care to handle logging in a right way. Standard logging assumes
-you hopefully add not a blocking handler. But even stdout or stderr is blocking. So there is the way to write a logging library that have
-async methods. But than you have to provide async and sync stuff with different names. Dual interfaces are not nice.
-Finally for logging it is enough if you guaranty that a sync call is not blocking. 
+you hopefully add not a blocking handler. But even stdout or stderr is blocking. So there is the way to write a logging library that has
+async methods. But then you have to provide async and sync stuff with different names. Dual interfaces are not nice.
+Finally for logging it is enough if you guarantee that a sync call is not blocking. 
 Hence execute blocking stuff in an extra thread.
 
 There was no library out there with this feature. So I decided to write my own, learning from others, stealing good features from them.
 Implement everything as simple as possible.
 
 It is fast from the beginning by simply doing only the minimal stuff in the hot path of your code where you execute `logger.debug(...)` or another
-logger method. It is much faster than standard library logger and also faster in the sense of not blocking your code than all other Python logging
+logger method. It is much faster than the standard library logger and also faster in the sense of not blocking your code than all other Python logging
 libraries.
 
 ## Status

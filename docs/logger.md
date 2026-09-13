@@ -24,7 +24,7 @@ import — by default it uses the ``"default"`` profile (writes to stdout).
 ```python
 from plainlog import logger
 
-log = logger.new() # create a new logger automatically named with moduel name
+log = logger.new() # create a new logger automatically named with the module name
 
 log.debug("debug message")
 log.info("info message")
