@@ -1,20 +1,23 @@
 # Processors, Formatters & Handlers
 
-Processors, formatters and handlers all live in `plainlog.processors`:
+Processors live in `plainlog.processors`:
 
 - **Processors** transform a log record in the Core's background thread.
 - **Formatters** are processors that set the formatted ``message`` on a record.
 - **Handlers** are processors that perform output.
 
-Every processor is a callable with the signature `__call__(record)` and
+But overall they are simply processors with the same interface.
+Naming is just there to clarify what they do.
+
+Every processor is a callable with the signature `__call__(record: Record) -> Record` and
 may optionally provide a `close()` method for cleanup:
 
-- **`__call__(record)`** — runs in the Core's background thread after
-  dequeueing. This is where I/O happens. Return a falsy value (e.g. `{}`)
+- **`__call__(record: Record) -> Record`** — runs in the Core's background thread after
+  dequeueing. This is where I/O happens. Return a empty dict `{}`
   to stop processing for that record.
-- **`close()`** — cleanup resources (close files, wait for futures, etc.).
+- **`close()`** — cleanup resources (close files, wait for futures, etc.). Optional.
 
-Processors are configured as a list and run in order. A typical setup is a
+Processors are configured as a Sequence and run in order. A typical setup is a
 formatter followed by a handler:
 
 ```python
@@ -32,7 +35,7 @@ logger.configure(processors=[SimpleFormatter(), Stream()])
 |-----------|-------------|
 | [`SimpleFormatter`](#simpleformatter) | Minimal single-line format |
 | [`DefaultFormatter`](#defaultformatter) | Compact format with time and extras |
-| [`JsonFormatter`](#jsonformatter) | Serializes a record as JSON |
+| [`JsonFormatter`](#jsonformatter) | Serializes a record as JSON string |
 
 ### Output Handlers
 
@@ -49,6 +52,26 @@ logger.configure(processors=[SimpleFormatter(), Stream()])
 | [`SubProcessor`](#subprocessor) | Runs a nested processor pipeline on a record copy |
 | [`FingersCrossed`](#fingerscrossed) | Buffers until a threshold level triggers a flush |
 | [`WrapStandardHandler`](#wrapstandardhandler) | Bridges plainlog records to stdlib handlers |
+
+### Filters & Utilities
+
+| Processor | Description |
+|-----------|-------------|
+| `format_message` | Fills ``record["message"]`` from ``msg`` and ``extra`` |
+| `print_processor_error` | Prints a record's processor error to stderr |
+| `eval_extra` | Evaluates callables stored in ``record["extra"]`` |
+| `eval_lambda_extra` | Evaluates only lambda values in ``record["extra"]`` |
+| `remove_extra_items(*args)` | Returns a processor that removes the given extra keys |
+| `filter_None` | Drops records whose ``name`` is ``None`` |
+| `filter_all` | Drops every record |
+| `filter_by_name("parent")` | Drops records whose name starts with ``parent`` |
+| `allow_by_name("parent")` | Keeps only records whose name starts with ``parent`` |
+| `filter_by_level(level_per_module)` | Per-module minimum levels; ``False`` blocks a module |
+| `FilterList(blacklist, whitelist=None)` | Name-based deny/allow list processor |
+| `WhitelistLevel(whitelist)` | Per-module level allow list |
+| `ConsoleRenderer` | Developer-friendly colored line renderer |
+
+All of these are available from ``plainlog.processors``.
 
 ## Usage
 

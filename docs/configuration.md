@@ -43,9 +43,9 @@ logger.info("ready")
 | Profile | Processors | Output | Notes |
 |---------|------------|--------|-------|
 | ``default`` | [`DefaultFormatter`](processors.md#defaultformatter) + [`Stream`](processors.md#stream) | stdout | Compact default format |
-| ``develop`` | `ConsoleRenderer` + [`Stream`](processors.md#stream) | stderr | Colorized, caller info (verbose), error printing |
+| ``develop`` | `format_message` + `ConsoleRenderer` + [`Stream`](processors.md#stream) + `print_processor_error` | stderr | Colorized, caller info (verbose), error printing |
 | ``simple`` | [`SimpleFormatter`](processors.md#simpleformatter) + [`Stream`](processors.md#stream) | stderr | Minimal format |
-| ``console_no_color`` | `ConsoleRenderer` + [`Stream`](processors.md#stream) | stderr | No ANSI codes, error printing |
+| ``console_no_color`` | `format_message` + `ConsoleRenderer` + [`Stream`](processors.md#stream) + `print_processor_error` | stderr | No ANSI codes, error printing |
 
 #### Structured / JSON Output
 
@@ -59,14 +59,14 @@ logger.info("ready")
 
 | Profile | Processors | Output | Notes |
 |---------|------------|--------|-------|
-| ``file`` | [`FileWriter`](processors.md#filewriter) | ``plainlog.log`` | With rotation watching |
+| ``file`` | [`SimpleFormatter`](processors.md#simpleformatter) + [`FileWriter`](processors.md#filewriter) | ``plainlog.log`` | With rotation watching |
 | ``fingerscrossed_file`` | [`SimpleFormatter`](processors.md#simpleformatter) + [`FingersCrossed`](processors.md#fingerscrossed) wrapping [`FileWriter`](processors.md#filewriter) | ``plainlog.log`` | Buffer until action level |
 
 #### Buffered / Conditional
 
 | Profile | Processors | Notes |
 |---------|------------|-------|
-| ``fingerscrossed`` | `ConsoleRenderer` + [`FingersCrossed`](processors.md#fingerscrossed) wrapping [`Stream`](processors.md#stream) | stderr, colorized, buffer until ERROR |
+| ``fingerscrossed`` | `format_message` + `ConsoleRenderer` + [`FingersCrossed`](processors.md#fingerscrossed) wrapping [`Stream`](processors.md#stream) + `print_processor_error` | stderr, colorized, buffer until ERROR |
 
 Additional kwargs: ``action_level``, ``buffer_size``, ``reset``.
 

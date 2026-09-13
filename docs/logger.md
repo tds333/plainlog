@@ -24,11 +24,13 @@ import — by default it uses the ``"default"`` profile (writes to stdout).
 ```python
 from plainlog import logger
 
-logger.debug("debug message")
-logger.info("info message")
-logger.warning("warning message")
-logger.error("error message")
-logger.critical("critical message")
+log = logger.new() # create a new logger automatically named with moduel name
+
+log.debug("debug message")
+log.info("info message")
+log.warning("warning message")
+log.error("error message")
+log.critical("critical message")
 ```
 
 Each level method accepts a message and optional keyword arguments that are
@@ -131,7 +133,7 @@ is auto-detected from the caller's module and function.
 ```python
 from plainlog import logger
 
-child = logger.new()
+log = logger.new()
 ```
 
 To explicitly derive the logger name from the current module, pass

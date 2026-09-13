@@ -27,7 +27,11 @@ Simple, small, and fast.
 If you are too lazy for long configuration settings simply use the provided log profiles.
 Advanced configuration can be done with environment variables or in the code.
 
-No dependencies to other libraries. Pure Python working in different Python implementations.
+No dependencies to other libraries, pure Python.
+
+You have a logger and simply use this. Records are handled by processors in extra Thread.
+A processor can be a simple callable, receiving a log record and returning one.
+They are executed in order.
 
 ### What is the difference to other logging libraries?
 

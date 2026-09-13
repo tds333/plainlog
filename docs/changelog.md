@@ -10,9 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Everything is a processor.** `configure(handler=...)` is replaced by
-  `configure(processors=[...])`. The Core runs an ordered processor list; pass
-  `[]`/`()` to clear it and `None` to leave it unchanged. The usual pipeline is
-  a formatter followed by a handler (e.g. `[JsonFormatter(), Stream()]`).
+  `configure(processors=[...])`. The Core runs an ordered processor list.
+  The usual pipeline is filter, format, handle.
 - **Formatters are processors.** `SimpleFormatter`, `DefaultFormatter`,
   `JsonFormatter` and `ConsoleRenderer` now set `record["message"]` and return
   the record instead of returning a string.
@@ -22,16 +21,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `AsyncHandler` → `AsyncBridge`, `FingersCrossedHandler` → `FingersCrossed`.
 - **`JsonHandler`, `ConsoleHandler` and `DefaultHandler` removed.** Build the
   equivalent pipeline from a formatter plus `Stream`.
+- **`configure(print_errors=...)` removed.** Processor errors are now emitted by
+  the new `print_processor_error` processor instead of a Core flag.
 - Tests consolidated into `tests/test_processors.py`.
 - Documentation reorganized; `docs/handlers.md` is now `docs/processors.md`.
 
 ### Added
 
 - `SubProcessor` — runs a nested processor pipeline on a copy of the record.
-- `allow_by_name` processor.
+- `print_processor_error` — prints a record's processor error to stderr.
 - `ProcessorProtocol`, `ProcessorCloseProtocol` and `UniversalProcessorProtocol`
   in `plainlog._base`.
 - Fork support: the Core worker is restarted in forked child processes.
+- `verbose=True` to Logger, adding caller info (`function`, `line`, ...) to the record.
 
 ### Removed
 
@@ -87,6 +89,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initial documentation site and runnable doc examples (`pytest-examples`).
 - More tests and benchmark coverage.
 
-[Unreleased]: https://github.com/tds333/plainlog/compare/0.4.0...HEAD
+[Unreleased]: https://github.com/tds333/plainlog/compare/0.5.0...HEAD
+[0.5.0]: https://github.com/tds333/plainlog/compare/0.4.0...0.5.0
 [0.4.0]: https://github.com/tds333/plainlog/compare/0.3.0...0.4.0
 [0.3.0]: https://github.com/tds333/plainlog/compare/0.2.0...0.3.0
