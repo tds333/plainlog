@@ -276,19 +276,21 @@ class ErrorOnProcess:
         raise RuntimeError("process failed")
 
 
+def write_processor_error(record):
+    sys.stderr.write(record.get("processor_error_message"))
+    sys.stderr.write(record.get("processor_error_name_repr"))
+    return record
+
+
 def test_core_process_error_prints_to_stderr(thandler, capsys):
-    logger.configure(processors=[ErrorOnProcess()], level="DEBUG", print_errors=True)
+    logger.configure(
+        processors=[ErrorOnProcess(), write_processor_error], level="DEBUG"
+    )
     logger.info("trigger process error")
     logger_core.wait_for_processed()
     output = capsys.readouterr().err
-    assert "Logging error" in output
+    assert "ErrorOnProcess" in output
     assert "process failed" in output
-
-
-def test_core_process_error_silent_without_print_errors(thandler):
-    logger.configure(processors=[ErrorOnProcess()], level="DEBUG", print_errors=False)
-    logger.info("trigger process error")
-    logger_core.wait_for_processed()
 
 
 class ErrorOnCloseHandler:
@@ -297,19 +299,6 @@ class ErrorOnCloseHandler:
 
     def __call__(self, record):
         return record
-
-
-def test_core_close_error_prints_to_stderr(thandler, capsys):
-    logger.configure(
-        processors=[ErrorOnCloseHandler()], level="DEBUG", print_errors=True
-    )
-    logger_core.wait_for_processed()
-    logger.configure(processors=(), level=None)
-    output = capsys.readouterr().err
-    assert "Error in close() for processor" in output
-    assert "close failed" in output
-    # Reset back to thandler for fixture teardown
-    logger.configure(processors=[thandler], level="DEBUG", print_errors=False)
 
 
 def test_print_error_to_stderr(capsys):
@@ -329,6 +318,24 @@ def test_print_error_suppressed_when_stderr_closed():
         closed.close()
         old = sys.stderr
         sys.stderr = closed
+        try:
+            core._print_error({"msg": "test"}, "h", ValueError("bang"))
+        finally:
+            sys.stderr = old
+
+
+class FailingStderr:
+    closed = False
+
+    def write(self, message):
+        raise OSError("cannot write")
+
+
+def test_print_error_suppressed_on_oserror():
+    core = Core(name="PRINT_OSERROR")
+    with closing(core):
+        old = sys.stderr
+        sys.stderr = FailingStderr()
         try:
             core._print_error({"msg": "test"}, "h", ValueError("bang"))
         finally:
@@ -388,18 +395,6 @@ def test_core_print_error_unprintable_record(capsys):
         assert "Unprintable record" in output
 
 
-def test_core_print_error_oserror(capsys):
-    core = Core(name="OSERROR")
-    with closing(core):
-        capsys.readouterr()
-        real_write = sys.stderr.write
-        sys.stderr.write = lambda *a: (_ for _ in ()).throw(OSError("bang"))
-        try:
-            core._print_error({"msg": "test"}, "h", ValueError("boom"))
-        finally:
-            sys.stderr.write = real_write
-
-
 def test_logger_new_auto_name():
     log = logger.new()
     assert log.name.startswith("tests.test_logger")
@@ -418,6 +413,25 @@ def test_core_handler_no_close():
         core.configure(processors=[BareHandler()], level="DEBUG")
 
 
+def test_core_configure_none_keeps_processors():
+    core = Core(name="KEEP_PROCESSORS")
+    with closing(core):
+        handler = BareHandler()
+        core.configure(processors=[handler], level="DEBUG")
+        core.configure(processors=None, level="WARNING")
+        core.wait_for_processed()
+        assert core.processors == (handler,)
+        assert core.min_level_no == LEVEL_WARNING
+
+
+def test_core_reconfigure_suppresses_close_error():
+    core = Core(name="CLOSE_ERROR")
+    with closing(core):
+        core.configure(processors=[ErrorOnCloseHandler()], level="DEBUG")
+        core.configure(processors=(), level="DEBUG")
+        assert core.processors == ()
+
+
 def test_core_worker_log_when_handler_cleared():
     core = Core(name="LOG_CLEARED")
     with closing(core):
@@ -428,6 +442,26 @@ def test_core_worker_log_when_handler_cleared():
         core.wait_for_processed()
         core._put(Command.LOG, {"msg": "orphaned"})
         core.wait_for_processed()
+
+
+def test_core_worker_stops_when_record_filtered():
+    calls = []
+
+    def drop(record):
+        calls.append("drop")
+        return {}
+
+    def after(record):
+        calls.append("after")
+        return record
+
+    core = Core(name="FILTER_STOP")
+    with closing(core):
+        core.configure(processors=[drop, after], level="DEBUG")
+        log = Logger(core, name="test", extra={})
+        log.info("filtered out")
+        core.wait_for_processed()
+        assert calls == ["drop"]
 
 
 def test_core_worker_event(capsys):

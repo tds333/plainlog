@@ -83,7 +83,6 @@ class Core:
         self._name: str = "CORE" if name is None else _validate_name(name)
         self._min_level_no: int = logging.NOTSET
         self._processors: tuple[UniversalProcessorProtocol, ...] = ()
-        self._print_errors = False
         self._start_worker()
 
     def __repr__(self) -> str:
@@ -122,7 +121,6 @@ class Core:
         *,
         processors: Optional[Iterable[UniversalProcessorProtocol]],
         level: Optional[Union[str, int]] = None,
-        print_errors=None,
     ) -> None:
         if not self.is_alive():
             return
@@ -130,7 +128,7 @@ class Core:
         if level is not None:
             level = _validate_level(level)
 
-        self._put(Command.CONFIGURE, (processors, level, print_errors))
+        self._put(Command.CONFIGURE, (processors, level))
 
         self.wait_for_processed(_env.DEFAULT_WAIT_TIMEOUT)
 
@@ -144,7 +142,7 @@ class Core:
 
     def close(self) -> None:
         if self.is_alive():
-            self.configure(level=None, processors=(), print_errors=False)
+            self.configure(level=None, processors=())
             self.stop()
             self.join()
 
@@ -169,30 +167,21 @@ class Core:
                     for processor in processors:
                         try:
                             record = processor(record)
-                            if not record:
-                                continue
                         except Exception as ex:
-                            if self._print_errors:
-                                self._print_error(log_record, processor, ex)
+                            record["processor_error_message"] = str(ex)
+                            record["processor_error_name_repr"] = repr(processor)
+                        if not record:
+                            break
 
-                case (
-                    Command.CONFIGURE,
-                    (c_processors, level, print_errors),
-                ):
+                case (Command.CONFIGURE, (c_processors, level)):
                     if level is not None:
                         self._min_level_no = level
-                    if print_errors is not None:
-                        self._print_errors = bool(print_errors)
                     if c_processors is not None:
                         for processor in processors:
                             try:
                                 handle_close(processor)
-                            except Exception as ex:
-                                if self._print_errors:
-                                    print(
-                                        f"Error in close() for processor {processor.__class__.__name__!r}. Error: {ex!r}",
-                                        file=sys.stderr,
-                                    )
+                            except Exception:
+                                pass
                         self._processors = processors = tuple(c_processors)
 
                 case (Command.STOP, _):
@@ -478,7 +467,6 @@ class Logger:
         *,
         processors: Optional[Iterable[UniversalProcessorProtocol]] = None,
         level: Optional[Union[str, int]] = None,
-        print_errors: Optional[bool] = None,
         verbose: Optional[bool] = None,
     ) -> None:
         """Configure the shared Core processors, level, and error printing.
@@ -489,13 +477,10 @@ class Logger:
             processors: Processors to install, or ``None`` to leave
                 unchanged. Pass an empty iterable to remove all processors.
             level: Minimum log level.
-            print_errors: Print processor errors to stderr.
         """
         if verbose is not None:
             self._verbose = bool(verbose)
-        self._core.configure(
-            processors=processors, level=level, print_errors=print_errors
-        )
+        self._core.configure(processors=processors, level=level)
 
     def __call__(self, level: str | int = LEVEL_DEBUG, msg: Msg = "", **kwargs) -> bool:
         """Callable interface: logger(level, msg, **kwargs).

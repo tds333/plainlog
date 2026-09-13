@@ -14,16 +14,16 @@ from plainlog._logger import LEVEL_DEBUG, LEVEL_ERROR, LEVEL_INFO
 from plainlog.processors import (
     AsyncBridge,
     DefaultFormatter,
-    Duration,
     FileWriter,
     FilterList,
     FingersCrossed,
     JsonFormatter,
     SimpleFormatter,
     Stream,
+    SubProcessor,
     WhitelistLevel,
     WrapStandardHandler,
-    elapsed,
+    allow_by_name,
     eval_extra,
     eval_lambda_extra,
     filter_all,
@@ -31,6 +31,7 @@ from plainlog.processors import (
     filter_by_name,
     filter_None,
     format_message,
+    print_processor_error,
     remove_extra_items,
 )
 
@@ -86,13 +87,13 @@ class TestEvalExtra:
         result = eval_extra(r)
         assert result["extra"]["a"] == "resolved"
 
-    def test_skips_function_extra(self):
+    def test_evaluates_function_extra(self):
         def myfunc():
             return "x"
 
         r = record(extra={"a": myfunc})
         result = eval_extra(r)
-        assert result["extra"]["a"] is myfunc
+        assert result["extra"]["a"] == "x"
 
     def test_empty_extra(self):
         r = record()
@@ -147,6 +148,21 @@ class TestFilterNone:
         assert filter_None(r) is r
 
 
+def test_print_processor_error_prints_and_returns_record(capsys):
+    r = {"processor_error_message": "boom", "processor_error_name_repr": "<proc>"}
+    result = print_processor_error(r)
+    output = capsys.readouterr().err
+    assert result is r
+    assert "Got processor <proc> error: boom." in output
+
+
+def test_print_processor_error_silent_without_error(capsys):
+    r = {}
+    result = print_processor_error(r)
+    assert result is r
+    assert capsys.readouterr().err == ""
+
+
 class TestFilterAll:
     def test_filters_all(self):
         assert filter_all(record()) == {}
@@ -168,6 +184,28 @@ class TestFilterByName:
     def test_filters_when_name_is_none(self):
         r = record(name=None)
         filt = filter_by_name("foo")
+        assert filt(r) == {}
+
+
+class TestAllowByName:
+    def test_allows_matching_parent(self):
+        r = record(name="foo.bar.baz")
+        filt = allow_by_name("foo")
+        assert filt(r) is r
+
+    def test_drops_non_matching(self):
+        r = record(name="other.module")
+        filt = allow_by_name("foo")
+        assert filt(r) == {}
+
+    def test_drops_when_name_is_none(self):
+        r = record(name=None)
+        filt = allow_by_name("foo")
+        assert filt(r) == {}
+
+    def test_drops_when_name_is_empty(self):
+        r = record(name="")
+        filt = allow_by_name("foo")
         assert filt(r) == {}
 
 
@@ -282,57 +320,58 @@ class TestWhitelistLevel:
         assert p1 is p2
 
 
-class TestDuration:
-    def test_start_records_time(self):
-        d = Duration()
-        r = record(msg="", kwargs={"start": "task1"})
-        result = d(r)
-        assert "task1" in d._starts
-        assert "task1" in result["message"]
+class TestSubProcessor:
+    def test_default_processors(self):
+        sub = SubProcessor()
+        assert sub._processors == ()
 
-    def test_stop_computes_duration(self):
-        d = Duration()
-        d._starts["task1"] = 1000.0
-        r = record(msg="", extra={"stop": "task1"})
-        with patch("time.time", return_value=1005.0):
-            result = d(r)
-        assert "task1" in result["message"]
-        assert result["extra"]["duration"] == 5.0
+    def test_runs_processors_on_copy(self):
+        def add_key(record):
+            record["extra"]["added"] = True
+            return record
 
-    def test_stop_no_start(self):
-        d = Duration()
-        r = record(extra={"stop": "never_started"})
-        result = d(r)
-        assert "Duration:" not in result.get("message", "")
-
-    def test_start_no_message(self):
-        d = Duration(add_message=False)
-        r = record(extra={"start": "silent"})
-        result = d(r)
-        assert "silent" in d._starts
-        assert result["message"] == "test"
-
-    def test_stop_no_message(self):
-        d = Duration(add_message=False)
-        d._starts["x"] = 1000.0
-        with patch("time.time", return_value=1005.0):
-            r = record(extra={"stop": "x"})
-            result = d(r)
-        assert result["extra"]["duration"] == 5.0
-
-    def test_no_start_or_stop(self):
-        d = Duration()
+        sub = SubProcessor([add_key])
         r = record()
-        result = d(r)
-        assert result is r
+        result = sub(r)
+        assert result is not r
+        assert result["extra"]["added"] is True
+        assert "added" not in r["extra"]
 
+    def test_stops_when_processor_drops_record(self):
+        calls = []
 
-class TestElapsed:
-    def test_adds_elapsed(self):
-        r = record()
-        result = elapsed(r)
-        assert "elapsed" in result
-        assert isinstance(result["elapsed"], object)
+        def first(record):
+            calls.append("first")
+            return {}
+
+        def second(record):
+            calls.append("second")
+            return record
+
+        sub = SubProcessor([first, second])
+        assert sub(record()) == {}
+        assert calls == ["first"]
+
+    def test_close_forwards_and_suppresses_errors(self):
+        closed = []
+
+        class Closer:
+            def __call__(self, record):
+                return record
+
+            def close(self):
+                closed.append("closer")
+
+        class BrokenCloser:
+            def __call__(self, record):
+                return record
+
+            def close(self):
+                raise RuntimeError("close failed")
+
+        sub = SubProcessor([Closer(), BrokenCloser()])
+        sub.close()
+        assert closed == ["closer"]
 
 
 # ---------------------------------------------------------------------------
@@ -720,6 +759,20 @@ class TestFileWriterEdgeCases:
             h._reopen_if_needed()
         finally:
             Path(path).unlink(missing_ok=True)
+
+    def test_reopen_if_needed_recreates_deleted_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            real = Path(tmp) / "real.log"
+            missing = Path(tmp) / "missing.log"
+            h = FileWriter(str(real))
+            try:
+                assert real.exists()
+                h._path = missing
+                h._reopen_if_needed()
+                assert h._file is not None
+                assert missing.exists()
+            finally:
+                h.close()
 
 
 class TestAsyncBridge:

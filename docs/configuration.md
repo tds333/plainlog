@@ -115,7 +115,6 @@ from plainlog.processors import FileWriter
 logger.configure(
     processors=[FileWriter("app.log")],
     level="DEBUG",
-    print_errors=True,
 )
 ```
 

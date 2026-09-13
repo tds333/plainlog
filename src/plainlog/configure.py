@@ -16,16 +16,21 @@ def _default(level=None, **kwargs) -> None:
 
 
 def _develop(level=None, **kwargs) -> None:
-    from .processors import ConsoleRenderer, Stream, format_message
+    from .processors import (
+        ConsoleRenderer,
+        Stream,
+        format_message,
+        print_processor_error,
+    )
 
     logger.configure(
         processors=[
             format_message,
             ConsoleRenderer(colors=True),
             Stream(stream=sys.stderr),
+            print_processor_error,
         ],
         level=level,
-        print_errors=True,
         verbose=True,
     )
 
@@ -36,6 +41,7 @@ def _fingerscrossed(level=None, **kwargs) -> None:
         FingersCrossed,
         Stream,
         format_message,
+        print_processor_error,
     )
 
     action_level = kwargs.get("action_level")
@@ -50,9 +56,13 @@ def _fingerscrossed(level=None, **kwargs) -> None:
     )
 
     logger.configure(
-        processors=[format_message, ConsoleRenderer(colors=True), handler],
+        processors=[
+            format_message,
+            ConsoleRenderer(colors=True),
+            handler,
+            print_processor_error,
+        ],
         level=level,
-        print_errors=True,
     )
 
 
@@ -121,7 +131,12 @@ def _fingerscrossed_file(level=None, **kwargs) -> None:
 
 
 def _console_no_color(level=None, **kwargs):
-    from .processors import ConsoleRenderer, Stream, format_message
+    from .processors import (
+        ConsoleRenderer,
+        Stream,
+        format_message,
+        print_processor_error,
+    )
 
     stream = kwargs.get("stream", sys.stderr)
 
@@ -131,8 +146,8 @@ def _console_no_color(level=None, **kwargs):
             format_message,
             ConsoleRenderer(colors=False),
             Stream(stream=stream),
+            print_processor_error,
         ],
-        print_errors=True,
     )
 
 

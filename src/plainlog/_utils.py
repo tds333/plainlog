@@ -40,7 +40,7 @@ def get_processed_extra(record: dict) -> dict:
     extra = record.get("extra", {})
     if not extra:
         return {}
-    extra = eval_lambda_dict(extra)
+    extra = eval_lambda_dict(extra.copy())
 
     return extra
 

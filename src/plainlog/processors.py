@@ -29,7 +29,13 @@ from typing import IO, Any, Callable
 from . import _env
 from ._base import Record, UniversalProcessorProtocol
 from ._dev import ConsoleRenderer  # noqa
-from ._utils import eval_format, eval_lambda_dict, get_processed_extra, handle_close
+from ._utils import (
+    eval_dict,
+    eval_format,
+    eval_lambda_dict,
+    get_processed_extra,
+    handle_close,
+)
 
 start_time: float = time.time()
 
@@ -43,7 +49,7 @@ def eval_lambda_extra(record: Record) -> Record:
 
 def eval_extra(record: Record) -> Record:
     extra = record.get("extra", {})
-    eval_lambda_dict(extra)
+    eval_dict(extra)
 
     return record
 
@@ -56,6 +62,9 @@ def remove_extra_items(*args) -> Callable:
         return record
 
     return remover
+
+
+# Filter, are processors, but do not modify record, only return {} if filterd out
 
 
 def filter_None(record: Record) -> Record:
@@ -171,38 +180,6 @@ class WhitelistLevel:
         return record
 
 
-class Duration:
-    def __init__(self, add_message=True) -> None:
-        self._starts: dict = {}
-        self._add_message = add_message
-
-    def __call__(self, record: Record) -> Record:
-        extra = record.get("extra", {})
-        message = record.get("message", "")
-        start = extra.get("start", None)
-        stop = extra.get("stop", None)
-        if start:
-            self._starts[str(start)] = time.time()
-            if not message and self._add_message:
-                message = f"Start {start!r}."
-                record["message"] = message
-        if stop:
-            start_time = self._starts.pop(str(stop), None)
-            if start_time:
-                duration = time.time() - start_time
-                extra["duration"] = duration
-                if not message and self._add_message:
-                    message = f"Stop {stop!r}. Duration: {duration:.6f} seconds."
-                    record["message"] = message
-        return record
-
-
-def elapsed(record) -> Record:
-    global start_time
-    record["elapsed"] = time.time() - start_time
-    return record
-
-
 # ---------------------------------------------------------------------------
 # Formatters
 # ---------------------------------------------------------------------------
@@ -210,16 +187,27 @@ def elapsed(record) -> Record:
 
 def format_message(record: Record) -> Record:
     message = record.get("message", None)
-    if message is not None:
-        return record
+    if message is None:
+        msg = record.get("msg", "")
+        extra = record.get("extra", {})
+        message = str(msg)
+        if isinstance(msg, str) and extra:
+            message = eval_format(msg, extra)
 
-    msg = record.get("msg", "")
-    extra = record.get("extra", {})
-    message = str(msg)
-    if isinstance(msg, str) and extra:
-        message = eval_format(msg, extra)
+        record["message"] = message
 
-    record["message"] = message
+    return record
+
+
+def print_processor_error(record: Record) -> Record:
+    error_message = record.get("processor_error_message", None)
+    error_processor_name = record.get("processor_error_name_repr", None)
+    if error_message is not None:
+        print(
+            f"Got processor {error_processor_name} error: {error_message}.",
+            file=sys.stderr,
+            flush=True,
+        )
 
     return record
 
@@ -234,7 +222,6 @@ class SimpleFormatter:
         data = copy(record)
         data["datetime"] = datetime.fromtimestamp(data.pop("created"), tz=timezone.utc)
         format_message(data)
-        data["extra"] = get_processed_extra(record)
         message = self._fmt.format_map(data)
         record["message"] = message
 

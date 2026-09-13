@@ -48,12 +48,12 @@ class RecordException(NamedTuple):
 
 
 class ProcessorProtocol(Protocol):
-    def __call__(self, record: Record) -> Record: ...
+    def __call__(self, record: Record) -> Record: ...  # no cov
 
 
 class ProcessorCloseProtocol(ProcessorProtocol, Protocol):
-    def close(self) -> None: ...
-    def __call__(self, record: Record) -> Record: ...
+    def close(self) -> None: ...  # no cov
+    def __call__(self, record: Record) -> Record: ...  # no cov
 
 
 UniversalProcessorProtocol = Union[ProcessorProtocol, ProcessorCloseProtocol]
