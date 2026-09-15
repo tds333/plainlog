@@ -64,6 +64,33 @@ def remove_extra_items(*args) -> Callable:
     return remover
 
 
+def _redact(mask: str, matches: Callable[[str], bool]) -> Callable:
+    def walk(d: dict) -> None:
+        for key, value in d.items():
+            if isinstance(value, dict):
+                walk(value)
+            elif matches(key):
+                d[key] = mask
+
+    def redactor(record: Record) -> Record:
+        extra = record.get("extra")
+        if extra:
+            walk(extra)
+        return record
+
+    return redactor
+
+
+def redact_fields(*fields, mask="***REDACTED***") -> Callable:
+    names = {str(field).lower() for field in fields}
+    return _redact(mask, lambda key: key.lower() in names)
+
+
+def redact_by_pattern(*patterns, mask="***REDACTED***") -> Callable:
+    needles = tuple(str(pattern).lower() for pattern in patterns)
+    return _redact(mask, lambda key: any(needle in key.lower() for needle in needles))
+
+
 # Filter, are processors, but do not modify record, only return {} if filterd out
 
 
