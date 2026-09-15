@@ -5,6 +5,14 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - unreleased
+
+### Added
+
+- `redact_fields` and `redact_by_pattern` processors — mask sensitive `extra` values by exact key name or substring pattern.
+  contributed by @kashyapm94
+
+
 ## [0.5.0] - 2026-09-13
 
 ### Changed
@@ -34,7 +42,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   in `plainlog._base`.
 - Fork support: the Core worker is restarted in forked child processes.
 - `verbose=True` to Logger, adding caller info (`function`, `line`, ...) to the record.
-- `redact_fields` and `redact_by_pattern` processors — mask sensitive `extra` values by exact key name or substring pattern.
 
 
 ### Removed
