@@ -32,6 +32,8 @@ from plainlog.processors import (
     filter_None,
     format_message,
     print_processor_error,
+    redact_by_pattern,
+    redact_fields,
     remove_extra_items,
 )
 
@@ -136,6 +138,86 @@ class TestRemoveItems:
         remover = remove_extra_items(42)
         result = remover(r)
         assert "42" not in result["extra"]
+
+
+class TestRedactFields:
+    def test_redacts_exact_key(self):
+        r = record(extra={"username": "alice", "password": "hunter2"})
+        redactor = redact_fields("password")
+        result = redactor(r)
+        assert result["extra"]["password"] == "***REDACTED***"
+        assert result["extra"]["username"] == "alice"
+
+    def test_case_insensitive(self):
+        r = record(extra={"Password": "hunter2"})
+        redactor = redact_fields("password")
+        result = redactor(r)
+        assert result["extra"]["Password"] == "***REDACTED***"
+
+    def test_recurses_into_nested_dicts(self):
+        r = record(extra={"auth": {"password": "hunter2", "user": "alice"}})
+        redactor = redact_fields("password")
+        result = redactor(r)
+        assert result["extra"]["auth"]["password"] == "***REDACTED***"
+        assert result["extra"]["auth"]["user"] == "alice"
+
+    def test_custom_mask(self):
+        r = record(extra={"password": "hunter2"})
+        redactor = redact_fields("password", mask="<hidden>")
+        result = redactor(r)
+        assert result["extra"]["password"] == "<hidden>"
+
+    def test_no_op_when_extra_empty(self):
+        r = record()
+        redactor = redact_fields("password")
+        result = redactor(r)
+        assert result is r
+
+    def test_does_not_match_substring(self):
+        r = record(extra={"user_password": "hunter2"})
+        redactor = redact_fields("password")
+        result = redactor(r)
+        assert result["extra"]["user_password"] == "hunter2"
+
+
+class TestRedactByPattern:
+    def test_redacts_matching_substring(self):
+        r = record(extra={"user_password": "hunter2", "db_password": "secret"})
+        redactor = redact_by_pattern("password")
+        result = redactor(r)
+        assert result["extra"]["user_password"] == "***REDACTED***"
+        assert result["extra"]["db_password"] == "***REDACTED***"
+
+    def test_case_insensitive(self):
+        r = record(extra={"API_KEY": "abc123"})
+        redactor = redact_by_pattern("api_key")
+        result = redactor(r)
+        assert result["extra"]["API_KEY"] == "***REDACTED***"
+
+    def test_recurses_into_nested_dicts(self):
+        r = record(extra={"auth": {"api_token": "abc123", "user": "alice"}})
+        redactor = redact_by_pattern("token")
+        result = redactor(r)
+        assert result["extra"]["auth"]["api_token"] == "***REDACTED***"
+        assert result["extra"]["auth"]["user"] == "alice"
+
+    def test_leaves_non_matching_keys(self):
+        r = record(extra={"username": "alice"})
+        redactor = redact_by_pattern("password", "token", "secret")
+        result = redactor(r)
+        assert result["extra"]["username"] == "alice"
+
+    def test_custom_mask(self):
+        r = record(extra={"secret_key": "abc123"})
+        redactor = redact_by_pattern("secret", mask="<hidden>")
+        result = redactor(r)
+        assert result["extra"]["secret_key"] == "<hidden>"
+
+    def test_no_op_when_extra_empty(self):
+        r = record()
+        redactor = redact_by_pattern("password")
+        result = redactor(r)
+        assert result is r
 
 
 class TestFilterNone:

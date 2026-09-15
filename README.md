@@ -50,6 +50,24 @@ log = logger.new(__name__)
 log.info("logged with the module name as logger name")
 ```
 
+## Processors
+
+Log output is built from a pipeline of processors — a formatter followed by a
+handler:
+
+```python
+import sys
+from plainlog import logger
+from plainlog.processors import JsonFormatter, Stream
+
+logger.configure(processors=[JsonFormatter(), Stream(sys.stdout)])
+logger.info("hello world", user="alice")
+```
+
+See the [Processors](https://tds333.github.io/plainlog/processors/) docs for
+the full list of built-in formatters, handlers, and filters (including
+redaction, level filtering, and buffering).
+
 ## Idea
 
 Main goal is to be a plain easy to use logging library.

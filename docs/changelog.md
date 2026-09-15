@@ -34,6 +34,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   in `plainlog._base`.
 - Fork support: the Core worker is restarted in forked child processes.
 - `verbose=True` to Logger, adding caller info (`function`, `line`, ...) to the record.
+- `redact_fields` and `redact_by_pattern` processors — mask sensitive `extra` values by exact key name or substring pattern.
+
 
 ### Removed
 

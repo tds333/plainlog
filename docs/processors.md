@@ -62,6 +62,8 @@ logger.configure(processors=[SimpleFormatter(), Stream()])
 | `eval_extra` | Evaluates callables stored in ``record["extra"]`` |
 | `eval_lambda_extra` | Evaluates only lambda values in ``record["extra"]`` |
 | `remove_extra_items(*args)` | Returns a processor that removes the given extra keys |
+| `redact_fields(*fields, mask="***REDACTED***")` | Masks exact extra keys (case-insensitive, recurses into nested dicts) |
+| `redact_by_pattern(*patterns, mask="***REDACTED***")` | Masks extra keys containing a substring (case-insensitive, recurses into nested dicts) |
 | `filter_None` | Drops records whose ``name`` is ``None`` |
 | `filter_all` | Drops every record |
 | `filter_by_name("parent")` | Drops records whose name starts with ``parent`` |
@@ -110,6 +112,32 @@ class MyAsyncBridge(AsyncBridge):
         # e.g. send to a network sink
         await asyncio.sleep(0)
         print(message)
+```
+
+### Redacting Sensitive Fields
+
+`redact_fields` matches exact key names; `redact_by_pattern` matches any key
+containing a given substring. Both are case-insensitive and recurse into
+nested dicts. Place them early in the pipeline, before any formatter, so
+formatted/serialized output never contains the raw value. They only scrub
+`record["extra"]` — secrets interpolated directly into the message string
+(e.g. `logger.info(f"password={pw}")`) are not caught.
+
+```python
+import sys
+from plainlog import logger
+from plainlog.processors import JsonFormatter, Stream, redact_by_pattern
+
+logger.configure(
+    processors=[
+        redact_by_pattern("password", "token", "secret", "api_key"),
+        JsonFormatter(),
+        Stream(sys.stdout),
+    ]
+)
+
+logger.info("login attempt", username="alice", password="hunter2")
+# -> extra={"username": "alice", "password": "***REDACTED***"}
 ```
 
 ## API Reference
