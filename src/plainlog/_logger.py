@@ -10,7 +10,6 @@ import sys
 import traceback
 from contextvars import ContextVar
 from copy import copy
-from enum import Enum
 from multiprocessing import current_process
 from queue import SimpleQueue
 from threading import Event, Thread, current_thread
@@ -20,6 +19,7 @@ from typing import (
     Dict,
     Generator,
     Iterable,
+    NamedTuple,
     Optional,
     Union,
 )
@@ -50,15 +50,15 @@ LEVEL_CRITICAL: int = logging.CRITICAL
 start_time = time()
 
 
-class Command(str, Enum):
-    """Control commands for the worker queue.
+_STOP = object()
+"""Control message that stops the worker."""
 
-    Log records are enqueued as plain dicts, not as commands.
-    """
 
-    STOP = "STOP"
-    CONFIGURE = "CONFIGURE"
-    EVENT = "EVENT"
+class _Configure(NamedTuple):
+    """Control message that updates the worker's processors and/or level."""
+
+    processors: Optional[Iterable[UniversalProcessorProtocol]]
+    level: Optional[int]
 
 
 def _validate_extra(extra: Optional[Dict[str, Any]]) -> Dict[str, Any]:
@@ -130,14 +130,11 @@ class Core:
     def min_level_no(self) -> int:
         return self._min_level_no
 
-    def _put(self, command: Command, message: Any = None) -> None:
-        self._queue.put((command, message))
-
     def log(self, log_record: Record) -> None:
         self._queue.put(log_record)
 
     def stop(self) -> None:
-        self._put(Command.STOP)
+        self._queue.put(_STOP)
 
     def join(self) -> None:
         self._thread.join()
@@ -157,7 +154,7 @@ class Core:
         if level is not None:
             level = _validate_level(level)
 
-        self._put(Command.CONFIGURE, (processors, level))
+        self._queue.put(_Configure(processors, level))
 
         self.wait_for_processed(_env.DEFAULT_WAIT_TIMEOUT)
 
@@ -169,7 +166,7 @@ class Core:
             return
 
         event: Event = Event()
-        self._put(Command.EVENT, event)
+        self._queue.put(event)
         event.wait(timeout if timeout is not None else _env.DEFAULT_WAIT_TIMEOUT)
 
     def close(self) -> None:
@@ -205,23 +202,22 @@ class Core:
                             break
                         if isinstance(new_record, dict):
                             record = new_record
-                else:
-                    command, payload = value
-                    if command is Command.CONFIGURE:
-                        c_processors, level = payload
-                        if level is not None:
-                            self._min_level_no = level
-                        if c_processors is not None:
-                            for processor in processors:
-                                try:
-                                    handle_close(processor)
-                                except Exception:
-                                    pass
-                            self._processors = processors = tuple(c_processors)
-                    elif command is Command.STOP:
-                        break
-                    elif command is Command.EVENT:  # pragma: no cover
-                        payload.set()
+                elif isinstance(value, Event):
+                    value.set()
+                elif value is _STOP:
+                    break
+                elif isinstance(value, _Configure):
+                    c_processors = value.processors
+                    level = value.level
+                    if level is not None:
+                        self._min_level_no = level
+                    if c_processors is not None:
+                        for processor in processors:
+                            try:
+                                handle_close(processor)
+                            except Exception:
+                                pass
+                        self._processors = processors = tuple(c_processors)
             except Exception:  # pragma: no cover - worker must never die
                 continue
 

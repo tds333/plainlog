@@ -263,6 +263,30 @@ def test_worker_survives_hostile_str_exception():
     core.join()
 
 
+def test_worker_ignores_unknown_queue_value():
+    captured = []
+
+    class Recorder:
+        def __call__(self, record):
+            captured.append(record)
+            return record
+
+    core = Core()
+    log = Logger(core=core, name="t")
+    core.configure(processors=[Recorder()], level="DEBUG")
+
+    core._queue.put(object())
+    log.info("still processed")
+    core.wait_for_processed(2)
+
+    assert core.is_alive()
+    assert captured
+    assert captured[0]["msg"] == "still processed"
+
+    core.stop()
+    core.join()
+
+
 def test_configure_from_processor_does_not_stall():
     core = Core()
     log = Logger(core=core, name="t")
