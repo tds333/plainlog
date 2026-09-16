@@ -194,9 +194,7 @@ class Core:
                             new_record = processor(record)
                         except Exception as ex:
                             record["processor_error_message"] = _safe_str(ex)
-                            record["processor_error_name_repr"] = _safe_repr(
-                                processor
-                            )
+                            record["processor_error_name_repr"] = _safe_repr(processor)
                             continue
                         if not new_record:
                             break
@@ -381,7 +379,7 @@ class Logger:
         Returns:
             A ``Token`` that can be passed to `reset_context()`.
         """
-        new_context = {**plainlog_context.get({}), **kwargs}
+        new_context = {**plainlog_context.get(_EMPTY_CONTEXT), **kwargs}
         token = plainlog_context.set(new_context)
 
         return token
