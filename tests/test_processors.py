@@ -179,6 +179,74 @@ class TestRedactFields:
         result = redactor(r)
         assert result["extra"]["user_password"] == "hunter2"
 
+    def test_recurses_into_deeply_nested_dicts(self):
+        r = record(extra={"a": {"b": {"password": "hunter2"}}})
+        redactor = redact_fields("password")
+        result = redactor(r)
+        assert result["extra"]["a"]["b"]["password"] == "***REDACTED***"
+
+    def test_recurses_into_lists(self):
+        r = record(extra={"users": [{"password": "hunter2"}, {"user": "alice"}]})
+        redactor = redact_fields("password")
+        result = redactor(r)
+        assert result["extra"]["users"][0]["password"] == "***REDACTED***"
+        assert result["extra"]["users"][1]["user"] == "alice"
+
+    def test_recurses_into_tuples(self):
+        r = record(extra={"items": ({"password": "hunter2"},)})
+        redactor = redact_fields("password")
+        result = redactor(r)
+        assert result["extra"]["items"][0]["password"] == "***REDACTED***"
+
+    def test_matching_container_key_is_not_masked(self):
+        r = record(extra={"credentials": {"user": "alice"}})
+        redactor = redact_fields("credentials")
+        result = redactor(r)
+        assert result["extra"]["credentials"] == {"user": "alice"}
+
+    def test_masks_matching_leaf_inside_matching_container(self):
+        r = record(extra={"credentials": {"password": "hunter2"}})
+        redactor = redact_fields("credentials", "password")
+        result = redactor(r)
+        assert result["extra"]["credentials"]["password"] == "***REDACTED***"
+
+    def test_redacts_multiple_fields(self):
+        r = record(extra={"password": "p", "token": "t", "user": "alice"})
+        redactor = redact_fields("password", "token")
+        result = redactor(r)
+        assert result["extra"]["password"] == "***REDACTED***"
+        assert result["extra"]["token"] == "***REDACTED***"
+        assert result["extra"]["user"] == "alice"
+
+    def test_non_string_key_does_not_raise(self):
+        r = record(extra={"password": "hunter2"})
+        r["extra"][42] = "value"
+        redactor = redact_fields("password")
+        result = redactor(r)
+        assert result["extra"]["password"] == "***REDACTED***"
+        assert result["extra"][42] == "value"
+
+    def test_no_args_is_noop(self):
+        r = record(extra={"password": "hunter2"})
+        redactor = redact_fields()
+        result = redactor(r)
+        assert result["extra"]["password"] == "hunter2"
+
+    def test_does_not_mutate_caller_nested_dict(self):
+        caller = {"password": "hunter2"}
+        r = record(extra={"config": caller})
+        redactor = redact_fields("password")
+        result = redactor(r)
+        assert caller == {"password": "hunter2"}
+        assert result["extra"]["config"]["password"] == "***REDACTED***"
+
+    def test_leaves_record_fields_untouched(self):
+        r = record(msg="password=hunter2", name="password")
+        redactor = redact_fields("password")
+        result = redactor(r)
+        assert result["msg"] == "password=hunter2"
+        assert result["name"] == "password"
+
 
 class TestRedactByPattern:
     def test_redacts_matching_substring(self):
@@ -218,6 +286,69 @@ class TestRedactByPattern:
         redactor = redact_by_pattern("password")
         result = redactor(r)
         assert result is r
+
+    def test_recurses_into_deeply_nested_dicts(self):
+        r = record(extra={"a": {"b": {"password": "hunter2"}}})
+        redactor = redact_by_pattern("password")
+        result = redactor(r)
+        assert result["extra"]["a"]["b"]["password"] == "***REDACTED***"
+
+    def test_recurses_into_lists(self):
+        r = record(extra={"users": [{"api_token": "t"}, {"user": "alice"}]})
+        redactor = redact_by_pattern("token")
+        result = redactor(r)
+        assert result["extra"]["users"][0]["api_token"] == "***REDACTED***"
+        assert result["extra"]["users"][1]["user"] == "alice"
+
+    def test_recurses_into_tuples(self):
+        r = record(extra={"items": ({"api_token": "t"},)})
+        redactor = redact_by_pattern("token")
+        result = redactor(r)
+        assert result["extra"]["items"][0]["api_token"] == "***REDACTED***"
+
+    def test_matching_container_key_is_not_masked(self):
+        r = record(extra={"api_key": {"value": "secret"}})
+        redactor = redact_by_pattern("api_key")
+        result = redactor(r)
+        assert result["extra"]["api_key"] == {"value": "secret"}
+
+    def test_redacts_multiple_patterns(self):
+        r = record(
+            extra={
+                "user_password": "a",
+                "api_token": "b",
+                "secret_key": "c",
+                "user": "d",
+            }
+        )
+        redactor = redact_by_pattern("password", "token", "secret")
+        result = redactor(r)
+        assert result["extra"]["user_password"] == "***REDACTED***"
+        assert result["extra"]["api_token"] == "***REDACTED***"
+        assert result["extra"]["secret_key"] == "***REDACTED***"
+        assert result["extra"]["user"] == "d"
+
+    def test_non_string_key_does_not_raise(self):
+        r = record(extra={"password": "hunter2"})
+        r["extra"][42] = "value"
+        redactor = redact_by_pattern("password")
+        result = redactor(r)
+        assert result["extra"]["password"] == "***REDACTED***"
+        assert result["extra"][42] == "value"
+
+    def test_no_args_is_noop(self):
+        r = record(extra={"password": "hunter2"})
+        redactor = redact_by_pattern()
+        result = redactor(r)
+        assert result["extra"]["password"] == "hunter2"
+
+    def test_does_not_mutate_caller_nested_dict(self):
+        caller = {"api_token": "abc123"}
+        r = record(extra={"config": caller})
+        redactor = redact_by_pattern("token")
+        result = redactor(r)
+        assert caller == {"api_token": "abc123"}
+        assert result["extra"]["config"]["api_token"] == "***REDACTED***"
 
 
 class TestFilterNone:

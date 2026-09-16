@@ -65,17 +65,21 @@ def remove_extra_items(*args) -> Callable:
 
 
 def _redact(mask: str, matches: Callable[[str], bool]) -> Callable:
-    def walk(d: dict) -> None:
-        for key, value in d.items():
-            if isinstance(value, dict):
-                walk(value)
-            elif matches(key):
-                d[key] = mask
+    def redact_value(key: Any, value: Any) -> Any:
+        if isinstance(value, dict):
+            return {k: redact_value(k, v) for k, v in value.items()}
+        if isinstance(value, list):
+            return [redact_value(None, item) for item in value]
+        if isinstance(value, tuple):
+            return tuple(redact_value(None, item) for item in value)
+        if isinstance(key, str) and matches(key):
+            return mask
+        return value
 
     def redactor(record: Record) -> Record:
         extra = record.get("extra")
         if extra:
-            walk(extra)
+            record["extra"] = redact_value(None, extra)
         return record
 
     return redactor

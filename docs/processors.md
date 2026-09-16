@@ -62,8 +62,8 @@ logger.configure(processors=[SimpleFormatter(), Stream()])
 | `eval_extra` | Evaluates callables stored in ``record["extra"]`` |
 | `eval_lambda_extra` | Evaluates only lambda values in ``record["extra"]`` |
 | `remove_extra_items(*args)` | Returns a processor that removes the given extra keys |
-| `redact_fields(*fields, mask="***REDACTED***")` | Masks exact extra keys (case-insensitive, recurses into nested dicts) |
-| `redact_by_pattern(*patterns, mask="***REDACTED***")` | Masks extra keys containing a substring (case-insensitive, recurses into nested dicts) |
+| `redact_fields(*fields, mask="***REDACTED***")` | Masks exact extra keys (case-insensitive, recurses into nested dicts and lists) |
+| `redact_by_pattern(*patterns, mask="***REDACTED***")` | Masks extra keys containing a substring (case-insensitive, recurses into nested dicts and lists) |
 | `filter_None` | Drops records whose ``name`` is ``None`` |
 | `filter_all` | Drops every record |
 | `filter_by_name("parent")` | Drops records whose name starts with ``parent`` |
@@ -117,10 +117,13 @@ class MyAsyncBridge(AsyncBridge):
 ### Redacting Sensitive Fields
 
 `redact_fields` matches exact key names; `redact_by_pattern` matches any key
-containing a given substring. Both are case-insensitive and recurse into
-nested dicts. Place them early in the pipeline, before any formatter, so
-formatted/serialized output never contains the raw value. They only scrub
-`record["extra"]` — secrets interpolated directly into the message string
+containing a given substring. Both are case-insensitive and recurse through
+nested dicts and lists, including dicts inside lists. Matching applies to leaf
+values: when a matched key holds a container, the processor descends into it
+and masks matching leaves instead of replacing the container. Place them early
+in the pipeline, before any formatter, so formatted/serialized output never
+contains the raw value. They only scrub `record["extra"]` — secrets
+interpolated directly into the message string
 (e.g. `logger.info(f"password={pw}")`) are not caught.
 
 ```python
