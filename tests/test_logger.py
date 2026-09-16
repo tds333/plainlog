@@ -14,7 +14,6 @@ from plainlog._logger import (
     LEVEL_ERROR,
     LEVEL_INFO,
     LEVEL_WARNING,
-    Command,
     Core,
     Logger,
     _validate_extra,
@@ -458,7 +457,7 @@ def test_core_worker_log_when_handler_cleared():
         core.wait_for_processed()
         core.configure(processors=())
         core.wait_for_processed()
-        core._put(Command.LOG, {"msg": "orphaned"})
+        core.log({"msg": "orphaned"})
         core.wait_for_processed()
 
 

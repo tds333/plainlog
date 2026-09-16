@@ -51,7 +51,11 @@ start_time = time()
 
 
 class Command(str, Enum):
-    LOG = "LOG"
+    """Control commands for the worker queue.
+
+    Log records are enqueued as plain dicts, not as commands.
+    """
+
     STOP = "STOP"
     CONFIGURE = "CONFIGURE"
     EVENT = "EVENT"
@@ -101,7 +105,6 @@ _LEVEL_NAMES: Dict[int, str] = {
     LEVEL_ERROR: "ERROR",
     LEVEL_CRITICAL: "CRITICAL",
 }
-_CMD_LOG = Command.LOG
 
 
 class Core:
@@ -131,7 +134,7 @@ class Core:
         self._queue.put((command, message))
 
     def log(self, log_record: Record) -> None:
-        self._queue.put((Command.LOG, log_record))
+        self._queue.put(log_record)
 
     def stop(self) -> None:
         self._put(Command.STOP)
@@ -187,24 +190,25 @@ class Core:
         while True:
             try:
                 value = queue_get()
-                match value:
-                    case (Command.LOG, log_record):
-                        record: Record = log_record
-                        for processor in processors:
-                            try:
-                                new_record = processor(record)
-                            except Exception as ex:
-                                record["processor_error_message"] = _safe_str(ex)
-                                record["processor_error_name_repr"] = _safe_repr(
-                                    processor
-                                )
-                                continue
-                            if not new_record:
-                                break
-                            if isinstance(new_record, dict):
-                                record = new_record
-
-                    case (Command.CONFIGURE, (c_processors, level)):
+                if isinstance(value, dict):
+                    record: Record = value
+                    for processor in processors:
+                        try:
+                            new_record = processor(record)
+                        except Exception as ex:
+                            record["processor_error_message"] = _safe_str(ex)
+                            record["processor_error_name_repr"] = _safe_repr(
+                                processor
+                            )
+                            continue
+                        if not new_record:
+                            break
+                        if isinstance(new_record, dict):
+                            record = new_record
+                else:
+                    command, payload = value
+                    if command is Command.CONFIGURE:
+                        c_processors, level = payload
                         if level is not None:
                             self._min_level_no = level
                         if c_processors is not None:
@@ -214,12 +218,10 @@ class Core:
                                 except Exception:
                                     pass
                             self._processors = processors = tuple(c_processors)
-
-                    case (Command.STOP, _):
+                    elif command is Command.STOP:
                         break
-
-                    case (Command.EVENT, event):  # pragma: no cover
-                        event.set()
+                    elif command is Command.EVENT:  # pragma: no cover
+                        payload.set()
             except Exception:  # pragma: no cover - worker must never die
                 continue
 
@@ -451,7 +453,7 @@ class Logger:
         if self._verbose:
             add_caller_info(log_record, 3)
 
-        core._queue.put((_CMD_LOG, log_record))
+        core._queue.put(log_record)
 
         return True
 
