@@ -91,6 +91,18 @@ def _safe_repr(obj: Any) -> str:
 _validate_level = getattr(logging, "_checkLevel")  # noqa: B009
 get_level_name = logging.getLevelName
 
+# precomputed for the logging hot path
+_EMPTY_CONTEXT: dict = {}
+_LEVEL_NAMES: Dict[int, str] = {
+    LEVEL_NOTSET: "NOTSET",
+    LEVEL_DEBUG: "DEBUG",
+    LEVEL_INFO: "INFO",
+    LEVEL_WARNING: "WARNING",
+    LEVEL_ERROR: "ERROR",
+    LEVEL_CRITICAL: "CRITICAL",
+}
+_CMD_LOG = Command.LOG
+
 
 class Core:
     def __init__(self, name: Optional[str] = None) -> None:
@@ -409,34 +421,37 @@ class Logger:
     def _log(self, level: int, msg: Msg, kwargs: dict) -> bool:
         core = self._core
 
-        if not core._processors or core.min_level_no > level:
+        if not core._processors or core._min_level_no > level:
             return False
 
-        current_time = time()
-        exc_info = kwargs.get("exc_info", False)
-        ctx = plainlog_context.get({})
         exception = None
+        if kwargs and kwargs.get("exc_info", False):
+            exception = RecordException(*sys.exc_info())
 
-        if exc_info:
-            exc_tuple = sys.exc_info()
-            exception = RecordException(*exc_tuple)
+        ctx = plainlog_context.get(_EMPTY_CONTEXT)
+        if kwargs:
+            extra = {**self._extra, **ctx, **kwargs}
+        elif ctx:
+            extra = {**self._extra, **ctx}
+        else:
+            extra = self._extra.copy()
 
         log_record: Record = {
             "level": level,
-            "level_name": get_level_name(level),
+            "level_name": _LEVEL_NAMES.get(level) or get_level_name(level),
             "msg": msg,  # raw message as in std logging
             "name": self._name,
-            "created": current_time,
+            "created": time(),
             "process_id": logger_process_ident,
             "process_name": logger_process_name,
             "exception": exception,
-            "extra": {**self._extra, **ctx, **kwargs},
+            "extra": extra,
         }
 
         if self._verbose:
             add_caller_info(log_record, 3)
 
-        core.log(log_record)
+        core._queue.put((_CMD_LOG, log_record))
 
         return True
 

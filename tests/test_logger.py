@@ -1,4 +1,5 @@
 import io
+import logging
 import pickle
 import sys
 from contextlib import closing
@@ -153,6 +154,23 @@ def test_logger_log(thandler):
 
     assert record["msg"] == message
     assert record["level"] == LEVEL_INFO
+
+
+def test_logger_level_name_standard(thandler):
+    logger.info("standard level")
+
+    record = thandler.first()
+
+    assert record["level_name"] == "INFO"
+
+
+def test_logger_level_name_custom_int(thandler):
+    logger.log(25, "custom level")
+
+    record = thandler.first()
+
+    assert record["level"] == 25
+    assert record["level_name"] == logging.getLevelName(25)
 
 
 def test_logger_msg_dict(thandler):
