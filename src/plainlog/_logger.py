@@ -166,12 +166,21 @@ class Core:
                     record: Record = log_record
                     for processor in processors:
                         try:
-                            record = processor(record)
+                            new_record = processor(record)
                         except Exception as ex:
                             record["processor_error_message"] = str(ex)
                             record["processor_error_name_repr"] = repr(processor)
-                        if not record:
+                            continue
+                        if not new_record:
                             break
+                        if not isinstance(new_record, dict):
+                            # protocol violation: keep the previous record
+                            record["processor_error_message"] = (
+                                f"returned non-dict {new_record!r}"
+                            )
+                            record["processor_error_name_repr"] = repr(processor)
+                            continue
+                        record = new_record
 
                 case (Command.CONFIGURE, (c_processors, level)):
                     if level is not None:

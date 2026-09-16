@@ -105,6 +105,102 @@ def test_register_fork_hook_skipped_without_register_at_fork(monkeypatch):
     mod._register_fork_hook()
 
 
+def test_worker_survives_processor_returning_non_dict():
+    class Poison:
+        def __call__(self, record):
+            return "poisoned"
+
+    captured = []
+
+    class Recorder:
+        def __call__(self, record):
+            captured.append(record)
+            return record
+
+    poison = Poison()
+    core = Core()
+    log = Logger(core=core, name="t")
+    core.configure(processors=[poison, Recorder()], level="DEBUG")
+
+    log.info("one message")
+    core.wait_for_processed(2)
+    assert core.is_alive()
+    assert captured, "downstream processor never ran"
+    record = captured[0]
+    assert isinstance(record, dict)
+    assert record["msg"] == "one message"
+    assert record["processor_error_name_repr"] == repr(poison)
+    assert "poisoned" in record["processor_error_message"]
+
+    log.info("second message")
+    core.wait_for_processed(2)
+    assert core.is_alive()
+    assert len(captured) == 2
+    assert captured[1]["msg"] == "second message"
+
+    core.stop()
+    core.join()
+
+
+def test_worker_survives_poisoned_record_and_processor_exception():
+    class Poison:
+        def __call__(self, record):
+            return "poisoned"
+
+    class Raising:
+        def __call__(self, record):
+            raise ValueError("boom")
+
+    captured = []
+
+    class Recorder:
+        def __call__(self, record):
+            captured.append(record)
+            return record
+
+    core = Core()
+    log = Logger(core=core, name="t")
+    core.configure(processors=[Poison(), Raising(), Recorder()], level="DEBUG")
+
+    log.info("one message")
+    core.wait_for_processed(2)
+    assert core.is_alive()
+    assert captured, "downstream processor never ran"
+    record = captured[0]
+    assert isinstance(record, dict)
+    assert record["processor_error_message"] == "boom"
+    assert "Raising" in record["processor_error_name_repr"]
+
+    core.stop()
+    core.join()
+
+
+def test_worker_survives_processor_exception():
+    captured = []
+
+    class Recorder:
+        def __call__(self, record):
+            captured.append(record)
+            return record
+
+    class Raising:
+        def __call__(self, record):
+            raise ValueError("boom")
+
+    core = Core()
+    log = Logger(core=core, name="t")
+    core.configure(processors=[Raising(), Recorder()], level="DEBUG")
+
+    log.info("first message")
+    core.wait_for_processed(2)
+    assert core.is_alive()
+    assert captured
+    assert captured[0]["processor_error_message"] == "boom"
+
+    core.stop()
+    core.join()
+
+
 def test_reset_for_fork_restarts_worker():
     old_thread = logger_core._thread
     old_queue = logger_core._queue

@@ -373,7 +373,11 @@ class SubProcessor:
         self._processors = () if processors is None else tuple(processors)
 
     def __call__(self, record: Record) -> Record:
+        exception = record.get("exception")
         record = deepcopy(record)
+        # deepcopy strips tracebacks via RecordException.__reduce__, restore it
+        if exception is not None:
+            record["exception"] = exception
         for processor in self._processors:
             record = processor(record)
             if not record:  # stop processing

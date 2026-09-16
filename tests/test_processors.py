@@ -586,6 +586,38 @@ class TestSubProcessor:
         sub.close()
         assert closed == ["closer"]
 
+    def test_preserves_record_exception_through_deepcopy(self):
+        from sys import exc_info
+
+        from plainlog._base import RecordException
+
+        try:
+            raise ValueError("bang")
+        except ValueError:
+            record = {
+                "msg": "with exception",
+                "message": "with exception",
+                "exception": RecordException(*exc_info()),
+                "extra": {},
+            }
+
+        captured = []
+
+        def capture(r):
+            captured.append(r)
+            return r
+
+        sub = SubProcessor([capture])
+        result = sub(record)
+
+        assert result is not record
+        assert result["exception"].type is ValueError
+        assert str(result["exception"].value) == "bang"
+        assert result["exception"].traceback is not None
+        assert "processor_error_message" not in result
+        assert "processor_error_name_repr" not in result
+        assert captured
+
 
 # ---------------------------------------------------------------------------
 # Formatters
