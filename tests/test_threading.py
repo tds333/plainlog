@@ -105,7 +105,7 @@ def test_register_fork_hook_skipped_without_register_at_fork(monkeypatch):
     mod._register_fork_hook()
 
 
-def test_worker_survives_processor_returning_non_dict():
+def test_worker_ignores_processor_returning_non_dict():
     class Poison:
         def __call__(self, record):
             return "poisoned"
@@ -117,10 +117,9 @@ def test_worker_survives_processor_returning_non_dict():
             captured.append(record)
             return record
 
-    poison = Poison()
     core = Core()
     log = Logger(core=core, name="t")
-    core.configure(processors=[poison, Recorder()], level="DEBUG")
+    core.configure(processors=[Poison(), Recorder()], level="DEBUG")
 
     log.info("one message")
     core.wait_for_processed(2)
@@ -129,8 +128,8 @@ def test_worker_survives_processor_returning_non_dict():
     record = captured[0]
     assert isinstance(record, dict)
     assert record["msg"] == "one message"
-    assert record["processor_error_name_repr"] == repr(poison)
-    assert "poisoned" in record["processor_error_message"]
+    assert "processor_error_message" not in record
+    assert "processor_error_name_repr" not in record
 
     log.info("second message")
     core.wait_for_processed(2)
@@ -199,6 +198,124 @@ def test_worker_survives_processor_exception():
 
     core.stop()
     core.join()
+
+
+def test_worker_survives_hostile_repr():
+    class Hostile:
+        def __call__(self, record):
+            raise ValueError("boom")
+
+        def __repr__(self):
+            raise RuntimeError("bad repr")
+
+    captured = []
+
+    class Recorder:
+        def __call__(self, record):
+            captured.append(record)
+            return record
+
+    core = Core()
+    log = Logger(core=core, name="t")
+    core.configure(processors=[Hostile(), Recorder()], level="DEBUG")
+
+    log.info("one message")
+    core.wait_for_processed(2)
+
+    assert core.is_alive()
+    assert captured
+    record = captured[0]
+    assert record["processor_error_message"] == "boom"
+    assert record["processor_error_name_repr"] == "<unprintable>"
+
+    core.stop()
+    core.join()
+
+
+def test_worker_survives_hostile_str_exception():
+    class BadStrError(Exception):
+        def __str__(self):
+            raise RuntimeError("bad str")
+
+    class Raising:
+        def __call__(self, record):
+            raise BadStrError()
+
+    captured = []
+
+    class Recorder:
+        def __call__(self, record):
+            captured.append(record)
+            return record
+
+    core = Core()
+    log = Logger(core=core, name="t")
+    core.configure(processors=[Raising(), Recorder()], level="DEBUG")
+
+    log.info("one message")
+    core.wait_for_processed(2)
+
+    assert core.is_alive()
+    assert captured
+    assert captured[0]["processor_error_message"] == "<unprintable>"
+
+    core.stop()
+    core.join()
+
+
+def test_configure_from_processor_does_not_stall():
+    core = Core()
+    log = Logger(core=core, name="t")
+
+    calls = []
+
+    class Reentrant:
+        def __call__(self, record):
+            if not calls:
+                calls.append(True)
+                log.configure(processors=[Reentrant()], level="DEBUG")
+            return record
+
+    core.configure(processors=[Reentrant()], level="DEBUG")
+
+    start = time.monotonic()
+    log.info("trigger")
+    core.wait_for_processed(10)
+    elapsed = time.monotonic() - start
+
+    assert core.is_alive()
+    assert elapsed < 2.0
+
+    core.stop()
+    core.join()
+
+
+def test_wait_for_processed_is_bounded(monkeypatch):
+    import plainlog._logger as mod
+
+    core = Core()
+    # stop the real worker so nothing consumes the EVENT command
+    core.stop()
+    core.join()
+
+    class FakeThread:
+        def is_alive(self):
+            return True
+
+        def join(self):
+            pass
+
+    core._thread = FakeThread()
+    monkeypatch.setattr(mod._env, "DEFAULT_WAIT_TIMEOUT", 0.05)
+
+    start = time.monotonic()
+    worker = threading.Thread(target=core.wait_for_processed, daemon=True)
+    worker.start()
+    worker.join(2.0)
+    elapsed = time.monotonic() - start
+
+    assert not worker.is_alive(), "wait_for_processed did not return"
+    assert elapsed < 1.0
 
 
 def test_reset_for_fork_restarts_worker():

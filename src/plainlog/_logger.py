@@ -13,7 +13,7 @@ from copy import copy
 from enum import Enum
 from multiprocessing import current_process
 from queue import SimpleQueue
-from threading import Event, Thread
+from threading import Event, Thread, current_thread
 from time import time
 from typing import (
     Any,
@@ -72,6 +72,20 @@ def _validate_name(name: str) -> str:
         raise ValueError("Name must be a string.")
 
     return name
+
+
+def _safe_str(obj: Any) -> str:
+    try:
+        return str(obj)
+    except Exception:
+        return "<unprintable>"
+
+
+def _safe_repr(obj: Any) -> str:
+    try:
+        return repr(obj)
+    except Exception:
+        return "<unprintable>"
 
 
 _validate_level = getattr(logging, "_checkLevel")  # noqa: B009
@@ -135,10 +149,13 @@ class Core:
     def wait_for_processed(self, timeout: Optional[float] = None) -> None:
         if not self._thread.is_alive():
             return
+        if self._thread is current_thread():
+            # cannot wait for the worker from within the worker
+            return
 
         event: Event = Event()
         self._put(Command.EVENT, event)
-        event.wait(timeout)
+        event.wait(timeout if timeout is not None else _env.DEFAULT_WAIT_TIMEOUT)
 
     def close(self) -> None:
         if self.is_alive():
@@ -158,46 +175,41 @@ class Core:
         while True:
             try:
                 value = queue_get()
-            except Exception:  # pragma: no cover
-                continue
-
-            match value:
-                case (Command.LOG, log_record):
-                    record: Record = log_record
-                    for processor in processors:
-                        try:
-                            new_record = processor(record)
-                        except Exception as ex:
-                            record["processor_error_message"] = str(ex)
-                            record["processor_error_name_repr"] = repr(processor)
-                            continue
-                        if not new_record:
-                            break
-                        if not isinstance(new_record, dict):
-                            # protocol violation: keep the previous record
-                            record["processor_error_message"] = (
-                                f"returned non-dict {new_record!r}"
-                            )
-                            record["processor_error_name_repr"] = repr(processor)
-                            continue
-                        record = new_record
-
-                case (Command.CONFIGURE, (c_processors, level)):
-                    if level is not None:
-                        self._min_level_no = level
-                    if c_processors is not None:
+                match value:
+                    case (Command.LOG, log_record):
+                        record: Record = log_record
                         for processor in processors:
                             try:
-                                handle_close(processor)
-                            except Exception:
-                                pass
-                        self._processors = processors = tuple(c_processors)
+                                new_record = processor(record)
+                            except Exception as ex:
+                                record["processor_error_message"] = _safe_str(ex)
+                                record["processor_error_name_repr"] = _safe_repr(
+                                    processor
+                                )
+                                continue
+                            if not new_record:
+                                break
+                            if isinstance(new_record, dict):
+                                record = new_record
 
-                case (Command.STOP, _):
-                    break
+                    case (Command.CONFIGURE, (c_processors, level)):
+                        if level is not None:
+                            self._min_level_no = level
+                        if c_processors is not None:
+                            for processor in processors:
+                                try:
+                                    handle_close(processor)
+                                except Exception:
+                                    pass
+                            self._processors = processors = tuple(c_processors)
 
-                case (Command.EVENT, event):  # pragma: no cover
-                    event.set()
+                    case (Command.STOP, _):
+                        break
+
+                    case (Command.EVENT, event):  # pragma: no cover
+                        event.set()
+            except Exception:  # pragma: no cover - worker must never die
+                continue
 
     @staticmethod
     def _print_error(record: dict, handler, exception=None) -> None:
