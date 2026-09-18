@@ -1,6 +1,3 @@
-# SPDX-FileCopyrightText: 2023 Wolfgang Langner <tds333@mailbox.org>
-#
-# SPDX-License-Identifier: Apache-2.0 OR MIT
 """
 The plainlog library provides a pre-instanced logger to facilitate dealing with logging in Python.
 

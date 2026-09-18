@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2023 Wolfgang Langner <tds333@mailbox.org>
 #
-# SPDX-License-Identifier: Apache-2.0 OR MIT
+# SPDX-License-Identifier: BSD-3-Clause
 import multiprocessing as mp
 import os
 import threading

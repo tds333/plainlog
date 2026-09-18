@@ -1,9 +1,3 @@
-# SPDX-FileCopyrightText: 2023 Wolfgang Langner <tds333@mailbox.org>
-#
-# SPDX-License-Identifier: Apache-2.0 OR MIT
-
-# codeparts from std library logging
-
 import warnings
 
 from . import logger

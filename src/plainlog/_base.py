@@ -1,6 +1,3 @@
-# SPDX-FileCopyrightText: 2023 Wolfgang Langner <tds333@mailbox.org>
-#
-# SPDX-License-Identifier: Apache-2.0 OR MIT
 import pickle
 from types import TracebackType
 from typing import Any, Dict, NamedTuple, Optional, Protocol, Union
