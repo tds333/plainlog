@@ -44,7 +44,7 @@ LEVEL_WARNING: int = logging.WARNING
 LEVEL_ERROR: int = logging.ERROR
 LEVEL_CRITICAL: int = logging.CRITICAL
 
-start_time = time()
+_start_time = time()
 
 
 _STOP = object()
@@ -256,10 +256,16 @@ class Logger:
     additional or fewer extra keys.  Use `new()` to create a child
     logger (optionally with an auto-detected name).
 
+    Args:
+        core: The shared Core this logger writes to.
+        name: Logger name (e.g. ``"root"``, ``"mymodule.MyClass"``).
+        extra: Static key-value pairs attached to every record.
+        verbose: When true, caller info (``function``, ``line``, ...) is
+            added to every record. Defaults to ``False``.
+
     Attributes:
         name: Logger name (e.g. ``"root"``, ``"mymodule.MyClass"``).
         extra: Read-only copy of the static extra key-value pairs.
-        core: The shared Core this logger writes to.
     """
 
     __slots__ = ("_core", "_name", "_extra", "_verbose")
@@ -294,7 +300,7 @@ class Logger:
         self,
         name: Optional[str] = None,
         extra=None,
-        verbose=False,
+        verbose=None,
     ):
         """Create a child logger, optionally auto-detecting the caller name.
 
@@ -303,6 +309,8 @@ class Logger:
                 auto-detected from the caller's frame (module + qualname).
             extra: Extra key-value pairs. Falls back to the parent's
                 ``extra`` when ``None``.
+            verbose: Whether to add caller info to records. Falls back to
+                the parent's setting when ``None``.
 
         Returns:
             A new Logger instance.
@@ -327,6 +335,7 @@ class Logger:
 
         name = self._name if name is None else name
         extra = self._extra if extra is None else extra
+        verbose = self._verbose if verbose is None else verbose
 
         return self.__class__(self._core, name, extra, verbose)
 
@@ -498,14 +507,17 @@ class Logger:
         level: Optional[Union[str, int]] = None,
         verbose: Optional[bool] = None,
     ) -> None:
-        """Configure the shared Core processors, level, and error printing.
+        """Configure the shared Core and this logger's verbosity.
 
-        Shortcut for `Core.configure()`.
+        Delegates processor and level changes to `Core.configure()`, and
+        optionally updates ``verbose`` on this logger.
 
         Args:
             processors: Processors to install, or ``None`` to leave
                 unchanged. Pass an empty iterable to remove all processors.
             level: Minimum log level.
+            verbose: When not ``None``, sets whether caller info is added
+                to records logged by this logger.
         """
         if verbose is not None:
             self._verbose = bool(verbose)
@@ -520,7 +532,8 @@ class Logger:
             **kwargs: Additional record fields.
 
         Returns:
-            True if processed False if not
+            ``True`` if the record was enqueued, ``False`` if it was
+            dropped (no processors configured or below the minimum level).
         """
         level = _validate_level(level)
         return self._log(level, msg, kwargs)

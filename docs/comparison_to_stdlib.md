@@ -12,7 +12,7 @@
 | **Async support** | Same sync interface works in async code because logging is always non-blocking (the queue-based Core handles I/O). | Requires `QueueHandler`/`QueueListener` setup for similar behavior, or dedicated async handlers with different method names. |
 | **`bind` / `unbind` / `context`** | Offers `logger.bind(**kwargs)` (returns a new logger with extra fields), `logger.unbind(*args)`, `logger.context(**kwargs)` (context var), and `logger.contextualize(**kwargs)` context manager. | No built-in equivalent; must use `LoggerAdapter` or `extra` dict manually. |
 | **Log levels** | Reuses stdlib level numbers and names (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`, `NOTSET`). Does not invent its own. | The original source of these levels. |
-| **Profiles** | Ships with 15+ named configuration profiles (default, develop, fingerscrossed, simple, cloud, json, file, fast, empty, no_init, etc.) for one-liner setup. | No profiles concept. |
+| **Profiles** | Ships with 14 named configuration profiles (default, develop, fingerscrossed, simple, cloud, json, file, fast, empty, no_init, etc.) for one-liner setup. | No profiles concept. |
 | **Dependencies** | Zero external dependencies. | Part of the Python standard library. |
 | **Setup** | `from plainlog import logger` — ready to use immediately. | `import logging; logging.basicConfig(...); logger = logging.getLogger(...)` — requires boilerplate. |
 

@@ -45,6 +45,20 @@ logger.log("INFO", "explicit level")
 logger.log(20, "level as int")
 ```
 
+### Callable form
+
+A `Logger` is also callable. `logger(level, msg, **kwargs)` behaves like
+`logger.log()` but returns a ``bool``: ``True`` if the record was accepted by
+the Core's processor pipeline, ``False`` if it was dropped (no processors
+configured, or below the minimum level).
+
+```python
+from plainlog import logger
+
+accepted = logger("INFO", "positional form")
+also_accepted = logger(level="WARNING", msg="keyword form")
+```
+
 ### Log with exception info
 
 ```python
@@ -122,6 +136,20 @@ with logger.contextualize(request_id="xyz"):
 
 The context is thread-safe (backed by ``ContextVar``) and works correctly in
 async code.
+
+For manual control, `context()` sets the variables and returns a token that
+`reset_context()` restores:
+
+```python
+from plainlog import logger
+
+token = logger.context(request_id="xyz")
+try:
+    logger.info("inside context")
+finally:
+    logger.reset_context(token)
+logger.info("after context")
+```
 
 ---
 

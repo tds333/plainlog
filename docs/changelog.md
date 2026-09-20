@@ -102,7 +102,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initial documentation site and runnable doc examples (`pytest-examples`).
 - More tests and benchmark coverage.
 
-[Unreleased]: https://github.com/tds333/plainlog/compare/0.5.0...HEAD
+[Unreleased]: https://github.com/tds333/plainlog/compare/0.6.0...HEAD
+[0.6.0]: https://github.com/tds333/plainlog/compare/0.5.0...0.6.0
 [0.5.0]: https://github.com/tds333/plainlog/compare/0.4.0...0.5.0
 [0.4.0]: https://github.com/tds333/plainlog/compare/0.3.0...0.4.0
 [0.3.0]: https://github.com/tds333/plainlog/compare/0.2.0...0.3.0
