@@ -6,6 +6,7 @@ import sys
 import tempfile
 import threading
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import patch
 
@@ -13,7 +14,6 @@ from plainlog._base import RecordException
 from plainlog._logger import LEVEL_DEBUG, LEVEL_ERROR, LEVEL_INFO
 from plainlog.processors import (
     AsyncBridge,
-    DefaultFormatter,
     FileWriter,
     FilterList,
     FingersCrossed,
@@ -36,6 +36,10 @@ from plainlog.processors import (
     redact_fields,
     remove_extra_items,
 )
+
+FIXED_CREATED = datetime(
+    2026, 9, 20, 11, 15, 41, 123456, tzinfo=timezone.utc
+).timestamp()
 
 
 def record(msg="test", name="test", level=None, extra=None, kwargs=None):
@@ -646,19 +650,6 @@ class TestFormatMessage:
         assert result["message"] == "already formatted"
 
 
-class TestDefaultFormatter:
-    def test_call(self):
-        df = DefaultFormatter()
-        log_record = make_record("default message")
-        result = df(log_record)
-        # Check that the output contains expected log parts
-        assert result is log_record
-        message = result["message"]
-        assert "DEBUG" in message
-        assert "[root]" in message
-        assert "default message" in message
-
-
 class TestSimpleFormatter:
     def test_call(self):
         sf = SimpleFormatter()
@@ -666,6 +657,69 @@ class TestSimpleFormatter:
         result = sf(log_record)
         assert result is log_record
         assert "DEBUG    [root] my message" in result["message"]
+
+    def test_full_utc_timestamp_without_offset(self):
+        sf = SimpleFormatter()
+        log_record = make_record("my message")
+        log_record["created"] = FIXED_CREATED
+        result = sf(log_record)
+
+        assert result["message"].startswith("2026-09-20 11:15:41.123456 ")
+        assert "+00:00" not in result["message"]
+
+    def test_appends_extra_when_present(self):
+        sf = SimpleFormatter()
+        log_record = make_record("my message")
+        log_record["extra"] = {"user": "alice"}
+        result = sf(log_record)
+
+        assert result["message"].endswith("my message {'user': 'alice'}")
+
+    def test_no_trailing_space_when_extra_empty(self):
+        sf = SimpleFormatter()
+        log_record = make_record("my message")
+        log_record["extra"] = {}
+        result = sf(log_record)
+
+        assert result["message"].endswith("my message")
+        assert not result["message"].endswith(" ")
+
+    def test_custom_format(self):
+        sf = SimpleFormatter("{level_name}: {message}")
+        result = sf(make_record("my message"))
+
+        assert result["message"] == "DEBUG: my message"
+
+    def test_custom_format_extra_empty(self):
+        sf = SimpleFormatter("{message}{extra}")
+        result = sf(make_record("my message"))
+
+        assert result["message"] == "my message"
+
+    def test_custom_format_extra_present_is_prefixed_string(self):
+        sf = SimpleFormatter("{message}{extra}")
+        log_record = make_record("my message")
+        log_record["extra"] = {"k": "v"}
+        result = sf(log_record)
+
+        assert result["message"] == "my message {'k': 'v'}"
+
+    def test_interpolates_msg_from_extra(self):
+        sf = SimpleFormatter()
+        log_record = make_record("hello {name}")
+        log_record.pop("message")
+        log_record["extra"] = {"name": "bob"}
+        result = sf(log_record)
+
+        assert "hello bob" in result["message"]
+
+    def test_evaluates_lambda_extra(self):
+        sf = SimpleFormatter()
+        log_record = make_record("my message")
+        log_record["extra"] = {"n": lambda: 5}
+        result = sf(log_record)
+
+        assert result["message"].endswith("my message {'n': 5}")
 
 
 class TestJsonFormatter:

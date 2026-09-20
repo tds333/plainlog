@@ -49,7 +49,7 @@ def setup_plainlog_empty() -> None:
 
 
 def setup_plainlog_devnull() -> None:
-    apply_log_profile("fast", level="DEBUG", stream=DEVNULL)
+    apply_log_profile("default", level="DEBUG", stream=DEVNULL)
 
 
 def setup_stdlib_null() -> None:

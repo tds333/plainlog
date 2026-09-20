@@ -4,11 +4,14 @@ from ._logger import logger
 
 
 def _default(level=None, **kwargs) -> None:
-    from .processors import DefaultFormatter, Stream
+    from .processors import SimpleFormatter, Stream
+
+    stream = kwargs.get("stream", sys.stdout)
+    fmt = kwargs.get("format")
 
     logger.configure(
         level=level,
-        processors=[DefaultFormatter(), Stream(sys.stdout)],
+        processors=[SimpleFormatter(fmt), Stream(stream)],
     )
 
 
@@ -20,11 +23,12 @@ def _develop(level=None, **kwargs) -> None:
         print_processor_error,
     )
 
+    stream = kwargs.get("stream", sys.stderr)
     logger.configure(
         processors=[
             format_message,
             ConsoleRenderer(colors=True),
-            Stream(stream=sys.stderr),
+            Stream(stream=stream),
             print_processor_error,
         ],
         level=level,
@@ -44,9 +48,10 @@ def _fingerscrossed(level=None, **kwargs) -> None:
     action_level = kwargs.get("action_level")
     buffer_size = kwargs.get("buffer_size")
     reset = kwargs.get("reset")
+    stream = kwargs.get("stream", sys.stderr)
 
     handler = FingersCrossed(
-        Stream(sys.stderr),
+        Stream(stream),
         action_level=action_level,
         reset=reset,
         buffer_size=buffer_size,
@@ -60,17 +65,6 @@ def _fingerscrossed(level=None, **kwargs) -> None:
             print_processor_error,
         ],
         level=level,
-    )
-
-
-def _simple(level=None, **kwargs) -> None:
-    from .processors import SimpleFormatter, Stream
-
-    stream = kwargs.get("stream", sys.stderr)
-    processors = [SimpleFormatter(), Stream(stream)]
-    logger.configure(
-        level=level,
-        processors=processors,
     )
 
 
@@ -99,11 +93,12 @@ def _file(level=None, **kwargs) -> None:
     from .processors import FileWriter, SimpleFormatter
 
     filename = kwargs.get("filename", "plainlog.log")
+    fmt = kwargs.get("format")
     watch = True
 
     logger.configure(
         level=level,
-        processors=[SimpleFormatter(), FileWriter(filename, watch=watch)],
+        processors=[SimpleFormatter(fmt), FileWriter(filename, watch=watch)],
     )
 
 
@@ -114,6 +109,7 @@ def _fingerscrossed_file(level=None, **kwargs) -> None:
     action_level = kwargs.get("action_level")
     buffer_size = kwargs.get("buffer_size")
     reset = kwargs.get("reset")
+    fmt = kwargs.get("format")
 
     handler = FingersCrossed(
         FileWriter(filename, watch=True),
@@ -123,11 +119,11 @@ def _fingerscrossed_file(level=None, **kwargs) -> None:
     )
     logger.configure(
         level=level,
-        processors=[SimpleFormatter(), handler],
+        processors=[SimpleFormatter(fmt), handler],
     )
 
 
-def _console_no_color(level=None, **kwargs):
+def _develop_no_color(level=None, **kwargs):
     from .processors import (
         ConsoleRenderer,
         Stream,
@@ -145,17 +141,7 @@ def _console_no_color(level=None, **kwargs):
             Stream(stream=stream),
             print_processor_error,
         ],
-    )
-
-
-def _fast(level=None, **kwargs):
-    from .processors import SimpleFormatter, Stream
-
-    stream = kwargs.get("stream", sys.stderr)
-
-    logger.configure(
-        processors=[SimpleFormatter(), Stream(stream)],
-        level=level,
+        verbose=True,
     )
 
 
@@ -171,27 +157,25 @@ def _std_handler(level=None, **kwargs):
     from .std import set_as_root_handler
 
     set_as_root_handler()
-    _default(level, kwargs=kwargs)
+    _default(level, **kwargs)
 
 
 def _std_handler_develop(level=None, **kwargs):
     from .std import set_as_root_handler
 
     set_as_root_handler()
-    _develop(level, kwargs=kwargs)
+    _develop(level, **kwargs)
 
 
 _profiles = {
     "default": _default,
     "develop": _develop,
-    "fingerscrossed": _fingerscrossed,
-    "simple": _simple,
+    "develop_no_color": _develop_no_color,
     "cloud": _cloud,
     "json": _json,
     "file": _file,
+    "fingerscrossed": _fingerscrossed,
     "fingerscrossed_file": _fingerscrossed_file,
-    "console_no_color": _console_no_color,
-    "fast": _fast,
     "empty": _empty,
     "no_init": _no_init,
     "std_handler_default": _std_handler,
@@ -220,10 +204,10 @@ def apply_log_profile(name=None, level=None, **kwargs):
     """Configure plainlog with a named profile.
 
     Available profiles:
-        ``"default"``, ``"develop"``, ``"fingerscrossed"``, ``"simple"``,
-        ``"cloud"``, ``"json"``, ``"file"``, ``"fingerscrossed_file"``,
-        ``"console_no_color"``, ``"fast"``, ``"empty"``, ``"no_init"``,
-        ``"std_handler_default"``, ``"std_handler_develop"``
+        ``"default"``, ``"develop"``, ``"develop_no_color"``, ``"cloud"``,
+        ``"json"``, ``"file"``, ``"fingerscrossed"``, ``"fingerscrossed_file"``,
+        ``"empty"``, ``"no_init"``, ``"std_handler_default"``,
+        ``"std_handler_develop"``
 
     Args:
         name: Profile name. If ``None``, ``"default"`` is used.

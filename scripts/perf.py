@@ -54,7 +54,7 @@ def main():
 if __name__ == "__main__":
     # capture_warnings(True)
 
-    # configure_log("fast", level="DEBUG")
+    # configure_log("default", level="DEBUG")
     # configure_log("empty", level="DEBUG")
     t1 = time()
     # cProfile.run("main2()")

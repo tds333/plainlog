@@ -33,9 +33,13 @@ logger.configure(processors=[SimpleFormatter(), Stream()])
 
 | Formatter | Description |
 |-----------|-------------|
-| [`SimpleFormatter`](#simpleformatter) | Minimal single-line format |
-| [`DefaultFormatter`](#defaultformatter) | Compact format with time and extras |
+| [`SimpleFormatter`](#simpleformatter) | Single-line format with timestamp and extras |
 | [`JsonFormatter`](#jsonformatter) | Serializes a record as JSON string |
+
+!!! note
+    `SimpleFormatter` appends `extra` as a suffix when present. With a custom
+    `fmt`, `{extra}` expands to `""` or a space-prefixed string — not the raw
+    dict.
 
 ### Output Handlers
 
@@ -172,10 +176,6 @@ logger.info("login attempt", username="alice", password="hunter2")
 ### SimpleFormatter
 
 ::: plainlog.processors.SimpleFormatter
-
-### DefaultFormatter
-
-::: plainlog.processors.DefaultFormatter
 
 ### JsonFormatter
 

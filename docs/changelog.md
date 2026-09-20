@@ -5,6 +5,39 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- `develop_no_color` profile — like `develop` but without ANSI colors.
+
+### Changed
+
+- `Logger.new()` inherits the parent logger's `verbose` setting when
+  `verbose` is not given, instead of always defaulting to `False`.
+- `SimpleFormatter` now renders a full ISO timestamp and appends `extra`
+  instead of dropping it.
+- The `default` profile now uses `SimpleFormatter` (writing to stdout).
+- `develop` honors a `stream` kwarg; `default`, `file` and
+  `fingerscrossed_file` accept a `format` kwarg.
+
+### Removed
+
+- `DefaultFormatter` — use `SimpleFormatter` instead.
+- Profiles `simple`, `fast` and `console_no_color` (`console_no_color` is
+  replaced by `develop_no_color`).
+
+### Fixed
+
+- `std_handler_default` and `std_handler_develop` now forward their kwargs
+  (e.g. `stream`, `format`) to the wrapped profile.
+- Documentation corrections: profile count, changelog comparison links, and
+  the missing callable `logger(...)` form plus manual `context()` /
+  `reset_context()` usage.
+- Corrected `Logger` docstrings: removed the non-existent `core` attribute
+  and refreshed the `configure()`, `new()` and `__call__()` descriptions.
+
+
 ## [0.6.0] - 2026-09-18
 
 ### Added

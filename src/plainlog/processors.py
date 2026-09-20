@@ -240,7 +240,9 @@ def print_processor_error(record: Record) -> Record:
 
 
 class SimpleFormatter:
-    DEFAULT_FORMAT = "{datetime} {level_name:<8} [{name}] {message}"
+    DEFAULT_FORMAT = (
+        "{datetime:%Y-%m-%d %H:%M:%S.%f} {level_name:<8} [{name}] {message}{extra}"
+    )
 
     def __init__(self, fmt=None):
         self._fmt = fmt if fmt is not None else self.DEFAULT_FORMAT
@@ -249,24 +251,8 @@ class SimpleFormatter:
         data = copy(record)
         data["datetime"] = datetime.fromtimestamp(data.pop("created"), tz=timezone.utc)
         format_message(data)
-        message = self._fmt.format_map(data)
-        record["message"] = message
-
-        return record
-
-
-class DefaultFormatter:
-    DEFAULT_FORMAT = "{datetime:%H:%M:%S.%f} {level_name:<8} [{name}] {message} {extra}"
-
-    def __init__(self):
-        self._fmt = DefaultFormatter.DEFAULT_FORMAT
-
-    def __call__(self, record: Record) -> Record:
-        data = copy(record)
-        data["datetime"] = datetime.fromtimestamp(data.pop("created"), tz=timezone.utc)
-        format_message(data)
         extra = get_processed_extra(record)
-        data["extra"] = "" if not extra else extra
+        data["extra"] = "" if not extra else f" {extra}"
         message = self._fmt.format_map(data)
         record["message"] = message
 

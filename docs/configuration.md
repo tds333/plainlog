@@ -42,10 +42,9 @@ logger.info("ready")
 
 | Profile | Processors | Output | Notes |
 |---------|------------|--------|-------|
-| ``default`` | [`DefaultFormatter`](processors.md#defaultformatter) + [`Stream`](processors.md#stream) | stdout | Compact default format |
+| ``default`` | [`SimpleFormatter`](processors.md#simpleformatter) + [`Stream`](processors.md#stream) | stdout | Default single-line format |
 | ``develop`` | `format_message` + `ConsoleRenderer` + [`Stream`](processors.md#stream) + `print_processor_error` | stderr | Colorized, caller info (verbose), error printing |
-| ``simple`` | [`SimpleFormatter`](processors.md#simpleformatter) + [`Stream`](processors.md#stream) | stderr | Minimal format |
-| ``console_no_color`` | `format_message` + `ConsoleRenderer` + [`Stream`](processors.md#stream) + `print_processor_error` | stderr | No ANSI codes, error printing |
+| ``develop_no_color`` | `format_message` + `ConsoleRenderer` + [`Stream`](processors.md#stream) + `print_processor_error` | stderr | No ANSI codes, caller info (verbose), error printing |
 
 #### Structured / JSON Output
 
@@ -53,7 +52,6 @@ logger.info("ready")
 |---------|------------|--------|-------|
 | ``cloud`` | [`JsonFormatter`](processors.md#jsonformatter) + [`Stream`](processors.md#stream) | stderr | Compact JSON, no indent |
 | ``json`` | [`JsonFormatter`](processors.md#jsonformatter) + [`Stream`](processors.md#stream) | stderr | Pretty-printed JSON (indent=2) |
-| ``fast`` | [`SimpleFormatter`](processors.md#simpleformatter) + [`Stream`](processors.md#stream) | stderr | SimpleFormatter, no extras |
 
 #### File Output
 
@@ -68,7 +66,11 @@ logger.info("ready")
 |---------|------------|-------|
 | ``fingerscrossed`` | `format_message` + `ConsoleRenderer` + [`FingersCrossed`](processors.md#fingerscrossed) wrapping [`Stream`](processors.md#stream) + `print_processor_error` | stderr, colorized, buffer until ERROR |
 
-Additional kwargs: ``action_level``, ``buffer_size``, ``reset``.
+Additional kwargs:
+
+- ``stream`` — output stream for ``default``, ``develop``, ``develop_no_color``, ``cloud``, ``json``.
+- ``format`` — format string for ``default``, ``file``, ``fingerscrossed_file``.
+- ``action_level``, ``buffer_size``, ``reset`` — buffering options for ``fingerscrossed`` and ``fingerscrossed_file``.
 
 #### Special-Purpose
 
