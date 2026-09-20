@@ -33,7 +33,7 @@ class StdInterceptHandler(logging.Handler):
 
     def emit(self, record) -> None:
         core = self._core
-        level = record.levelno
+        level: int = record.levelno
 
         if core.min_level_no > level or self.level > level:
             return

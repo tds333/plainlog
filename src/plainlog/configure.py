@@ -12,6 +12,7 @@ def _default(level=None, **kwargs) -> None:
     logger.configure(
         level=level,
         processors=[SimpleFormatter(fmt), Stream(stream)],
+        verbose=False,
     )
 
 
@@ -65,6 +66,7 @@ def _fingerscrossed(level=None, **kwargs) -> None:
             print_processor_error,
         ],
         level=level,
+        verbose=False,
     )
 
 
@@ -75,6 +77,7 @@ def _cloud(level=None, **kwargs) -> None:
     logger.configure(
         level=level,
         processors=[JsonFormatter(), Stream(stream=stream)],
+        verbose=False,
     )
 
 
@@ -86,6 +89,7 @@ def _json(level=None, **kwargs) -> None:
     logger.configure(
         level=level,
         processors=[JsonFormatter(indent=2), Stream(stream=stream)],
+        verbose=False,
     )
 
 
@@ -99,6 +103,7 @@ def _file(level=None, **kwargs) -> None:
     logger.configure(
         level=level,
         processors=[SimpleFormatter(fmt), FileWriter(filename, watch=watch)],
+        verbose=False,
     )
 
 
@@ -120,6 +125,7 @@ def _fingerscrossed_file(level=None, **kwargs) -> None:
     logger.configure(
         level=level,
         processors=[SimpleFormatter(fmt), handler],
+        verbose=False,
     )
 
 
@@ -146,7 +152,7 @@ def _develop_no_color(level=None, **kwargs):
 
 
 def _empty(level=None, **kwargs):
-    logger.configure(processors=(), level=level)
+    logger.configure(processors=(), level=level, verbose=False)
 
 
 def _no_init(level=None, **kwargs):

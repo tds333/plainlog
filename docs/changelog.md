@@ -20,6 +20,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The `default` profile now uses `SimpleFormatter` (writing to stdout).
 - `develop` honors a `stream` kwarg; `default`, `file` and
   `fingerscrossed_file` accept a `format` kwarg.
+- Profiles now set `verbose` explicitly, so applying a profile no longer
+  inherits a previous `verbose` setting. `Logger.configure(verbose=None)` and
+  `Logger.new(verbose=None)` keep inheriting, as before.
 
 ### Removed
 

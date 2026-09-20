@@ -33,18 +33,14 @@ lint: ## Run all checks
 
 .PHONY: type-check
 type-check: ## Type check with
-	-uvx ty check $(SRC_DIR)
+	uvx ty check $(SRC_DIR)
 
 .PHONY: format
 format: ## Format files using ruff format
 	uvx ruff format $(SRC_DIR)
 
 .PHONY: bench
-bench: ## Format files using ruff format
-	uv run benchmarks/timeit_bench_log.py
-
-.PHONY: bench-std
-bench-std: ## Benchmark plainlog vs stdlib logging
+bench: ## Benchmark plainlog vs stdlib logging
 	uv run benchmarks/bench_stdlib_vs_plainlog.py
 
 .PHONY: docs

@@ -216,3 +216,18 @@ def test_add_profile_function_receives_level_and_kwargs():
         assert recorded == {"level": "INFO", "kwargs": {"foo": "bar"}}
     finally:
         _profiles.pop("_test_record", None)
+
+
+def test_profile_sets_verbose_explicitly():
+    apply_log_profile("develop", level="DEBUG")
+    assert logger._verbose is True
+
+    apply_log_profile("default", level="DEBUG")
+    assert logger._verbose is False
+
+
+def test_configure_verbose_none_keeps_current():
+    logger.configure(verbose=True)
+    logger.configure(processors=[])
+
+    assert logger._verbose is True
