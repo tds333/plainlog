@@ -24,12 +24,10 @@ def _find(processors, cls):
 def _restore_logger():
     processors = logger_core.processors
     level = logger_core.min_level_no
-    verbose = logger._verbose
 
     yield
 
-    logger.configure(processors=list(processors), level=level, verbose=verbose)
-
+    logger.configure(processors=list(processors), level=level)
 
 
 class TestApplyLogProfile:
@@ -100,12 +98,11 @@ def test_default_profile_honors_format_kwarg():
     assert logger_core.processors[0]._fmt == "{message}"
 
 
-def test_develop_profile_is_colored_and_verbose():
+def test_develop_profile_is_colored():
     apply_log_profile("develop", level="DEBUG")
     renderer = _find(logger_core.processors, ConsoleRenderer)
 
     assert renderer._styles.level_info != ""
-    assert logger._verbose is True
 
 
 def test_develop_profile_honors_stream_kwarg():
@@ -117,12 +114,11 @@ def test_develop_profile_honors_stream_kwarg():
     assert "develop to buf" in buf.getvalue()
 
 
-def test_develop_no_color_profile_has_no_ansi_and_is_verbose():
+def test_develop_no_color_profile_has_no_ansi():
     apply_log_profile("develop_no_color", level="DEBUG")
     renderer = _find(logger_core.processors, ConsoleRenderer)
 
     assert renderer._styles.level_info == ""
-    assert logger._verbose is True
 
 
 def test_json_and_cloud_set_expected_indent():
@@ -145,7 +141,6 @@ def test_file_profile_writes_to_filename(tmp_path):
 
 def test_fingerscrossed_profile_kwargs_and_stream():
     buf = io.StringIO()
-    logger.configure(verbose=False)
     apply_log_profile(
         "fingerscrossed",
         level="DEBUG",
@@ -160,7 +155,6 @@ def test_fingerscrossed_profile_kwargs_and_stream():
     assert handler.buffered_records.maxlen == 5
     assert handler._reset is True
     assert handler._processor._stream is buf
-    assert logger._verbose is False
 
 
 def test_empty_profile_clears_processors():
@@ -216,18 +210,3 @@ def test_add_profile_function_receives_level_and_kwargs():
         assert recorded == {"level": "INFO", "kwargs": {"foo": "bar"}}
     finally:
         _profiles.pop("_test_record", None)
-
-
-def test_profile_sets_verbose_explicitly():
-    apply_log_profile("develop", level="DEBUG")
-    assert logger._verbose is True
-
-    apply_log_profile("default", level="DEBUG")
-    assert logger._verbose is False
-
-
-def test_configure_verbose_none_keeps_current():
-    logger.configure(verbose=True)
-    logger.configure(processors=[])
-
-    assert logger._verbose is True

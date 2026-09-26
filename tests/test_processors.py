@@ -8,7 +8,6 @@ import threading
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from unittest.mock import patch
 
 from plainlog._base import RecordException
 from plainlog._logger import LEVEL_DEBUG, LEVEL_ERROR, LEVEL_INFO
@@ -24,8 +23,6 @@ from plainlog.processors import (
     WhitelistLevel,
     WrapStandardHandler,
     allow_by_name,
-    eval_extra,
-    eval_lambda_extra,
     filter_all,
     filter_by_level,
     filter_by_name,
@@ -34,47 +31,12 @@ from plainlog.processors import (
     print_processor_error,
     redact_by_pattern,
     redact_fields,
-    remove_extra_items,
 )
+from tests.helpers import make_record, make_record_with_context
 
 FIXED_CREATED = datetime(
     2026, 9, 20, 11, 15, 41, 123456, tzinfo=timezone.utc
 ).timestamp()
-
-
-def record(msg="test", name="test", level=None, extra=None, kwargs=None):
-    level = LEVEL_DEBUG if level is None else level
-    extra = {} if extra is None else extra
-    kwargs = {} if kwargs is None else kwargs
-    return {
-        "level": level,
-        "level_name": logging.getLevelName(level),
-        "msg": msg,
-        "message": str(msg),
-        "name": name,
-        "extra": {**extra, **kwargs},
-    }
-
-
-def make_record(msg="test", level=None, name="root", extra=None, kwargs=None):
-    from plainlog._logger import logger_process, plainlog_context
-
-    level = LEVEL_DEBUG if level is None else level
-    return {
-        "level": level,
-        "level_name": logging.getLevelName(level),
-        "msg": msg,
-        "message": str(msg),
-        "name": name,
-        "created": time.time(),
-        "process_id": logger_process.ident,
-        "process_name": logger_process.name,
-        "extra": {
-            **plainlog_context.get({}),
-            **(extra or {}),
-            **(kwargs or {}),
-        },
-    }
 
 
 class BaseHandler:
@@ -87,165 +49,102 @@ class BaseHandler:
 # ---------------------------------------------------------------------------
 
 
-class TestEvalExtra:
-    def test_evaluates_lambda_extra(self):
-        r = record(extra={"a": lambda: "resolved"})
-        result = eval_extra(r)
-        assert result["extra"]["a"] == "resolved"
-
-    def test_evaluates_function_extra(self):
-        def myfunc():
-            return "x"
-
-        r = record(extra={"a": myfunc})
-        result = eval_extra(r)
-        assert result["extra"]["a"] == "x"
-
-    def test_empty_extra(self):
-        r = record()
-        result = eval_extra(r)
-        assert result is r
-
-
-class TestEvalLambdaExtra:
-    def test_evaluates_lambda_extra(self):
-        r = record(extra={"a": lambda: "resolved"})
-        result = eval_lambda_extra(r)
-        assert result["extra"]["a"] == "resolved"
-
-    def test_empty_extra(self):
-        r = record()
-        result = eval_lambda_extra(r)
-        assert result is r
-
-
-class TestRemoveItems:
-    def test_removes_specified_keys(self):
-        r = record(name="test")
-        r["extra"]["unwanted"] = 1
-        r["extra"]["also_unwanted"] = 2
-        remover = remove_extra_items("unwanted", "also_unwanted")
-        result = remover(r)
-        assert "unwanted" not in result["extra"]
-        assert "also_unwanted" not in result["extra"]
-        assert result["name"] == "test"
-
-    def test_no_error_when_key_missing(self):
-        r = record()
-        remover = remove_extra_items("nonexistent")
-        result = remover(r)
-        assert result is r
-
-    def test_converts_args_to_string(self):
-        r = record()
-        r[42] = "value"
-        remover = remove_extra_items(42)
-        result = remover(r)
-        assert "42" not in result["extra"]
-
-
 class TestRedactFields:
     def test_redacts_exact_key(self):
-        r = record(extra={"username": "alice", "password": "hunter2"})
+        r = make_record(username="alice", password="hunter2")
         redactor = redact_fields("password")
         result = redactor(r)
-        assert result["extra"]["password"] == "***REDACTED***"
-        assert result["extra"]["username"] == "alice"
+        assert result["password"] == "***REDACTED***"
+        assert result["username"] == "alice"
 
     def test_case_insensitive(self):
-        r = record(extra={"Password": "hunter2"})
+        r = make_record(Password="hunter2")
         redactor = redact_fields("password")
         result = redactor(r)
-        assert result["extra"]["Password"] == "***REDACTED***"
+        assert result["Password"] == "***REDACTED***"
 
     def test_recurses_into_nested_dicts(self):
-        r = record(extra={"auth": {"password": "hunter2", "user": "alice"}})
+        r = make_record(auth={"password": "hunter2", "user": "alice"})
         redactor = redact_fields("password")
         result = redactor(r)
-        assert result["extra"]["auth"]["password"] == "***REDACTED***"
-        assert result["extra"]["auth"]["user"] == "alice"
+        assert result["auth"]["password"] == "***REDACTED***"
+        assert result["auth"]["user"] == "alice"
 
     def test_custom_mask(self):
-        r = record(extra={"password": "hunter2"})
+        r = make_record(password="hunter2")
         redactor = redact_fields("password", mask="<hidden>")
         result = redactor(r)
-        assert result["extra"]["password"] == "<hidden>"
-
-    def test_no_op_when_extra_empty(self):
-        r = record()
-        redactor = redact_fields("password")
-        result = redactor(r)
-        assert result is r
+        assert result["password"] == "<hidden>"
 
     def test_does_not_match_substring(self):
-        r = record(extra={"user_password": "hunter2"})
+        r = make_record(user_password="hunter2")
         redactor = redact_fields("password")
         result = redactor(r)
-        assert result["extra"]["user_password"] == "hunter2"
+        assert result["user_password"] == "hunter2"
 
     def test_recurses_into_deeply_nested_dicts(self):
-        r = record(extra={"a": {"b": {"password": "hunter2"}}})
+        r = make_record(a={"b": {"password": "hunter2"}})
         redactor = redact_fields("password")
         result = redactor(r)
-        assert result["extra"]["a"]["b"]["password"] == "***REDACTED***"
+        assert result["a"]["b"]["password"] == "***REDACTED***"
 
     def test_recurses_into_lists(self):
-        r = record(extra={"users": [{"password": "hunter2"}, {"user": "alice"}]})
+        r = make_record(users=[{"password": "hunter2"}, {"user": "alice"}])
         redactor = redact_fields("password")
         result = redactor(r)
-        assert result["extra"]["users"][0]["password"] == "***REDACTED***"
-        assert result["extra"]["users"][1]["user"] == "alice"
+        assert result["users"][0]["password"] == "***REDACTED***"
+        assert result["users"][1]["user"] == "alice"
 
     def test_recurses_into_tuples(self):
-        r = record(extra={"items": ({"password": "hunter2"},)})
+        r = make_record(items=({"password": "hunter2"},))
         redactor = redact_fields("password")
         result = redactor(r)
-        assert result["extra"]["items"][0]["password"] == "***REDACTED***"
+        assert result["items"][0]["password"] == "***REDACTED***"
 
     def test_matching_container_key_is_not_masked(self):
-        r = record(extra={"credentials": {"user": "alice"}})
+        r = make_record(credentials={"user": "alice"})
         redactor = redact_fields("credentials")
         result = redactor(r)
-        assert result["extra"]["credentials"] == {"user": "alice"}
+        assert result["credentials"] == {"user": "alice"}
 
     def test_masks_matching_leaf_inside_matching_container(self):
-        r = record(extra={"credentials": {"password": "hunter2"}})
+        r = make_record(credentials={"password": "hunter2"})
         redactor = redact_fields("credentials", "password")
         result = redactor(r)
-        assert result["extra"]["credentials"]["password"] == "***REDACTED***"
+        assert result["credentials"]["password"] == "***REDACTED***"
 
     def test_redacts_multiple_fields(self):
-        r = record(extra={"password": "p", "token": "t", "user": "alice"})
+        r = make_record(password="p", token="t", user="alice")
         redactor = redact_fields("password", "token")
         result = redactor(r)
-        assert result["extra"]["password"] == "***REDACTED***"
-        assert result["extra"]["token"] == "***REDACTED***"
-        assert result["extra"]["user"] == "alice"
+        assert result["password"] == "***REDACTED***"
+        assert result["token"] == "***REDACTED***"
+        assert result["user"] == "alice"
 
     def test_non_string_key_does_not_raise(self):
-        r = record(extra={"password": "hunter2"})
-        r["extra"][42] = "value"
+        r = make_record(password="hunter2")
+        r[42] = "value"
         redactor = redact_fields("password")
         result = redactor(r)
-        assert result["extra"]["password"] == "***REDACTED***"
-        assert result["extra"][42] == "value"
+        assert result["password"] == "***REDACTED***"
+        assert result[42] == "value"
 
     def test_no_args_is_noop(self):
-        r = record(extra={"password": "hunter2"})
+        r = make_record(password="hunter2")
         redactor = redact_fields()
         result = redactor(r)
-        assert result["extra"]["password"] == "hunter2"
+        assert result["password"] == "hunter2"
 
     def test_does_not_mutate_caller_nested_dict(self):
         caller = {"password": "hunter2"}
-        r = record(extra={"config": caller})
+        r = make_record(config=caller)
         redactor = redact_fields("password")
         result = redactor(r)
         assert caller == {"password": "hunter2"}
-        assert result["extra"]["config"]["password"] == "***REDACTED***"
+        assert result["config"]["password"] == "***REDACTED***"
 
     def test_leaves_record_fields_untouched(self):
-        r = record(msg="password=hunter2", name="password")
+        r = make_record(msg="password=hunter2", name="password")
         redactor = redact_fields("password")
         result = redactor(r)
         assert result["msg"] == "password=hunter2"
@@ -254,114 +153,112 @@ class TestRedactFields:
 
 class TestRedactByPattern:
     def test_redacts_matching_substring(self):
-        r = record(extra={"user_password": "hunter2", "db_password": "secret"})
+        r = make_record(user_password="hunter2", db_password="secret")
         redactor = redact_by_pattern("password")
         result = redactor(r)
-        assert result["extra"]["user_password"] == "***REDACTED***"
-        assert result["extra"]["db_password"] == "***REDACTED***"
+        assert result["user_password"] == "***REDACTED***"
+        assert result["db_password"] == "***REDACTED***"
 
     def test_case_insensitive(self):
-        r = record(extra={"API_KEY": "abc123"})
+        r = make_record(API_KEY="abc123")
         redactor = redact_by_pattern("api_key")
         result = redactor(r)
-        assert result["extra"]["API_KEY"] == "***REDACTED***"
+        assert result["API_KEY"] == "***REDACTED***"
 
     def test_recurses_into_nested_dicts(self):
-        r = record(extra={"auth": {"api_token": "abc123", "user": "alice"}})
+        r = make_record(auth={"api_token": "abc123", "user": "alice"})
         redactor = redact_by_pattern("token")
         result = redactor(r)
-        assert result["extra"]["auth"]["api_token"] == "***REDACTED***"
-        assert result["extra"]["auth"]["user"] == "alice"
+        assert result["auth"]["api_token"] == "***REDACTED***"
+        assert result["auth"]["user"] == "alice"
 
     def test_leaves_non_matching_keys(self):
-        r = record(extra={"username": "alice"})
+        r = make_record(username="alice")
         redactor = redact_by_pattern("password", "token", "secret")
         result = redactor(r)
-        assert result["extra"]["username"] == "alice"
+        assert result["username"] == "alice"
 
     def test_custom_mask(self):
-        r = record(extra={"secret_key": "abc123"})
+        r = make_record(secret_key="abc123")
         redactor = redact_by_pattern("secret", mask="<hidden>")
         result = redactor(r)
-        assert result["extra"]["secret_key"] == "<hidden>"
+        assert result["secret_key"] == "<hidden>"
 
-    def test_no_op_when_extra_empty(self):
-        r = record()
+    def test_no_match_returns_equal_record(self):
+        r = make_record()
         redactor = redact_by_pattern("password")
         result = redactor(r)
-        assert result is r
+        assert result == r
 
     def test_recurses_into_deeply_nested_dicts(self):
-        r = record(extra={"a": {"b": {"password": "hunter2"}}})
+        r = make_record(a={"b": {"password": "hunter2"}})
         redactor = redact_by_pattern("password")
         result = redactor(r)
-        assert result["extra"]["a"]["b"]["password"] == "***REDACTED***"
+        assert result["a"]["b"]["password"] == "***REDACTED***"
 
     def test_recurses_into_lists(self):
-        r = record(extra={"users": [{"api_token": "t"}, {"user": "alice"}]})
+        r = make_record(users=[{"api_token": "t"}, {"user": "alice"}])
         redactor = redact_by_pattern("token")
         result = redactor(r)
-        assert result["extra"]["users"][0]["api_token"] == "***REDACTED***"
-        assert result["extra"]["users"][1]["user"] == "alice"
+        assert result["users"][0]["api_token"] == "***REDACTED***"
+        assert result["users"][1]["user"] == "alice"
 
     def test_recurses_into_tuples(self):
-        r = record(extra={"items": ({"api_token": "t"},)})
+        r = make_record(items=({"api_token": "t"},))
         redactor = redact_by_pattern("token")
         result = redactor(r)
-        assert result["extra"]["items"][0]["api_token"] == "***REDACTED***"
+        assert result["items"][0]["api_token"] == "***REDACTED***"
 
     def test_matching_container_key_is_not_masked(self):
-        r = record(extra={"api_key": {"value": "secret"}})
+        r = make_record(api_key={"value": "secret"})
         redactor = redact_by_pattern("api_key")
         result = redactor(r)
-        assert result["extra"]["api_key"] == {"value": "secret"}
+        assert result["api_key"] == {"value": "secret"}
 
     def test_redacts_multiple_patterns(self):
-        r = record(
-            extra={
-                "user_password": "a",
-                "api_token": "b",
-                "secret_key": "c",
-                "user": "d",
-            }
+        r = make_record(
+            user_password="a",
+            api_token="b",
+            secret_key="c",
+            user="d",
         )
         redactor = redact_by_pattern("password", "token", "secret")
         result = redactor(r)
-        assert result["extra"]["user_password"] == "***REDACTED***"
-        assert result["extra"]["api_token"] == "***REDACTED***"
-        assert result["extra"]["secret_key"] == "***REDACTED***"
-        assert result["extra"]["user"] == "d"
+        assert result["user_password"] == "***REDACTED***"
+        assert result["api_token"] == "***REDACTED***"
+        assert result["secret_key"] == "***REDACTED***"
+        assert result["user"] == "d"
 
     def test_non_string_key_does_not_raise(self):
-        r = record(extra={"password": "hunter2"})
-        r["extra"][42] = "value"
+        r = make_record(password="hunter2")
+        r[42] = "value"
         redactor = redact_by_pattern("password")
         result = redactor(r)
-        assert result["extra"]["password"] == "***REDACTED***"
-        assert result["extra"][42] == "value"
+        assert result["password"] == "***REDACTED***"
+        assert result[42] == "value"
 
     def test_no_args_is_noop(self):
-        r = record(extra={"password": "hunter2"})
+        r = make_record(password="hunter2")
         redactor = redact_by_pattern()
         result = redactor(r)
-        assert result["extra"]["password"] == "hunter2"
+        assert result["password"] == "hunter2"
 
     def test_does_not_mutate_caller_nested_dict(self):
         caller = {"api_token": "abc123"}
-        r = record(extra={"config": caller})
+        r = make_record(config=caller)
         redactor = redact_by_pattern("token")
         result = redactor(r)
         assert caller == {"api_token": "abc123"}
-        assert result["extra"]["config"]["api_token"] == "***REDACTED***"
+        assert result["config"]["api_token"] == "***REDACTED***"
 
 
 class TestFilterNone:
     def test_filters_when_name_is_none(self):
-        r = record(name=None)
+        r = make_record(name=None)
         assert filter_None(r) == {}
 
     def test_passes_when_name_not_none(self):
-        r = record(name="valid")
+        r = make_record(name="valid")
         assert filter_None(r) is r
 
 
@@ -382,89 +279,89 @@ def test_print_processor_error_silent_without_error(capsys):
 
 class TestFilterAll:
     def test_filters_all(self):
-        assert filter_all(record()) == {}
+        assert filter_all(make_record()) == {}
 
 
 class TestFilterByName:
     def test_filters_matching_parent(self):
-        r = record(name="foo.bar.baz")
+        r = make_record(name="foo.bar.baz")
         filt = filter_by_name("foo")
         result = filt(r)
         assert result == {}
 
     def test_passes_non_matching(self):
-        r = record(name="other.module")
+        r = make_record(name="other.module")
         filt = filter_by_name("foo")
         result = filt(r)
         assert result is r
 
     def test_filters_when_name_is_none(self):
-        r = record(name=None)
+        r = make_record(name=None)
         filt = filter_by_name("foo")
         assert filt(r) == {}
 
 
 class TestAllowByName:
     def test_allows_matching_parent(self):
-        r = record(name="foo.bar.baz")
+        r = make_record(name="foo.bar.baz")
         filt = allow_by_name("foo")
         assert filt(r) is r
 
     def test_drops_non_matching(self):
-        r = record(name="other.module")
+        r = make_record(name="other.module")
         filt = allow_by_name("foo")
         assert filt(r) == {}
 
     def test_drops_when_name_is_none(self):
-        r = record(name=None)
+        r = make_record(name=None)
         filt = allow_by_name("foo")
         assert filt(r) == {}
 
     def test_drops_when_name_is_empty(self):
-        r = record(name="")
+        r = make_record(name="")
         filt = allow_by_name("foo")
         assert filt(r) == {}
 
 
 class TestFilterByLevel:
     def test_passes_above_level(self):
-        r = record(name="test", level=LEVEL_INFO)
+        r = make_record(name="test", level=LEVEL_INFO)
         filt = filter_by_level({"test": 10})
         result = filt(r)
         assert result is r
 
     def test_filters_below_level(self):
-        r = record(name="test", level=LEVEL_DEBUG)
+        r = make_record(name="test", level=LEVEL_DEBUG)
         filt = filter_by_level({"test": 20})
         result = filt(r)
         assert result == {}
 
     def test_checks_parent_modules(self):
-        r = record(name="a.b.c", level=LEVEL_DEBUG)
+        r = make_record(name="a.b.c", level=LEVEL_DEBUG)
         filt = filter_by_level({"a": 20})
         result = filt(r)
         assert result == {}
 
     def test_passes_if_level_is_none(self):
-        r = record(name="unconfigured", level=LEVEL_DEBUG)
+        r = make_record(name="unconfigured", level=LEVEL_DEBUG)
         filt = filter_by_level({"other": 20})
         result = filt(r)
         assert result is r
 
     def test_filters_with_false(self):
-        r = record(name="blocked", level=LEVEL_DEBUG)
+        r = make_record(name="blocked", level=LEVEL_DEBUG)
         filt = filter_by_level({"blocked": False})
         result = filt(r)
         assert result == {}
 
     def test_passes_module_empty_string(self):
-        r = record(name="a.b.c", level=LEVEL_DEBUG)
+        r = make_record(name="a.b.c", level=LEVEL_DEBUG)
         filt = filter_by_level({"a": 30})
         result = filt(r)
         assert result == {}
 
     def test_exact_module_name(self):
-        r = record(name="mymodule", level=LEVEL_DEBUG)
+        r = make_record(name="mymodule", level=LEVEL_DEBUG)
         filt = filter_by_level({"mymodule": 5})
         result = filt(r)
         assert result is r
@@ -473,33 +370,33 @@ class TestFilterByLevel:
 class TestFilterList:
     def test_blacklist_filters_out(self):
         fm = FilterList(blacklist=["secret"])
-        r = record(name="secret.module")
+        r = make_record(name="secret.module")
         assert fm(r) == {}
 
     def test_whitelist_allows(self):
         fm = FilterList(blacklist=["secret"], whitelist=["allowed"])
-        r = record(name="allowed.module")
+        r = make_record(name="allowed.module")
         assert fm(r) is r
 
     def test_whitelist_overrides_blacklist(self):
         fm = FilterList(blacklist=["secret"], whitelist=["secret"])
-        r = record(name="secret.module")
+        r = make_record(name="secret.module")
         assert fm(r) is r
 
     def test_blacklist_without_whitelist_filters(self):
         fm = FilterList(blacklist=["secret"], whitelist=["public"])
-        r = record(name="secret.module")
+        r = make_record(name="secret.module")
         assert fm(r) == {}
 
     def test_no_match_passes(self):
         fm = FilterList(blacklist=["secret"])
-        r = record(name="public.module")
+        r = make_record(name="public.module")
         assert fm(r) is r
 
     def test_partition_caching(self):
         fm = FilterList(blacklist=["a"])
-        r1 = record(name="a.b.c")
-        r2 = record(name="a.b.c")
+        r1 = make_record(name="a.b.c")
+        r2 = make_record(name="a.b.c")
         fm(r1)
         cached = fm._partition_cache["a.b.c"]
         fm(r2)
@@ -514,17 +411,17 @@ class TestFilterList:
 class TestWhitelistLevel:
     def test_filters_non_whitelisted(self):
         wl = WhitelistLevel({"allowed": 10})
-        r = record(name="other", level=LEVEL_DEBUG)
+        r = make_record(name="other", level=LEVEL_DEBUG)
         assert wl(r) == {}
 
     def test_passes_whitelisted_at_level(self):
         wl = WhitelistLevel({"mymod": 10})
-        r = record(name="mymod.sub", level=LEVEL_DEBUG)
+        r = make_record(name="mymod.sub", level=LEVEL_DEBUG)
         assert wl(r) is r
 
     def test_filters_below_whitelisted_level(self):
         wl = WhitelistLevel({"mymod": 20})
-        r = record(name="mymod.sub", level=LEVEL_DEBUG)
+        r = make_record(name="mymod.sub", level=LEVEL_DEBUG)
         assert wl(r) == {}
 
     def test_partition_static(self):
@@ -544,15 +441,15 @@ class TestSubProcessor:
 
     def test_runs_processors_on_copy(self):
         def add_key(record):
-            record["extra"]["added"] = True
+            record["added"] = True
             return record
 
         sub = SubProcessor([add_key])
-        r = record()
+        r = make_record()
         result = sub(r)
         assert result is not r
-        assert result["extra"]["added"] is True
-        assert "added" not in r["extra"]
+        assert result["added"] is True
+        assert "added" not in r
 
     def test_stops_when_processor_drops_record(self):
         calls = []
@@ -566,7 +463,7 @@ class TestSubProcessor:
             return record
 
         sub = SubProcessor([first, second])
-        assert sub(record()) == {}
+        assert sub(make_record()) == {}
         assert calls == ["first"]
 
     def test_close_forwards_and_suppresses_errors(self):
@@ -590,7 +487,7 @@ class TestSubProcessor:
         sub.close()
         assert closed == ["closer"]
 
-    def test_preserves_record_exception_through_deepcopy(self):
+    def test_preserves_record_exception_through_copy(self):
         from sys import exc_info
 
         from plainlog._base import RecordException
@@ -602,7 +499,6 @@ class TestSubProcessor:
                 "msg": "with exception",
                 "message": "with exception",
                 "exception": RecordException(*exc_info()),
-                "extra": {},
             }
 
         captured = []
@@ -631,21 +527,24 @@ class TestSubProcessor:
 class TestFormatMessage:
     def test_format_message_simple(self):
         message = "my message"
-        log_record = make_record(message)
-        log_record.pop("message")
+        log_record = make_record_with_context(message)
         result = format_message(log_record)
         assert result is log_record
         assert result["message"] == message
 
-    def test_format_message_percent_dict(self):
-        message = "my message {name}"
-        log_record = make_record(message, kwargs={"name": "one"})
-        log_record.pop("message")
+    def test_format_message_uses_record_keys(self):
+        log_record = make_record_with_context("my message {user}", user="one")
         result = format_message(log_record)
         assert result["message"] == "my message one"
 
+    def test_format_message_can_use_core_keys(self):
+        log_record = make_record_with_context("logger {name}")
+        result = format_message(log_record)
+        assert result["message"] == "logger root"
+
     def test_format_message_keeps_existing(self):
-        log_record = make_record("already formatted")
+        log_record = make_record_with_context("ignored {user}", user="x")
+        log_record["message"] = "already formatted"
         result = format_message(log_record)
         assert result["message"] == "already formatted"
 
@@ -653,81 +552,74 @@ class TestFormatMessage:
 class TestSimpleFormatter:
     def test_call(self):
         sf = SimpleFormatter()
-        log_record = make_record("my message")
+        log_record = make_record_with_context("my message")
         result = sf(log_record)
         assert result is log_record
-        assert "DEBUG    [root] my message" in result["message"]
+        assert "DEBUG    [root] my message" in result["formatted_message"]
 
     def test_full_utc_timestamp_without_offset(self):
         sf = SimpleFormatter()
-        log_record = make_record("my message")
+        log_record = make_record_with_context("my message")
         log_record["created"] = FIXED_CREATED
         result = sf(log_record)
 
-        assert result["message"].startswith("2026-09-20 11:15:41.123456 ")
-        assert "+00:00" not in result["message"]
+        assert result["formatted_message"].startswith("2026-09-20 11:15:41.123456 ")
+        assert "+00:00" not in result["formatted_message"]
 
-    def test_appends_extra_when_present(self):
+    def test_user_key_not_appended_by_default(self):
         sf = SimpleFormatter()
-        log_record = make_record("my message")
-        log_record["extra"] = {"user": "alice"}
+        log_record = make_record_with_context("my message", user="alice")
         result = sf(log_record)
 
-        assert result["message"].endswith("my message {'user': 'alice'}")
+        assert result["formatted_message"].endswith("my message")
+        assert "alice" not in result["formatted_message"]
 
-    def test_no_trailing_space_when_extra_empty(self):
+    def test_no_trailing_space(self):
         sf = SimpleFormatter()
-        log_record = make_record("my message")
-        log_record["extra"] = {}
+        log_record = make_record_with_context("my message")
         result = sf(log_record)
 
-        assert result["message"].endswith("my message")
-        assert not result["message"].endswith(" ")
+        assert result["formatted_message"].endswith("my message")
 
     def test_custom_format(self):
         sf = SimpleFormatter("{level_name}: {message}")
-        result = sf(make_record("my message"))
+        result = sf(make_record_with_context("my message"))
 
-        assert result["message"] == "DEBUG: my message"
+        assert result["formatted_message"] == "DEBUG: my message"
 
-    def test_custom_format_extra_empty(self):
-        sf = SimpleFormatter("{message}{extra}")
-        result = sf(make_record("my message"))
+    def test_custom_format_without_user_key(self):
+        sf = SimpleFormatter("{message}")
+        result = sf(make_record_with_context("my message"))
 
-        assert result["message"] == "my message"
+        assert result["formatted_message"] == "my message"
 
-    def test_custom_format_extra_present_is_prefixed_string(self):
-        sf = SimpleFormatter("{message}{extra}")
-        log_record = make_record("my message")
-        log_record["extra"] = {"k": "v"}
-        result = sf(log_record)
+    def test_custom_format_includes_user_key(self):
+        sf = SimpleFormatter("{message} {k}")
+        result = sf(make_record_with_context("my message", k="v"))
 
-        assert result["message"] == "my message {'k': 'v'}"
+        assert result["formatted_message"] == "my message v"
 
-    def test_interpolates_msg_from_extra(self):
+    def test_interpolates_msg_from_record(self):
         sf = SimpleFormatter()
-        log_record = make_record("hello {name}")
-        log_record.pop("message")
-        log_record["extra"] = {"name": "bob"}
+        log_record = make_record_with_context("hello {user}", user="bob")
         result = sf(log_record)
 
-        assert "hello bob" in result["message"]
+        assert "hello bob" in result["formatted_message"]
 
-    def test_evaluates_lambda_extra(self):
+    def test_evaluates_lambda_in_record(self):
         sf = SimpleFormatter()
-        log_record = make_record("my message")
-        log_record["extra"] = {"n": lambda: 5}
+        log_record = make_record_with_context("value {n}", n=lambda: 5)
         result = sf(log_record)
 
-        assert result["message"].endswith("my message {'n': 5}")
+        assert result["formatted_message"].endswith("value 5")
 
 
 class TestJsonFormatter:
     def test_call(self):
         f = JsonFormatter()
-        record = make_record("my message")
+        record = make_record_with_context("my message")
         result = f(record)
-        json_result = json.loads(result["message"])
+        json_result = json.loads(result["formatted_message"])
 
         serializable = {
             "message": "my message",
@@ -735,25 +627,25 @@ class TestJsonFormatter:
             "created": record["created"],
             "level_name": record["level_name"],
             "level_no": record["level"],
-            "extra": record["extra"],
             "process_id": record["process_id"],
             "process_name": record["process_name"],
         }
 
         assert json_result == serializable
+        assert "extra" not in json_result
 
     def test_custom_converter(self):
         f = JsonFormatter(converter=lambda x: "CUSTOM")
-        record = make_record("test")
-        record["extra"] = {"obj": object()}
-        result = json.loads(f(record)["message"])
-        assert result["extra"]["obj"] == "CUSTOM"
+        record = make_record_with_context("test")
+        record["function"] = object()
+        result = json.loads(f(record)["formatted_message"])
+        assert result["function"] == "CUSTOM"
 
     def test_custom_additional_keys(self):
         f = JsonFormatter(additional_keys=("custom_key",))
-        record = make_record("test")
+        record = make_record_with_context("test")
         record["custom_key"] = "val"
-        result = json.loads(f(record)["message"])
+        result = json.loads(f(record)["formatted_message"])
         assert result["custom_key"] == "val"
 
 
@@ -779,7 +671,7 @@ class TestStream:
     def test_call_writes_to_stream(self):
         buf = io.StringIO()
         h = Stream(stream=buf)
-        record = make_record("hello")
+        record = make_record_with_context("hello")
         h(record)
         assert "hello" in buf.getvalue()
 
@@ -811,7 +703,7 @@ class TestStream:
 
     def test_call_returns_record(self):
         h = Stream()
-        record = make_record()
+        record = make_record_with_context()
         assert h(record) is record
 
 
@@ -825,7 +717,7 @@ class TestWrapStandardHandler:
     def test_call_returns_record(self):
         std = logging.StreamHandler(sys.stdout)
         h = WrapStandardHandler(std)
-        record = make_record("wrapped")
+        record = make_record_with_context("wrapped")
         record["file"] = type("F", (), {"path": __file__})()
         record["line"] = 1
         record["function"] = "test_func"
@@ -842,7 +734,7 @@ class TestWrapStandardHandler:
         std = logging.StreamHandler(buf)
         std.setFormatter(logging.Formatter("%(message)s"))
         h = WrapStandardHandler(std)
-        record = make_record("exc")
+        record = make_record_with_context("exc")
         record["file"] = type("F", (), {"path": __file__})()
         record["line"] = 2
         record["function"] = "exc_test"
@@ -868,7 +760,7 @@ class TestFingersCrossed:
     def test_buffers_below_action_level(self):
         sub = BaseHandler()
         h = FingersCrossed(sub, action_level=40, buffer_size=10)
-        record = make_record("low", LEVEL_DEBUG)
+        record = make_record_with_context("low", LEVEL_DEBUG)
         record["level"] = 10
         h(record)
         assert len(h.buffered_records) == 1
@@ -883,11 +775,11 @@ class TestFingersCrossed:
                 return record
 
         h = FingersCrossed(Spy(), action_level=40, buffer_size=10)
-        debug = make_record("debug", LEVEL_DEBUG)
+        debug = make_record_with_context("debug", LEVEL_DEBUG)
         debug["level"] = 10
         h(debug)
 
-        error = make_record("error", LEVEL_ERROR)
+        error = make_record_with_context("error", LEVEL_ERROR)
         error["level"] = 40
         h(error)
 
@@ -903,15 +795,15 @@ class TestFingersCrossed:
                 return record
 
         h = FingersCrossed(Spy(), action_level=40, buffer_size=10)
-        d1 = make_record("first", LEVEL_DEBUG)
+        d1 = make_record_with_context("first", LEVEL_DEBUG)
         d1["level"] = 10
         h(d1)
 
-        tr = make_record("trigger", LEVEL_ERROR)
+        tr = make_record_with_context("trigger", LEVEL_ERROR)
         tr["level"] = 40
         h(tr)
 
-        aft = make_record("after", LEVEL_DEBUG)
+        aft = make_record_with_context("after", LEVEL_DEBUG)
         aft["level"] = 10
         h(aft)
 
@@ -929,7 +821,7 @@ class TestFingersCrossed:
     def test_call_returns_record(self):
         sub = BaseHandler()
         h = FingersCrossed(sub)
-        record = make_record()
+        record = make_record_with_context()
         assert h(record) is record
 
     def test_rollover_empty(self):
@@ -946,17 +838,17 @@ class TestFingersCrossed:
                 return record
 
         h = FingersCrossed(Spy(), action_level=40, reset=True, buffer_size=10)
-        d1 = make_record("d1", LEVEL_DEBUG)
+        d1 = make_record_with_context("d1", LEVEL_DEBUG)
         d1["level"] = 10
         h(d1)
 
-        tr = make_record("trigger", LEVEL_ERROR)
+        tr = make_record_with_context("trigger", LEVEL_ERROR)
         tr["level"] = 40
         h(tr)
 
         assert results == ["d1", "trigger"]
 
-        d2 = make_record("d2", LEVEL_DEBUG)
+        d2 = make_record_with_context("d2", LEVEL_DEBUG)
         d2["level"] = 10
         h(d2)
 
@@ -967,7 +859,7 @@ class TestFingersCrossed:
         sub = BaseHandler()
         h = FingersCrossed(sub, action_level=40)
         h._action_triggered = True
-        record = make_record("post", LEVEL_DEBUG)
+        record = make_record_with_context("post", LEVEL_DEBUG)
         record["level"] = 10
         result = h.enqueue(record)
         assert result is False
@@ -979,7 +871,7 @@ class TestFileWriter:
             path = f.name
         try:
             h = FileWriter(path)
-            record = make_record("file test")
+            record = make_record_with_context("file test")
             h(record)
             content = Path(path).read_text(encoding="utf8")
             assert "file test" in content
@@ -992,7 +884,7 @@ class TestFileWriter:
             path = Path(tmp) / "delayed.log"
             h = FileWriter(str(path), delay=True)
             assert not path.exists()
-            h(make_record("now"))
+            h(make_record_with_context("now"))
             content = path.read_text(encoding="utf8")
             assert "now" in content
             h.close()
@@ -1002,7 +894,7 @@ class TestFileWriter:
             path = f.name
         try:
             h = FileWriter(path, watch=True, delay=True)
-            h(make_record("open"))
+            h(make_record_with_context("open"))
             assert Path(path).stat()
             h.close()
             assert h._file is None
@@ -1034,7 +926,7 @@ class TestFileWriter:
 
     def test_call_returns_record(self):
         h = FileWriter("/tmp/nonexistent/test.log", delay=True)
-        record = make_record()
+        record = make_record_with_context()
         assert h(record) is record
 
 
@@ -1087,7 +979,7 @@ class TestAsyncBridge:
         loop = asyncio.new_event_loop()
         try:
             h = AsyncBridge(loop=loop)
-            record = make_record()
+            record = make_record_with_context()
             assert h(record) is record
         finally:
             loop.close()
@@ -1096,7 +988,7 @@ class TestAsyncBridge:
         loop = asyncio.new_event_loop()
         try:
             h = AsyncBridge(loop=loop)
-            record = make_record()
+            record = make_record_with_context()
             result = h(record)
             assert result is record
         finally:
@@ -1105,7 +997,7 @@ class TestAsyncBridge:
     def test_call_with_running_loop(self):
         async def run():
             h = AsyncBridge()
-            record = make_record("async")
+            record = make_record_with_context("async")
             result = h(record)
             assert result is record
             assert len(h._futures) == 1
@@ -1140,7 +1032,7 @@ class TestAsyncBridge:
 
     def test_call_no_loop_skips(self):
         handler = AsyncBridge()
-        record = make_record()
+        record = make_record_with_context()
         result = handler(record)
         assert result is record
         assert handler._futures == set()
@@ -1167,7 +1059,7 @@ class TestAsyncBridge:
         try:
             handler = CollectingAsyncBridge(loop=loop)
             for i in range(5):
-                handler(make_record(f"msg-{i}"))
+                handler(make_record_with_context(f"msg-{i}"))
             handler.close()
             assert len(collected) == 5
             for i in range(5):
@@ -1209,14 +1101,14 @@ class TestAsyncBridge:
             time.sleep(0.001)
         try:
             handler = CollectingAsyncBridge(loop=loop)
-            handler(make_record("first"))
+            handler(make_record_with_context("first"))
             # Wait until the first write's future has completed.
             for _ in range(100):
                 if any(f.done() for f in handler._futures):
                     break
                 time.sleep(0.001)
             # A second call while a done future exists must prune it.
-            handler(make_record("second"))
+            handler(make_record_with_context("second"))
             handler.close()
             assert len(collected) == 2
         finally:
@@ -1239,7 +1131,7 @@ class TestAsyncBridge:
             "run_coroutine_threadsafe",
             lambda coro, loop: (_ for _ in ()).throw(RuntimeError("loop not running")),
         )
-        record = make_record()
+        record = make_record_with_context()
         result = handler(record)
         assert result is record
         assert handler._futures == set()

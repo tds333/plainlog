@@ -129,7 +129,6 @@ def setup_plainlog_caller() -> None:
     logger.configure(
         level="DEBUG",
         processors=[SimpleFormatter("{message}"), Stream(open(DEVNULL, "w"))],
-        verbose=True,
     )
 
 
@@ -153,7 +152,6 @@ def setup_plainlog_develop() -> None:
             Stream(open(DEVNULL, "w")),
             print_processor_error,
         ],
-        verbose=True,
     )
 
 
@@ -166,7 +164,7 @@ def plainlog_log_json() -> None:
 
 
 def plainlog_log_caller() -> None:
-    logger.warning("benchmark message 42")
+    logger.warning("benchmark message 42", caller_info=True)
 
 
 def setup_plainlog_no_processors() -> None:
@@ -213,7 +211,7 @@ BENCHMARKS: list[dict] = [
     {
         "name": "plainlog /dev/null (caller)",
         "setup": setup_plainlog_caller,
-        "func": plainlog_log,
+        "func": plainlog_log_caller,
     },
 ]
 

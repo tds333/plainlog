@@ -90,36 +90,29 @@ def test_format_exception_strips_trailing_newline():
 
 def test_add_caller_info_function_name():
     record = {}
-    add_caller_info(record, level=1)
+    add_caller_info(record, call_level=1)
     assert record["function"] == "test_add_caller_info_function_name"
 
 
 def test_add_caller_info_line_number():
     record = {}
-    add_caller_info(record, level=1)
+    add_caller_info(record, call_level=1)
     assert isinstance(record["line"], int)
     assert record["line"] > 0
 
 
 def test_add_caller_info_file_info():
     record = {}
-    add_caller_info(record, level=1)
+    add_caller_info(record, call_level=1)
     assert "file_name" in record
     assert "file_path" in record
     assert "path" in record
     assert "module" in record
 
 
-def test_add_caller_info_process_info():
-    record = {}
-    add_caller_info(record, level=1)
-    assert "process_id" in record
-    assert "process_name" in record
-
-
 def test_add_caller_info_thread_info():
     record = {}
-    add_caller_info(record, level=1)
+    add_caller_info(record, call_level=1)
     assert "thread_id" in record
     assert "thread_name" in record
 
@@ -127,7 +120,7 @@ def test_add_caller_info_thread_info():
 def test_add_caller_info_level_walks_correct_depth():
     def inner():
         record = {}
-        add_caller_info(record, level=2)
+        add_caller_info(record, call_level=2)
         return record
 
     result = inner()

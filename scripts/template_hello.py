@@ -39,7 +39,6 @@ def f(template: templatelib.Template) -> str:
 def eval_template(record: Record) -> Record:
     msg = record["msg"]
     record["message"] = f(msg)
-    record["preformatted"] = True
     return record
 
 

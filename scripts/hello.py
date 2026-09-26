@@ -7,6 +7,7 @@
 from time import time
 
 from plainlog import logger
+from plainlog.configure import apply_log_profile
 from plainlog.processors import filter_by_name
 from plainlog.warnings import capture_warnings
 
@@ -48,6 +49,7 @@ def elapsed():
 
 def messager(record):
     from datetime import datetime, timezone
+
     dt = datetime.fromtimestamp(record["created"], tz=timezone.utc)
     print(f"{dt.isoformat()} {record['message']}")
 
@@ -58,23 +60,24 @@ async def amessager(record):
     # print(record["datetime"], record["message"])
 
 
-class SpecPrint:
-    def __init__(self, name=None):
-        self.name = name
-        self.stream = sys.stdout
+# class SpecPrint:
+#     def __init__(self, name=None):
+#         self.name = name
+#         self.stream = sys.stdout
 
-    def __call__(self, record):
-        from datetime import datetime, timezone
-        dt = datetime.fromtimestamp(record["created"], tz=timezone.utc)
-        self.stream.write(
-            f"{record['level']}: {dt:%H:%Mh} [{record['name']}] {record['message']} {record['elapsed']} {record['extra']}\n"
-        )
+#     def __call__(self, record):
+#         from datetime import datetime, timezone
 
-    def __repr__(self):
-        return f"SpecPrint({self.name})"
+#         dt = datetime.fromtimestamp(record["created"], tz=timezone.utc)
+#         self.stream.write(
+#             f"{record['level']}: {dt:%H:%Mh} [{record['name']}] {record['message']} {record['elapsed']} {record['extra']}\n"
+#         )
 
-    def close(self):
-        self.stream.flush()
+#     def __repr__(self):
+#         return f"SpecPrint({self.name})"
+
+#     def close(self):
+#         self.stream.flush()
 
 
 class LoggerClass:
@@ -98,7 +101,7 @@ class LoggerClass:
 
 
 def main():
-    log = logger.new(extra={"elapsed": lambda: elapsed()})
+    log = logger.new(elapsed=lambda: elapsed())
     first_log = log
     log.debug("hello")
 
@@ -149,7 +152,7 @@ def main():
 
 def main2():
     # configure_log("develop", level="DEBUG", reset=True, buffer_size=2)
-    # configure_log("develop", level="DEBUG", reset=True, buffer_size=2)
+    apply_log_profile("develop", level="DEBUG")
     log = logger.new()
     log.debug("hello")
     log.warning("some warning")
@@ -234,9 +237,9 @@ def main4():
     log.info("end request")
     log = log.unbind("current_id")
     log.debug("no id in request?")
-    log.new(name="mymodule.class.function", extra={}).info("from main function")
-    log.new("mymodule.class", extra={}).info("from main class")
-    log.new("mymodulex", extra={}).info("from main mymodulex")
+    log.new(name="mymodule.class.function").info("from main function")
+    log.new("mymodule.class").info("from main class")
+    log.new("mymodulex").info("from main mymodulex")
     log.new("LoggerClassX").info("name test")
     log.debug("Stop {stop!r}, duration: {duration:.6f}", stop=__name__, duration=1)
     log.info("", start="bla")

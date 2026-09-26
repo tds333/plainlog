@@ -4,10 +4,10 @@ import sys
 import traceback
 from datetime import datetime, timezone
 from io import StringIO
-from typing import Any, Iterable, Protocol, TextIO, Type, Union
+from typing import Any, Protocol, TextIO, Type, Union
 
-from ._base import Record
-from ._utils import get_processed_extra
+from ._base import ADDITIONAL_KNOWN_KEYS, KNOWN_KEYS, Record
+from ._utils import eval_lambda_dict, format_msg
 
 __all__ = [
     "ConsoleRenderer",
@@ -16,6 +16,10 @@ __all__ = [
 _IS_WINDOWS = sys.platform == "win32"
 
 _EVENT_WIDTH = 40  # pad the event name to so many characters
+
+_EXCLUDE_KEYS = frozenset(
+    KNOWN_KEYS + ADDITIONAL_KNOWN_KEYS + ("message", "formatted_message")
+)
 
 
 def _pad(s: str, length: int) -> str:
@@ -187,18 +191,18 @@ class ConsoleRenderer:
                     + _pad(level, self._longest_level + 1)
                     + self._styles.reset
                 )
-        msg = record.get("msg", "")
-        event = record.get("message", msg)
-        # event = format_message(record)
-        if not isinstance(event, str):
-            event = str(event)
-
-        # extra = record.get("extra")
-        extra = get_processed_extra(record)
+        record = eval_lambda_dict(record)
+        message = record.get("message")
+        if message is None:
+            message = format_msg(record)
+        else:
+            message = str(message)
+        event = message
+        record["message"] = message
         logger_name = record.get("name", None)
         if not self._log_name:
             logger_name = None
-        if extra or logger_name:
+        if logger_name:
             event = _pad(event, self._pad_event) + self._styles.reset + " "
         else:
             event += self._styles.reset
@@ -215,12 +219,9 @@ class ConsoleRenderer:
                 + "] "
             )
 
-        stack = record.get("stack", None)
         exc = record.get("exception", None)
 
-        extra_dict_keys: Iterable[str] = extra.keys()
-        if self._sort_keys:
-            extra_dict_keys = sorted(extra_dict_keys)
+        additional_keys = record.keys() - _EXCLUDE_KEYS
 
         sio.write(
             " ".join(
@@ -229,22 +230,17 @@ class ConsoleRenderer:
                 + self._styles.reset
                 + "="
                 + self._styles.kv_value
-                + self._repr(extra[key])
+                + self._repr(record[key])
                 + self._styles.reset
-                for key in extra_dict_keys
+                for key in additional_keys
             )
         )
-
-        if stack is not None:
-            sio.write("\n" + stack)
-            if exc is not None:
-                sio.write("\n\n" + "=" * 79 + "\n")
 
         if exc is not None:
             self._exception_formatter(sio, (exc.type, exc.value, exc.traceback))
         # sio.write("\n")
 
-        record["message"] = sio.getvalue()
+        record["formatted_message"] = sio.getvalue()
 
         return record
 

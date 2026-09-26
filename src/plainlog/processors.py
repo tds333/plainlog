@@ -17,7 +17,7 @@ from asyncio import CancelledError
 from collections import deque
 from concurrent.futures import Future
 from contextlib import suppress
-from copy import copy, deepcopy
+from copy import copy
 from datetime import datetime, timezone
 from functools import lru_cache
 from typing import IO, Any, Callable
@@ -26,38 +26,18 @@ from . import _env
 from ._base import Record, UniversalProcessorProtocol
 from ._dev import ConsoleRenderer  # noqa
 from ._utils import (
-    eval_dict,
-    eval_format,
-    eval_lambda_dict,
-    get_processed_extra,
+    format_msg,
     handle_close,
 )
 
 start_time: float = time.time()
 
 
-def eval_lambda_extra(record: Record) -> Record:
-    extra = record.get("extra", {})
-    eval_lambda_dict(extra)
+def get_formatted_message(record: Record) -> str:
+    message = record.get("message", str(record["msg"]))
+    message = record.get("formatted_message", message)
 
-    return record
-
-
-def eval_extra(record: Record) -> Record:
-    extra = record.get("extra", {})
-    eval_dict(extra)
-
-    return record
-
-
-def remove_extra_items(*args) -> Callable:
-    def remover(record: Record) -> Record:
-        for arg in args:
-            arg = str(arg)
-            record["extra"].pop(arg, None)
-        return record
-
-    return remover
+    return message
 
 
 def _redact(mask: str, matches: Callable[[str], bool]) -> Callable:
@@ -73,9 +53,7 @@ def _redact(mask: str, matches: Callable[[str], bool]) -> Callable:
         return value
 
     def redactor(record: Record) -> Record:
-        extra = record.get("extra")
-        if extra:
-            record["extra"] = redact_value(None, extra)
+        record = redact_value(None, record)
         return record
 
     return redactor
@@ -215,11 +193,7 @@ class WhitelistLevel:
 def format_message(record: Record) -> Record:
     message = record.get("message", None)
     if message is None:
-        msg = record.get("msg", "")
-        extra = record.get("extra", {})
-        message = str(msg)
-        if isinstance(msg, str) and extra:
-            message = eval_format(msg, extra)
+        message = format_msg(record)
 
         record["message"] = message
 
@@ -241,7 +215,7 @@ def print_processor_error(record: Record) -> Record:
 
 class SimpleFormatter:
     DEFAULT_FORMAT = (
-        "{datetime:%Y-%m-%d %H:%M:%S.%f} {level_name:<8} [{name}] {message}{extra}"
+        "{datetime:%Y-%m-%d %H:%M:%S.%f} {level_name:<8} [{name}] {message}"
     )
 
     def __init__(self, fmt=None):
@@ -251,10 +225,8 @@ class SimpleFormatter:
         data = copy(record)
         data["datetime"] = datetime.fromtimestamp(data.pop("created"), tz=timezone.utc)
         format_message(data)
-        extra = get_processed_extra(record)
-        data["extra"] = "" if not extra else f" {extra}"
         message = self._fmt.format_map(data)
-        record["message"] = message
+        record["formatted_message"] = message
 
         return record
 
@@ -302,7 +274,7 @@ class JsonFormatter:
             }
 
         format_message(record)
-        extra = get_processed_extra(record)
+        # extra = get_processed_extra(record)
 
         serializable = {
             "message": record["message"],
@@ -310,7 +282,7 @@ class JsonFormatter:
             "created": record["created"],
             "level_name": record["level_name"],
             "level_no": record["level"],
-            "extra": extra,
+            # "extra": extra,
             "process_id": record["process_id"],
             "process_name": record["process_name"],
         }
@@ -328,7 +300,7 @@ class JsonFormatter:
             separators=self._separators,
             sort_keys=self._sort_keys,
         )
-        record["message"] = message
+        record["formatted_message"] = message
 
         return record
 
@@ -355,11 +327,11 @@ class SubProcessor:
         self._processors = () if processors is None else tuple(processors)
 
     def __call__(self, record: Record) -> Record:
-        exception = record.get("exception")
-        record = deepcopy(record)
+        # exception = record.get("exception")
+        record = copy(record)
         # deepcopy strips tracebacks via RecordException.__reduce__, restore it
-        if exception is not None:
-            record["exception"] = exception
+        # if exception is not None:
+        #     record["exception"] = exception
         for processor in self._processors:
             record = processor(record)
             if not record:  # stop processing
@@ -374,7 +346,7 @@ class SubProcessor:
 
 
 class Stream:
-    """Writes a record's formatted ``message`` to a file-like stream.
+    """Writes a record's formatted ``formatted_message`` to a file-like stream.
 
     Args:
         stream: A file-like object with a ``write`` method.
@@ -389,7 +361,8 @@ class Stream:
         self.terminator = "\n"
 
     def __call__(self, record: Record) -> Record:
-        self.write(record["message"])
+        message = get_formatted_message(record)
+        self.write(message)
 
         return record
 
@@ -425,8 +398,7 @@ class WrapStandardHandler:
         return f"{self.__class__.__name__}(handler={self._handler!r})"
 
     def __call__(self, record: Record) -> Record:
-        msg = str(record.get("msg", ""))
-        message = str(record.get("message", msg))
+        message = get_formatted_message(record)
         exc = record.get("exception")
         file_path = record["file"].path if "file" in record else ""
         lrecord = self.factory(
@@ -438,7 +410,6 @@ class WrapStandardHandler:
             (),
             (exc.type, exc.value, exc.traceback) if exc else None,
             record.get("function", ""),
-            {"extra": record["extra"]},
         )
         if exc:
             lrecord.exc_text = "\n"
@@ -556,7 +527,8 @@ class FileWriter:
             self._create_file()
 
     def __call__(self, record: Record) -> Record:
-        self.write(record.get("message", ""))
+        message = get_formatted_message(record)
+        self.write(message)
 
         return record
 
@@ -640,7 +612,7 @@ class AsyncBridge:
         self._futures: set = set()
 
     def __call__(self, record: Record) -> Record:
-        message = record.get("message", "")
+        message = get_formatted_message(record)
         loop = self.loop
         if loop is None or not loop.is_running():
             return record

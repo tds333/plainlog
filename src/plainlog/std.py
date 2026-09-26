@@ -29,6 +29,7 @@ class StdInterceptHandler(logging.Handler):
         "thread",
         "threadName",
         "taskName",
+        "task_name",
     }
 
     def emit(self, record) -> None:
@@ -44,6 +45,8 @@ class StdInterceptHandler(logging.Handler):
                 extra[key] = value
 
         log_record = {
+            **extra,
+            **plainlog_context.get({}),
             "level": level,
             "level_name": logging.getLevelName(level),
             "msg": record.msg,  # raw message as in std logging
@@ -52,24 +55,22 @@ class StdInterceptHandler(logging.Handler):
             "created": record.created,
             "process_id": record.process,
             "process_name": record.processName,
-            "extra": {**extra, **plainlog_context.get({})},
-            "args": record.args,
+            # "args": record.args,
             "exception": (
                 RecordException(*record.exc_info) if record.exc_info else None
             ),
-            "preformatted": True,
             "function": record.funcName,
             "line": record.lineno,
             "module": record.module,
             "path": record.pathname,
             "thread_id": record.thread,
             "thread_name": record.threadName,
-            "stack_info": record.stack_info,
-            "exc_text": record.exc_text,
+            # "stack_info": record.stack_info,
+            # "exc_text": record.exc_text,
         }
         # since Python 3.12 there is taskName available
-        if hasattr(record, "taskName"):  # pragma: no cover
-            log_record["task_name"] = record.taskName
+        # if hasattr(record, "taskName"):  # pragma: no cover
+        #    log_record["task_name"] = record.taskName
 
         core.log(log_record)
 

@@ -54,3 +54,29 @@ class ProcessorCloseProtocol(ProcessorProtocol, Protocol):
 
 
 UniversalProcessorProtocol = Union[ProcessorProtocol, ProcessorCloseProtocol]
+
+KNOWN_KEYS: tuple[str, ...] = (
+    "level",
+    "level_name",
+    "msg",
+    "name",
+    "created",
+    "process_id",
+    "process_name",
+    "exception",
+)
+
+ADDITIONAL_KNOWN_KEYS: tuple[str, ...] = (
+    "exc_info",
+    "caller_info",
+    "function",
+    "line",
+    "path",
+    "module",
+    "file_name",
+    "file_path",
+    "process_id",
+    "process_name",
+    "thread_id",
+    "thread_name",
+)

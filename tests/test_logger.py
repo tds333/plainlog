@@ -16,7 +16,6 @@ from plainlog._logger import (
     LEVEL_WARNING,
     Core,
     Logger,
-    _validate_extra,
     _validate_level,
     _validate_name,
     logger_core,
@@ -33,22 +32,6 @@ def test_logger_new():
     new_logger = logger.new(name="new")
 
     assert "new" in repr(new_logger)
-
-
-def test_validate_extra_none():
-    assert _validate_extra(None) == {}
-
-
-def test_validate_extra_dict():
-    extra = {"a": 1, "b": 2}
-    result = _validate_extra(extra)
-    assert result == extra
-    assert result is not extra
-
-
-def test_validate_extra_raises_on_non_mapping():
-    with pytest.raises(ValueError, match="Extra must be a Mapping"):
-        _validate_extra("not a dict")
 
 
 def test_validate_name_string():
@@ -204,18 +187,13 @@ def test_logger_name_property():
     assert logger.name == "root"
 
 
-def test_logger_extra_property():
-    assert logger.extra == {}
-    assert logger.extra is not logger._extra
-
-
 def test_logger_pickle_roundtrip(thandler):
     lb = logger.bind(x=1, y=2)
     data = pickle.dumps(lb)
     restored = pickle.loads(data)
 
     assert restored.name == lb.name
-    assert restored.extra == lb.extra
+    assert restored._data == lb._data
     assert restored._core is logger_core
 
 
@@ -228,19 +206,19 @@ def test_logger_pickle_can_log(thandler):
     restored.info("from unpickled logger")
     record = thandler.first()
     assert record["msg"] == "from unpickled logger"
-    assert record["extra"]["user"] == "pickle"
+    assert record["user"] == "pickle"
 
 
 def test_logger_pickle_global_core():
     from plainlog._logger import logger_core
 
-    lb = Logger(logger_core, "pickle_test", {"a": 1})
+    lb = Logger(logger_core, "pickle_test", a=1)
     data = pickle.dumps(lb)
     restored = pickle.loads(data)
     assert restored._core is logger_core
 
     assert restored.name == "pickle_test"
-    assert restored.extra == {"a": 1}
+    assert restored._data == {"a": 1}
 
 
 def test_core_processors_property(thandler):
@@ -252,7 +230,7 @@ def test_logger_context(thandler):
     try:
         logger.info("with context")
         record = thandler.first()
-        assert record["extra"]["user"] == "alice"
+        assert record["user"] == "alice"
         assert record["msg"] == "with context"
     finally:
         Logger.reset_context(token)
@@ -262,12 +240,12 @@ def test_logger_contextualize(thandler):
     with Logger.contextualize(request_id="abc"):
         logger.info("inside context")
         record = thandler.first()
-        assert record["extra"]["request_id"] == "abc"
+        assert record["request_id"] == "abc"
 
     thandler.clear()
     logger.info("after context")
     record = thandler.first()
-    assert "request_id" not in record["extra"]
+    assert "request_id" not in record
 
 
 def test_logger_context_isolation(thandler):
@@ -276,7 +254,7 @@ def test_logger_context_isolation(thandler):
     try:
         logger.info("latest wins")
         record = thandler.first()
-        assert record["extra"]["trace"] == "second"
+        assert record["trace"] == "second"
     finally:
         Logger.reset_context(token)
 
@@ -544,7 +522,7 @@ class _CapturingHandler:
 
 
 def _verbose_log_site(log):
-    log.info("verbose message")
+    log.info("verbose message", caller_info=True)
     return _verbose_log_site.__code__.co_firstlineno
 
 
@@ -553,7 +531,7 @@ def test_verbose_adds_caller_info():
     core = Core(name="VERBOSE")
     with closing(core):
         core.configure(processors=[handler], level="DEBUG")
-        log = Logger(core, name="test", extra={}, verbose=True)
+        log = Logger(core, name="test", caller_info=True)
         base_line = _verbose_log_site(log)
         core.wait_for_processed()
         record = handler.records[0]
@@ -576,18 +554,3 @@ def test_verbose_false_omits_caller_info():
         record = handler.records[0]
         assert "function" not in record
         assert "line" not in record
-
-
-def test_configure_toggles_verbose():
-    handler = _CapturingHandler()
-    core = Core(name="TOGGLE_VERBOSE")
-    with closing(core):
-        core.configure(processors=[handler], level="DEBUG")
-        log = Logger(core, name="test", extra={})
-        log.info("before")
-        log.configure(verbose=True)
-        log.info("after")
-        core.wait_for_processed()
-        assert "function" not in handler.records[0]
-        assert handler.records[1]["function"] == "test_configure_toggles_verbose"
-

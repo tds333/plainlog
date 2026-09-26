@@ -7,7 +7,7 @@ def test_bind_after_add(thandler):
 
     record = thandler.first()
 
-    assert record["extra"].get("a") == 0
+    assert record.get("a") == 0
     assert record["msg"] == "A"
 
 
@@ -17,7 +17,7 @@ def test_bind_before_add(thandler):
 
     record = thandler.first()
 
-    assert record["extra"].get("a") == 0
+    assert record.get("a") == 0
     assert record["msg"] == "A"
 
 
@@ -30,12 +30,12 @@ def test_add_using_bound(thandler):
 
     record = thandler.records[0]
 
-    assert record["extra"].get("a", -1) == -1
+    assert record.get("a", -1) == -1
     assert record["msg"] == "A"
 
     record = thandler.records[1]
 
-    assert record["extra"].get("a") == 0
+    assert record.get("a") == 0
     assert record["msg"] == "B"
 
 
@@ -47,9 +47,9 @@ def test_unbind(thandler):
 
     assert thandler.records
     record = thandler.records[0]
-    assert record["extra"].get("a") == 0
+    assert record.get("a") == 0
     assert record["msg"] == "A"
 
     record = thandler.records[1]
-    assert record["extra"].get("a") is None
+    assert record.get("a") is None
     assert record["msg"] == "B"

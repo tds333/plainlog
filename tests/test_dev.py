@@ -1,6 +1,4 @@
-import logging
 import sys
-from time import time
 from io import StringIO
 
 from plainlog._base import RecordException
@@ -11,23 +9,7 @@ from plainlog._dev import (
     default_exception_formatter,
 )
 from plainlog._logger import LEVEL_INFO
-
-
-def record(**overrides):
-    level = overrides.get("level", LEVEL_INFO)
-    r = {
-        "level": level,
-        "level_name": (
-            logging.getLevelName(level) if level is not None else None
-        ),
-        "msg": "test message",
-        "message": "test message",
-        "name": "test_logger",
-        "created": time(),
-        "extra": {"key1": "val1", "key2": 42},
-    }
-    r.update(overrides)
-    return r
+from tests.helpers import make_record
 
 
 def test_pad_pads_to_length():
@@ -82,7 +64,6 @@ def test_default_exception_formatter_writes_to_sio():
 
 
 class TestConsoleRenderer:
-
     def test_plain_styles(self):
         r = ConsoleRenderer(colors=False)
         assert r._styles is _PlainStyles
@@ -113,7 +94,10 @@ class TestConsoleRenderer:
 
     def test_basic_output(self):
         r = ConsoleRenderer()
-        out = r(record())["message"]
+
+        out = r(
+            make_record(name="test_logger", msg="test message", key1="val1", key2=42)
+        )["formatted_message"]
         assert "test message" in out
         assert "key1" in out
         assert "val1" in out
@@ -121,85 +105,112 @@ class TestConsoleRenderer:
 
     def test_no_timestamp(self):
         r = ConsoleRenderer()
-        out = r(record(created=None))["message"]
+        out = r(make_record("test message", name="test_logger", created=None))[
+            "formatted_message"
+        ]
         assert "test message" in out
 
     def test_no_level(self):
         r = ConsoleRenderer()
-        out = r(record(level=None))["message"]
+        out = r(make_record("test message", name="test_logger", level_name=None))[
+            "formatted_message"
+        ]
         assert "test message" in out
 
     def test_short_level(self):
         r = ConsoleRenderer()
-        out = r(record())["message"]
+        out = r(make_record("test message", name="test_logger", level=LEVEL_INFO))[
+            "formatted_message"
+        ]
         assert "[I]" in out
 
     def test_long_level_display(self):
         r = ConsoleRenderer(short_level=False)
-        out = r(record())["message"]
+        out = r(make_record("test message", name="test_logger", level=LEVEL_INFO))[
+            "formatted_message"
+        ]
         assert "INFO " in out
 
     def test_omits_log_name(self):
         r = ConsoleRenderer(log_name=False)
-        out = r(record())["message"]
+        out = r(make_record("test message", name="test_logger"))["formatted_message"]
         assert "test_logger" not in out
 
     def test_no_extra(self):
         r = ConsoleRenderer()
-        out = r(record(extra={}, kwargs={}, context={}))["message"]
+        out = r(make_record("test message", name="test_logger"))["formatted_message"]
         assert "test message" in out
 
     def test_no_event_padding_without_extra_or_name(self):
         r = ConsoleRenderer()
-        out = r(record(extra={}, kwargs={}, context={}, name=None))["message"]
+        out = r(make_record("test message", name=None))["formatted_message"]
         assert out
 
     def test_sort_keys(self):
         r = ConsoleRenderer(sort_keys=False)
-        out = r(record())["message"]
+        out = r(make_record("test message", key1="val1", key2=42))["formatted_message"]
         assert "key1" in out
 
     def test_non_string_event(self):
         r = ConsoleRenderer()
-        out = r(record(msg={"a": 1}, message={"a": 1}))["message"]
+        out = r(make_record(msg={"a": 1}))["formatted_message"]
         assert "{'a': 1}" in out
+
+    def test_literal_braces_event(self):
+        r = ConsoleRenderer()
+        out = r(make_record(msg="literal {} braces"))["formatted_message"]
+        assert "literal {} braces" in out
 
     def test_exc_info_tuple(self):
         r = ConsoleRenderer()
         try:
             raise ValueError("test error")
         except ValueError:
-            rec = record(exception=RecordException(*sys.exc_info()))
-            out = r(rec)["message"]
+            rec = make_record(
+                "test message",
+                name="test_logger",
+                exception=RecordException(*sys.exc_info()),
+            )
+            out = r(rec)["formatted_message"]
         assert "ValueError" in out
         assert "test error" in out
 
     def test_exc_info_non_tuple(self):
         r = ConsoleRenderer()
-        rec = record(exception=RecordException(ValueError, ValueError("x"), None))
-        out = r(rec)["message"]
+        rec = make_record(
+            "test message",
+            name="test_logger",
+            exception=RecordException(ValueError, ValueError("x"), None),
+        )
+        out = r(rec)["formatted_message"]
         assert out
         assert "ValueError" in out
 
     def test_exception_record(self):
         r = ConsoleRenderer()
-        rec = record(exception=RecordException(RuntimeError, RuntimeError("boom"), None))
-        out = r(rec)["message"]
+        rec = make_record(
+            "test message",
+            name="test_logger",
+            exception=RecordException(RuntimeError, RuntimeError("boom"), None),
+        )
+        out = r(rec)["formatted_message"]
         assert "RuntimeError" in out
 
     def test_stack(self):
         r = ConsoleRenderer()
-        rec = record(stack="Traceback ...")
-        out = r(rec)["message"]
+        rec = make_record("test message", name="test_logger", stack="Traceback ...")
+        out = r(rec)["formatted_message"]
         assert "Traceback" in out
 
     def test_stack_and_exception(self):
         r = ConsoleRenderer()
-        rec = record(
+        rec = make_record(
+            "test message",
+            name="test_logger",
             stack="Traceback ...",
             exception=RecordException(ValueError, ValueError("x"), None),
         )
-        out = r(rec)["message"]
+        out = r(rec)["formatted_message"]
         assert "Traceback" in out
         assert "ValueError" in out
 
@@ -208,14 +219,18 @@ class TestConsoleRenderer:
         try:
             raise Exception("default fmt")
         except Exception:
-            rec = record(exception=RecordException(*sys.exc_info()))
-            out = r(rec)["message"]
+            rec = make_record(
+                "test message",
+                name="test_logger",
+                exception=RecordException(*sys.exc_info()),
+            )
+            out = r(rec)["formatted_message"]
         assert "default fmt" in out
 
     def test_logger_name_with_extra_pads_event(self):
         r = ConsoleRenderer(pad_event=10)
-        rec = record(name="mod", extra={"k": "v"}, kwargs={}, context={})
-        out = r(rec)["message"]
+        rec = make_record("test message", name="mod", k="v")
+        out = r(rec)["formatted_message"]
         assert "test message" in out
         assert "mod" in out
         assert "k" in out
@@ -223,8 +238,11 @@ class TestConsoleRenderer:
     def test_no_datetime_no_level_no_extra(self):
         r = ConsoleRenderer(short_level=True)
         out = r(
-            record(
-                created=None, level=None, extra={}, kwargs={}, context={}, name=None
+            make_record(
+                "test message",
+                name=None,
+                created=None,
+                level_name=None,
             )
-        )["message"]
+        )["formatted_message"]
         assert "test message" in out

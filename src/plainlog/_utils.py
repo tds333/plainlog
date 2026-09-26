@@ -5,6 +5,7 @@ Processors useful regardless of the logging framework.
 from __future__ import annotations
 
 import contextlib
+from typing import Any
 
 
 def eval_lambda_dict(data: dict) -> dict:
@@ -25,20 +26,24 @@ def eval_dict(data: dict) -> None:
                 data[name] = result
 
 
-def eval_format(msg, kwargs) -> str:
+def eval_format(msg, kwargs: dict) -> str:
     kwargs_ = eval_lambda_dict(kwargs.copy())
     message: str = msg.format(**kwargs_)
 
     return message
 
 
-def get_processed_extra(record: dict) -> dict:
-    extra = record.get("extra", {})
-    if not extra:
-        return {}
-    extra = eval_lambda_dict(extra.copy())
+def format_msg(record: dict[str, Any]) -> str:
+    msg = record.get("msg", "")
+    if not isinstance(msg, str):
+        return str(msg)
 
-    return extra
+    try:
+        return eval_format(msg, record)
+    except (KeyError, IndexError, TypeError, ValueError):
+        # Not a format template (e.g. literal braces or a missing field):
+        # fall back to the raw message instead of dropping the record.
+        return msg
 
 
 def handle_close(processor):
