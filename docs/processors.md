@@ -3,7 +3,8 @@
 Processors live in `plainlog.processors`:
 
 - **Processors** transform a log record in the Core's background thread.
-- **Formatters** are processors that set the formatted ``message`` on a record.
+- **Formatters** are processors that render a record into a string, stored in
+  ``record["formatted_message"]``.
 - **Handlers** are processors that perform output.
 
 But overall they are simply processors with the same interface.
@@ -33,13 +34,21 @@ logger.configure(processors=[SimpleFormatter(), Stream()])
 
 | Formatter | Description |
 |-----------|-------------|
-| [`SimpleFormatter`](#simpleformatter) | Single-line format with timestamp and extras |
+| [`SimpleFormatter`](#simpleformatter) | Single-line format with timestamp and level |
 | [`JsonFormatter`](#jsonformatter) | Serializes a record as JSON string |
 
 !!! note
-    `SimpleFormatter` appends `extra` as a suffix when present. With a custom
-    `fmt`, `{extra}` expands to `""` or a space-prefixed string — not the raw
-    dict.
+    With a custom `fmt`, any field on the record can be used as a placeholder
+    (for example `{name}`, `{level_name}`, or a user-supplied field). There is
+    no special `extra` field — keyword arguments are stored directly on the
+    record — so an unknown placeholder such as `{extra}` raises `KeyError`.
+
+!!! note
+    `JsonFormatter` serializes a fixed set of keys (`message`, `name`,
+    `created`, `level_name`, `level_no`, `process_id`, `process_name`) plus any
+    keys named in its `additional_keys` argument. User-supplied fields are
+    **not** included automatically; list them in `additional_keys` or use a
+    formatter that renders the whole record.
 
 ### Output Handlers
 
@@ -61,13 +70,10 @@ logger.configure(processors=[SimpleFormatter(), Stream()])
 
 | Processor | Description |
 |-----------|-------------|
-| `format_message` | Fills ``record["message"]`` from ``msg`` and ``extra`` |
+| `format_message` | Fills ``record["message"]`` from ``msg`` and the record's fields |
 | `print_processor_error` | Prints a record's processor error to stderr |
-| `eval_extra` | Evaluates callables stored in ``record["extra"]`` |
-| `eval_lambda_extra` | Evaluates only lambda values in ``record["extra"]`` |
-| `remove_extra_items(*args)` | Returns a processor that removes the given extra keys |
-| `redact_fields(*fields, mask="***REDACTED***")` | Masks exact extra keys (case-insensitive, recurses into nested dicts and lists) |
-| `redact_by_pattern(*patterns, mask="***REDACTED***")` | Masks extra keys containing a substring (case-insensitive, recurses into nested dicts and lists) |
+| `redact_fields(*fields, mask="***REDACTED***")` | Masks exact record keys (case-insensitive, recurses into nested dicts and lists) |
+| `redact_by_pattern(*patterns, mask="***REDACTED***")` | Masks record keys containing a substring (case-insensitive, recurses into nested dicts and lists) |
 | `filter_None` | Drops records whose ``name`` is ``None`` |
 | `filter_all` | Drops every record |
 | `filter_by_name("parent")` | Drops records whose name starts with ``parent`` |
@@ -126,25 +132,31 @@ nested dicts and lists, including dicts inside lists. Matching applies to leaf
 values: when a matched key holds a container, the processor descends into it
 and masks matching leaves instead of replacing the container. Place them early
 in the pipeline, before any formatter, so formatted/serialized output never
-contains the raw value. They only scrub `record["extra"]` — secrets
-interpolated directly into the message string
-(e.g. `logger.info(f"password={pw}")`) are not caught.
+contains the raw value. They scrub matching keys anywhere in the record — at
+the top level and inside nested containers. Secrets interpolated directly into
+the message string (e.g. `logger.info(f"password={pw}")`) are not caught.
 
 ```python
 import sys
 from plainlog import logger
-from plainlog.processors import JsonFormatter, Stream, redact_by_pattern
+from plainlog.processors import (
+    ConsoleRenderer,
+    Stream,
+    format_message,
+    redact_by_pattern,
+)
 
 logger.configure(
     processors=[
         redact_by_pattern("password", "token", "secret", "api_key"),
-        JsonFormatter(),
+        format_message,
+        ConsoleRenderer(colors=False),
         Stream(sys.stdout),
     ]
 )
 
 logger.info("login attempt", username="alice", password="hunter2")
-# -> extra={"username": "alice", "password": "***REDACTED***"}
+# -> ... username=alice password=***REDACTED***  (field order may vary)
 ```
 
 ## API Reference

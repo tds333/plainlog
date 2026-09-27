@@ -342,7 +342,7 @@ def test_logger_no_handler():
     core = Core(name="NO_HANDLER")
     with closing(core):
         core.configure(processors=(), level="DEBUG")
-        log = Logger(core, name="test", extra={})
+        log = Logger(core, name="test")
         assert log.debug(message) is None
         assert log.info(message) is None
         assert log.warning(message) is None
@@ -453,7 +453,7 @@ def test_core_worker_stops_when_record_filtered():
     core = Core(name="FILTER_STOP")
     with closing(core):
         core.configure(processors=[drop, after], level="DEBUG")
-        log = Logger(core, name="test", extra={})
+        log = Logger(core, name="test")
         log.info("filtered out")
         core.wait_for_processed()
         assert calls == ["drop"]
@@ -487,7 +487,7 @@ def test_core():
     dummy_handler = DummyHandler()
     with closing(core_test):
         core_test.configure(processors=[dummy_handler])
-        logger_test = Logger(core_test, name="test", extra={})
+        logger_test = Logger(core_test, name="test")
         logger_test.debug(message)
 
     assert dummy_handler.records
@@ -548,9 +548,35 @@ def test_verbose_false_omits_caller_info():
     core = Core(name="NON_VERBOSE")
     with closing(core):
         core.configure(processors=[handler], level="DEBUG")
-        log = Logger(core, name="test", extra={}, verbose=False)
+        log = Logger(core, name="test")
         log.info("plain message")
         core.wait_for_processed()
         record = handler.records[0]
         assert "function" not in record
         assert "line" not in record
+
+
+def test_call_caller_info_adds_caller_info():
+    handler = _CapturingHandler()
+    core = Core(name="CALL_CALLER_INFO")
+    with closing(core):
+        core.configure(processors=[handler], level="DEBUG")
+        log = Logger(core, name="test")
+        log.info("with caller info", caller_info=True)
+        core.wait_for_processed()
+        record = handler.records[0]
+        assert record["function"] == "test_call_caller_info_adds_caller_info"
+        assert "line" in record
+
+
+def test_error_defaults_to_caller_info():
+    handler = _CapturingHandler()
+    core = Core(name="ERROR_CALLER_INFO")
+    with closing(core):
+        core.configure(processors=[handler], level="DEBUG")
+        log = Logger(core, name="test")
+        log.error("boom")
+        core.wait_for_processed()
+        record = handler.records[0]
+        assert record["function"] == "test_error_defaults_to_caller_info"
+        assert "line" in record

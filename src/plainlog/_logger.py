@@ -57,16 +57,6 @@ class _Configure(NamedTuple):
     level: Optional[int]
 
 
-# def _validate_extra(extra: Optional[Dict[str, Any]]) -> Dict[str, Any]:
-#     ret: Dict[str, Any] = {}
-#     if extra is not None:
-#         if not isinstance(extra, collections.abc.Mapping):
-#             raise ValueError("Extra must be a Mapping (dict like) object.")
-#         ret = copy(extra)
-
-#     return ret
-
-
 def _validate_name(name: str) -> str:
     if not isinstance(name, str):
         raise ValueError("Name must be a string.")
@@ -247,17 +237,18 @@ class Core:
 class Logger:
     """Logger that sends structured log records to a shared Core.
 
-    Each Logger is tied to a single Core instance, a ``name``, and an
-    ``extra`` dict of static key-value pairs that are attached to every
-    record.
+    Each Logger is tied to a single Core instance, a ``name``, and a set
+    of static key-value pairs (passed as keyword arguments) that are
+    attached to every record as top-level fields.
 
     Use `bind()` / `unbind()` to derive a new logger with
-    additional or fewer extra keys.  Use `new()` to create a child
+    additional or fewer fields.  Use `new()` to create a child
     logger (optionally with an auto-detected name).
 
     Args:
         core: The shared Core this logger writes to.
         name: Logger name (e.g. ``"root"``, ``"mymodule.MyClass"``).
+        **kwargs: Static key-value pairs attached to every record.
 
     Attributes:
         name: Logger name (e.g. ``"root"``, ``"mymodule.MyClass"``).
@@ -285,10 +276,6 @@ class Logger:
     def name(self) -> str:
         return self._name
 
-    # @property
-    # def data(self) -> dict:
-    #     return copy(self._data)
-
     def new(
         self,
         name: Optional[str] = None,
@@ -312,14 +299,13 @@ class Logger:
                 names.append(module_name)
                 code = frame.f_code
                 qualname = code.co_name
-                # file_name = code.co_filename
                 with contextlib.suppress(AttributeError):
                     qualname = code.co_qualname  # from 3.11 on available
                 if qualname and qualname != "<module>":
                     names.append(qualname)
             name = ".".join(
                 names
-            )  # TODO: finish impl to handle all cases and asign names correct
+            )  # TODO: finish impl to handle all cases and assign names correctly
 
         name = self._name if name is None else name
         data = {**self._data, **kwargs}
@@ -335,24 +321,24 @@ class Logger:
         self._core = logger_core
 
     def bind(self, **kwargs) -> "Logger":
-        """Return a new logger with additional extra keys.
+        """Return a new logger with additional fields.
 
         Args:
-            **kwargs: Key-value pairs to merge into the logger's extra dict.
+            **kwargs: Key-value pairs to merge into the logger's fields.
 
         Returns:
-            A new Logger with the combined extra dict.
+            A new Logger with the combined fields.
         """
         return self.__class__(self._core, self._name, **{**self._data, **kwargs})
 
     def unbind(self, *args) -> "Logger":
-        """Return a new logger with the given extra keys removed.
+        """Return a new logger with the given fields removed.
 
         Args:
-            *args: Extra keys to remove.
+            *args: Field keys to remove.
 
         Returns:
-            A new Logger without the specified extra keys.
+            A new Logger without the specified fields.
         """
         data: Dict[str, Any] = copy(self._data)
         for key in args:
@@ -434,7 +420,7 @@ class Logger:
             "exception": exception,
         }
 
-        if self._data.get("caller_info"):
+        if log_record.get("caller_info"):
             add_caller_info(log_record, 3)
 
         core._queue.put(log_record)
@@ -492,9 +478,8 @@ class Logger:
         *,
         processors: Optional[Iterable[UniversalProcessorProtocol]] = None,
         level: Optional[Union[str, int]] = None,
-        # **kwargs,
     ) -> None:
-        """Configure the shared Core and this logger's verbosity.
+        """Configure the shared Core.
 
         Delegates processor and level changes to `Core.configure()`.
 
@@ -503,7 +488,6 @@ class Logger:
                 unchanged. Pass an empty iterable to remove all processors.
             level: Minimum log level.
         """
-        # self._data = {**self._data, **kwargs}
         self._core.configure(processors=processors, level=level)
 
     def __call__(self, level: str | int = LEVEL_DEBUG, msg: Msg = "", **kwargs) -> bool:

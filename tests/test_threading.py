@@ -34,7 +34,7 @@ def _fork_available():
 def test_concurrent_reconfigure_and_log():
     core = Core()
     handler = CountingHandler()
-    log = Logger(core=core, name="root", extra={})
+    log = Logger(core=core, name="root")
 
     log.configure(processors=[handler], level="DEBUG")
 

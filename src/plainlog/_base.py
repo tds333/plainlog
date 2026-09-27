@@ -75,8 +75,6 @@ ADDITIONAL_KNOWN_KEYS: tuple[str, ...] = (
     "module",
     "file_name",
     "file_path",
-    "process_id",
-    "process_name",
     "thread_id",
     "thread_name",
 )

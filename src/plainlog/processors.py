@@ -274,7 +274,6 @@ class JsonFormatter:
             }
 
         format_message(record)
-        # extra = get_processed_extra(record)
 
         serializable = {
             "message": record["message"],
@@ -282,7 +281,6 @@ class JsonFormatter:
             "created": record["created"],
             "level_name": record["level_name"],
             "level_no": record["level"],
-            # "extra": extra,
             "process_id": record["process_id"],
             "process_name": record["process_name"],
         }
@@ -327,11 +325,7 @@ class SubProcessor:
         self._processors = () if processors is None else tuple(processors)
 
     def __call__(self, record: Record) -> Record:
-        # exception = record.get("exception")
         record = copy(record)
-        # deepcopy strips tracebacks via RecordException.__reduce__, restore it
-        # if exception is not None:
-        #     record["exception"] = exception
         for processor in self._processors:
             record = processor(record)
             if not record:  # stop processing
@@ -374,7 +368,6 @@ class Stream:
 
     def write(self, message) -> None:
         self._stream.write(message + self.terminator)
-        # self._stream.write(self.terminator)
         if self._flushable:
             self._stream.flush()
 

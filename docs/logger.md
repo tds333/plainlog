@@ -34,7 +34,7 @@ log.critical("critical message")
 ```
 
 Each level method accepts a message and optional keyword arguments that are
-merged into the record's ``extra`` dict (accessible via ``record["extra"]``).
+merged into the log record as top-level fields (for example ``record["user"]``).
 
 ### Log with a specific level
 
@@ -98,7 +98,7 @@ See [Processors, Formatters & Handlers](processors.md) for everything available.
 
 ---
 
-## Binding Extra Variables
+## Binding Variables
 
 Use `bind()` to create a child logger with
 additional static key-value pairs attached to every record.

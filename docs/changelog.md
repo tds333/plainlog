@@ -5,6 +5,31 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Changed
+
+- **Record schema flattened: the `extra` key is gone.** Keyword arguments
+  passed to `logger.info(...)`, `bind()` and `contextualize()` now become
+  top-level fields on the record instead of being nested under
+  `record["extra"]`.
+- `SimpleFormatter` and `JsonFormatter` write the rendered string to
+  `record["formatted_message"]` instead of overwriting `record["message"]`.
+- `JsonFormatter` serializes a fixed set of keys plus `additional_keys`;
+  arbitrary user fields are no longer included automatically.
+- `SubProcessor` runs its nested processors on a shallow `copy` of the
+  record (previously `deepcopy`).
+- `Logger.error()`, `critical()` and `exception()` request caller info
+  (`function`, `line`, ...) by default.
+
+### Removed
+
+- `eval_extra`, `eval_lambda_extra` and `remove_extra_items` processors —
+  fields are plain top-level record keys now.
+- The `extra` parameter of `Logger(...)` and the `verbose` parameter of
+  `Logger(...)`, `Logger.new()` and `Logger.configure()`; pass keyword
+  arguments directly and use `caller_info=True` for caller info.
+
 ## 0.7.0 - 2026-09-20
 
 ### Added
