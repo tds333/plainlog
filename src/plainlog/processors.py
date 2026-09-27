@@ -5,6 +5,8 @@ Processors transform a log record in the Core thread. Formatters turn a
 record into a string. Handlers are processors that perform output.
 """
 
+from __future__ import annotations
+
 import asyncio
 import json
 import logging
@@ -20,7 +22,7 @@ from contextlib import suppress
 from copy import copy
 from datetime import datetime, timezone
 from functools import lru_cache
-from typing import IO, Any, Callable
+from typing import IO, Any, Callable, Dict, Iterable, Optional, Union
 
 from . import _env
 from ._base import Record, UniversalProcessorProtocol
@@ -34,13 +36,13 @@ start_time: float = time.time()
 
 
 def get_formatted_message(record: Record) -> str:
-    message = record.get("message", str(record["msg"]))
-    message = record.get("formatted_message", message)
+    message = record.get("message", record["msg"])
+    message = str(record.get("formatted_message", message))
 
     return message
 
 
-def _redact(mask: str, matches: Callable[[str], bool]) -> Callable:
+def _redact(mask: str, matches: Callable[[str], bool]) -> Callable[[Record], Record]:
     def redact_value(key: Any, value: Any) -> Any:
         if isinstance(value, dict):
             return {k: redact_value(k, v) for k, v in value.items()}
@@ -59,12 +61,16 @@ def _redact(mask: str, matches: Callable[[str], bool]) -> Callable:
     return redactor
 
 
-def redact_fields(*fields, mask="***REDACTED***") -> Callable:
+def redact_fields(
+    *fields: Any, mask: str = "***REDACTED***"
+) -> Callable[[Record], Record]:
     names = {str(field).lower() for field in fields}
     return _redact(mask, lambda key: key.lower() in names)
 
 
-def redact_by_pattern(*patterns, mask="***REDACTED***") -> Callable:
+def redact_by_pattern(
+    *patterns: Any, mask: str = "***REDACTED***"
+) -> Callable[[Record], Record]:
     needles = tuple(str(pattern).lower() for pattern in patterns)
     return _redact(mask, lambda key: any(needle in key.lower() for needle in needles))
 
@@ -82,7 +88,7 @@ def filter_all(record: Record) -> Record:
     return {}
 
 
-def filter_by_name(parent) -> Callable:
+def filter_by_name(parent: str) -> Callable[[Record], Record]:
     def namefilter(record: Record) -> Record:
         name = record["name"]
         if name is None:
@@ -94,7 +100,7 @@ def filter_by_name(parent) -> Callable:
     return namefilter
 
 
-def allow_by_name(parent) -> Callable:
+def allow_by_name(parent: str) -> Callable[[Record], Record]:
     def allow_name(record: Record) -> Record:
         name = record["name"]
         if name and name.startswith(parent):
@@ -104,7 +110,7 @@ def allow_by_name(parent) -> Callable:
     return allow_name
 
 
-def filter_by_level(level_per_module) -> Callable:
+def filter_by_level(level_per_module: Dict[str, Any]) -> Callable[[Record], Record]:
     def levelfilter(record: Record) -> Record:
         name = record["name"]
 
@@ -124,7 +130,9 @@ def filter_by_level(level_per_module) -> Callable:
 
 
 class FilterList:
-    def __init__(self, blacklist, whitelist=None) -> None:
+    def __init__(
+        self, blacklist: Iterable[str], whitelist: Optional[Iterable[str]] = None
+    ) -> None:
         self._whitelist = frozenset() if whitelist is None else frozenset(whitelist)
         self._blacklist = frozenset(blacklist)
         self._partition_cache: dict = {}
@@ -153,13 +161,13 @@ class FilterList:
 
 
 class WhitelistLevel:
-    def __init__(self, whitelist) -> None:
+    def __init__(self, whitelist: Dict[str, int]) -> None:
         self._whitelist_names = frozenset(whitelist)
         self._whitelist_levels = whitelist
 
     @staticmethod
     @lru_cache
-    def partition(name) -> set:
+    def partition(name: str) -> set:
         part_set = set()
         parts = name.split(".")
         for i in range(1, len(parts) + 1):
@@ -218,7 +226,7 @@ class SimpleFormatter:
         "{datetime:%Y-%m-%d %H:%M:%S.%f} {level_name:<8} [{name}] {message}"
     )
 
-    def __init__(self, fmt=None):
+    def __init__(self, fmt: Optional[str] = None) -> None:
         self._fmt = fmt if fmt is not None else self.DEFAULT_FORMAT
 
     def __call__(self, record: Record) -> Record:
@@ -246,12 +254,12 @@ class JsonFormatter:
 
     def __init__(
         self,
-        converter=None,
-        indent=None,
-        separators=None,
-        sort_keys=False,
-        additional_keys=None,
-    ):
+        converter: Optional[Callable[[Any], Any]] = None,
+        indent: Optional[int] = None,
+        separators: Optional[tuple[str, str]] = None,
+        sort_keys: bool = False,
+        additional_keys: Optional[Iterable[str]] = None,
+    ) -> None:
         if converter is None:
             converter = str
         self._converter = converter
@@ -321,7 +329,9 @@ class SubProcessor:
         handler = SubProcessor([format_message, Stream()])
     """
 
-    def __init__(self, processors=None):
+    def __init__(
+        self, processors: Optional[Iterable[UniversalProcessorProtocol]] = None
+    ) -> None:
         self._processors = () if processors is None else tuple(processors)
 
     def __call__(self, record: Record) -> Record:
@@ -347,7 +357,7 @@ class Stream:
             Defaults to ``sys.stderr``.
     """
 
-    def __init__(self, stream=None) -> None:
+    def __init__(self, stream: Optional[IO[Any]] = None) -> None:
         if stream is None:
             stream = sys.stderr
         self._stream = stream
@@ -366,7 +376,7 @@ class Stream:
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}"
 
-    def write(self, message) -> None:
+    def write(self, message: str) -> None:
         self._stream.write(message + self.terminator)
         if self._flushable:
             self._stream.flush()
@@ -382,9 +392,9 @@ class WrapStandardHandler:
         handler: A stdlib ``logging.Handler`` instance.
     """
 
-    factory = logging.getLogRecordFactory()
+    factory: Callable[..., logging.LogRecord] = logging.getLogRecordFactory()
 
-    def __init__(self, handler) -> None:
+    def __init__(self, handler: logging.Handler) -> None:
         self._handler = handler
 
     def __repr__(self) -> str:
@@ -436,9 +446,9 @@ class FingersCrossed:
     def __init__(
         self,
         processor: UniversalProcessorProtocol,
-        action_level=None,
-        buffer_size=None,
-        reset=None,
+        action_level: Optional[Union[str, int]] = None,
+        buffer_size: Optional[int] = None,
+        reset: Optional[bool] = None,
     ) -> None:
         self._processor = processor
         action_level = (
@@ -453,7 +463,7 @@ class FingersCrossed:
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(action_level={self._level!r}, processor={self._processor!r})"
 
-    def enqueue(self, record):
+    def enqueue(self, record: Record) -> bool:
         if self._action_triggered:
             self._processor(record)
         else:
@@ -496,13 +506,13 @@ class FileWriter:
 
     def __init__(
         self,
-        path,
+        path: str | os.PathLike[str],
         *,
-        delay=False,
-        watch=False,
-        mode="a",
-        buffering=1,
-        encoding="utf8",
+        delay: bool = False,
+        watch: bool = False,
+        mode: str = "a",
+        buffering: int = 1,
+        encoding: str = "utf8",
     ) -> None:
         self._path = pathlib.Path(path)
         self._encoding = encoding
@@ -525,7 +535,7 @@ class FileWriter:
 
         return record
 
-    def write(self, message) -> None:
+    def write(self, message: str) -> None:
         if self._file is None:
             self._create_file()
 
@@ -594,7 +604,7 @@ class AsyncBridge:
             is a no-op until a loop is supplied. Construction never raises.
     """
 
-    def __init__(self, loop=None) -> None:
+    def __init__(self, loop: Optional[asyncio.AbstractEventLoop] = None) -> None:
         if loop is None:
             try:
                 loop = asyncio.get_running_loop()
@@ -620,7 +630,7 @@ class AsyncBridge:
 
         return record
 
-    async def write(self, message):  # pragma: no cover
+    async def write(self, message: str) -> None:  # pragma: no cover
         pass
 
     def close(self) -> None:

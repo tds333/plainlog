@@ -4,7 +4,7 @@ import sys
 import traceback
 from datetime import datetime, timezone
 from io import StringIO
-from typing import Any, Protocol, TextIO, Type, Union
+from typing import Any, Callable, Protocol, TextIO, Type, Union
 
 from ._base import ADDITIONAL_KNOWN_KEYS, KNOWN_KEYS, Record
 from ._utils import eval_lambda_dict, format_msg
@@ -105,7 +105,7 @@ class _PlainStyles:
     kv_value = ""
 
 
-def default_exception_formatter(sio: TextIO, exc_info) -> None:
+def default_exception_formatter(sio: TextIO, exc_info: tuple) -> None:
     # sio.write("\n" + _format_exception(exc_info))
     sio.write("\n")
     traceback.print_exception(exc_info[0], exc_info[1], exc_info[2], None, sio)
@@ -118,11 +118,11 @@ class ConsoleRenderer:
         colors: bool = _use_colors,
         repr_native_str: bool = False,
         level_styles: dict | None = None,
-        exception_formatter=default_exception_formatter,
+        exception_formatter: Callable[..., None] = default_exception_formatter,
         sort_keys: bool = True,
         short_level: bool = True,
         log_name: bool = True,
-    ):
+    ) -> None:
         styles: Styles
         if colors:
             styles = _ColorfulStyles
@@ -245,7 +245,7 @@ class ConsoleRenderer:
         return record
 
     @staticmethod
-    def get_default_level_styles(colors: bool = True) -> dict:
+    def get_default_level_styles(colors: bool = True) -> dict[str, str]:
         """
         Get the default styles for log levels
         """

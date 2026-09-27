@@ -1,13 +1,16 @@
 import sys
 import traceback
+from collections.abc import Callable
 from io import StringIO
 from os.path import basename, splitext
 from pathlib import Path
 from threading import current_thread
 from types import FrameType
 
+from ._base import Record
 
-def get_frame_fallback(n) -> FrameType:
+
+def get_frame_fallback(n: int) -> FrameType:
     try:
         raise Exception
     except Exception:
@@ -17,7 +20,7 @@ def get_frame_fallback(n) -> FrameType:
         return frame  # type: ignore
 
 
-def load_get_frame_function():
+def load_get_frame_function() -> Callable[[int], FrameType]:
     if hasattr(sys, "_getframe"):
         get_frame = sys._getframe
     else:
@@ -28,7 +31,7 @@ def load_get_frame_function():
 get_frame = load_get_frame_function()
 
 
-def _format_exception(exc_info):
+def _format_exception(exc_info: tuple) -> str:
     """
     Prettyprint an `exc_info` tuple.
 
@@ -45,7 +48,7 @@ def _format_exception(exc_info):
     return s
 
 
-def add_caller_info(record: dict, call_level=3) -> None:
+def add_caller_info(record: Record, call_level: int = 3) -> None:
     frame = get_frame(call_level)
     # name = frame.f_globals["__name__"]
     code = frame.f_code

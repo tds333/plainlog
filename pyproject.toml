@@ -71,11 +71,13 @@ select = [
   "I", # isort
   "C", # flake8-comprehensions
   "B", # flake8-bugbear
+  "ANN", # flake8-annotations
 ]
 ignore = [
   "E501", # line too long, handled by black
   "B008", # do not perform function calls in argument defaults
   "C901", # too complex
+  "ANN401", # allow Any for **kwargs / dynamic values
 ]
 
 [tool.ty.rules]

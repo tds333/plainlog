@@ -32,7 +32,7 @@ class StdInterceptHandler(logging.Handler):
         "task_name",
     }
 
-    def emit(self, record) -> None:
+    def emit(self, record: logging.LogRecord) -> None:
         core = self._core
         level: int = record.levelno
 

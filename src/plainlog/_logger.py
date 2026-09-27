@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 import atexit
 import contextlib
 import logging
 import os
 import sys
 import traceback
-from contextvars import ContextVar
+from contextvars import ContextVar, Token
 from copy import copy
 from multiprocessing import current_process
 from queue import SimpleQueue
@@ -12,9 +14,10 @@ from threading import Event, Thread, current_thread
 from time import time
 from typing import (
     Any,
+    Callable,
     Dict,
-    Generator,
     Iterable,
+    Iterator,
     NamedTuple,
     Optional,
     Union,
@@ -30,10 +33,10 @@ from ._base import (
 from ._frames import add_caller_info, get_frame
 from ._utils import handle_close
 
-plainlog_context: ContextVar[dict] = ContextVar("plainlog_context")
-logger_process = current_process()
-logger_process_ident = logger_process.ident
-logger_process_name = logger_process.name
+plainlog_context: ContextVar[Dict[str, Any]] = ContextVar("plainlog_context")
+logger_process: Any = current_process()
+logger_process_ident: Optional[int] = logger_process.ident
+logger_process_name: str = logger_process.name
 
 # predefined for performance reason
 LEVEL_NOTSET: int = logging.NOTSET
@@ -78,11 +81,11 @@ def _safe_repr(obj: Any) -> str:
         return "<unprintable>"
 
 
-_validate_level = getattr(logging, "_checkLevel")  # noqa: B009
-get_level_name = logging.getLevelName
+_validate_level: Callable[[str | int], int] = getattr(logging, "_checkLevel")  # noqa: B009
+get_level_name: Callable[[int], str] = logging.getLevelName
 
 # precomputed for the logging hot path
-_EMPTY_CONTEXT: dict = {}
+_EMPTY_CONTEXT: Dict[str, Any] = {}
 _LEVEL_NAMES: Dict[int, str] = {
     LEVEL_NOTSET: "NOTSET",
     LEVEL_DEBUG: "DEBUG",
@@ -162,8 +165,10 @@ class Core:
             self.join()
 
     def _start_worker(self) -> None:
-        self._queue = SimpleQueue()
-        self._thread = Thread(target=self._worker, daemon=True, name="plainlog-worker")
+        self._queue: SimpleQueue = SimpleQueue()
+        self._thread: Thread = Thread(
+            target=self._worker, daemon=True, name="plainlog-worker"
+        )
         self._thread.start()
 
     def _worker(self) -> None:
@@ -206,7 +211,9 @@ class Core:
                 continue
 
     @staticmethod
-    def _print_error(record: dict, handler, exception=None) -> None:
+    def _print_error(
+        record: Record, handler: Any, exception: Optional[BaseException] = None
+    ) -> None:
         if not sys.stderr or sys.stderr.closed:
             return
 
@@ -261,8 +268,8 @@ class Logger:
         self,
         core: Core,
         name: str,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> None:
         self._core = core
         self._name = _validate_name(name)
         self._data = kwargs
@@ -279,8 +286,8 @@ class Logger:
     def new(
         self,
         name: Optional[str] = None,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> Logger:
         """Create a child logger, optionally auto-detecting the caller name.
 
         Args:
@@ -298,9 +305,7 @@ class Logger:
                 module_name = frame.f_globals["__name__"]
                 names.append(module_name)
                 code = frame.f_code
-                qualname = code.co_name
-                with contextlib.suppress(AttributeError):
-                    qualname = code.co_qualname  # from 3.11 on available
+                qualname = getattr(code, "co_qualname", code.co_name)  # 3.11+
                 if qualname and qualname != "<module>":
                     names.append(qualname)
             name = ".".join(
@@ -315,12 +320,12 @@ class Logger:
     def __getstate__(self) -> object:
         return self._name, self._data
 
-    def __setstate__(self, state) -> None:
+    def __setstate__(self, state: tuple) -> None:
         global logger_core
         self._name, self._data = state
         self._core = logger_core
 
-    def bind(self, **kwargs) -> "Logger":
+    def bind(self, **kwargs: Any) -> "Logger":
         """Return a new logger with additional fields.
 
         Args:
@@ -331,7 +336,7 @@ class Logger:
         """
         return self.__class__(self._core, self._name, **{**self._data, **kwargs})
 
-    def unbind(self, *args) -> "Logger":
+    def unbind(self, *args: Any) -> "Logger":
         """Return a new logger with the given fields removed.
 
         Args:
@@ -347,7 +352,7 @@ class Logger:
         return self.__class__(self._core, self._name, **data)
 
     @staticmethod
-    def context(**kwargs):
+    def context(**kwargs: Any) -> Token[Dict[str, Any]]:
         """Set context variables for the current execution context.
 
         Args:
@@ -362,7 +367,7 @@ class Logger:
         return token
 
     @staticmethod
-    def reset_context(token) -> None:
+    def reset_context(token: Token[Dict[str, Any]]) -> None:
         """Reset the ContextVar to its previous value.
 
         Args:
@@ -372,7 +377,9 @@ class Logger:
 
     @staticmethod
     @contextlib.contextmanager
-    def contextualize(**kwargs) -> Generator:  # noqa: N805
+    def contextualize(
+        **kwargs: Any,
+    ) -> Iterator[Token[Dict[str, Any]]]:  # noqa: N805
         """Context manager that sets kwargs as context variables.
 
         Args:
@@ -391,7 +398,7 @@ class Logger:
         finally:
             Logger.reset_context(token)
 
-    def _log(self, level: int, msg: Msg, kwargs: dict) -> bool:
+    def _log(self, level: int, msg: Msg, kwargs: Dict[str, Any]) -> bool:
         core = self._core
 
         if not core._processors or core._min_level_no > level:
@@ -427,29 +434,29 @@ class Logger:
 
         return True
 
-    def debug(self, msg: Msg, **kwargs) -> None:  # noqa: N805
+    def debug(self, msg: Msg, **kwargs: Any) -> None:  # noqa: N805
         """Log *msg* at DEBUG level."""
         self._log(LEVEL_DEBUG, msg, kwargs)
 
-    def info(self, msg: Msg, **kwargs) -> None:  # noqa: N805
+    def info(self, msg: Msg, **kwargs: Any) -> None:  # noqa: N805
         """Log *msg* at INFO level."""
         self._log(LEVEL_INFO, msg, kwargs)
 
-    def warning(self, msg: Msg, **kwargs) -> None:  # noqa: N805
+    def warning(self, msg: Msg, **kwargs: Any) -> None:  # noqa: N805
         """Log *msg* at WARNING level."""
         self._log(LEVEL_WARNING, msg, kwargs)
 
-    def error(self, msg: Msg, **kwargs) -> None:  # noqa: N805
+    def error(self, msg: Msg, **kwargs: Any) -> None:  # noqa: N805
         """Log *msg* at ERROR level."""
         kwargs["caller_info"] = kwargs.get("caller_info", True)
         self._log(LEVEL_ERROR, msg, kwargs)
 
-    def critical(self, msg: Msg, **kwargs) -> None:  # noqa: N805
+    def critical(self, msg: Msg, **kwargs: Any) -> None:  # noqa: N805
         """Log *msg* at CRITICAL level."""
         kwargs["caller_info"] = kwargs.get("caller_info", True)
         self._log(LEVEL_CRITICAL, msg, kwargs)
 
-    def exception(self, msg: Msg, **kwargs) -> None:  # noqa: N805
+    def exception(self, msg: Msg, **kwargs: Any) -> None:  # noqa: N805
         """Log msg at ERROR level and attach exception info.
 
         If ``exc_info`` is not already set it defaults to ``True``.
@@ -462,7 +469,7 @@ class Logger:
         kwargs["exc_info"] = kwargs.get("exc_info", True)
         self._log(LEVEL_ERROR, msg, kwargs)
 
-    def log(self, level: str | int, msg: Msg, **kwargs) -> None:
+    def log(self, level: str | int, msg: Msg, **kwargs: Any) -> None:
         """Log msg at the given level.
 
         Args:
@@ -490,7 +497,9 @@ class Logger:
         """
         self._core.configure(processors=processors, level=level)
 
-    def __call__(self, level: str | int = LEVEL_DEBUG, msg: Msg = "", **kwargs) -> bool:
+    def __call__(
+        self, level: str | int = LEVEL_DEBUG, msg: Msg = "", **kwargs: Any
+    ) -> bool:
         """Callable interface: logger(level, msg, **kwargs).
 
         Args:

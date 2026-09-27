@@ -23,14 +23,14 @@ class RecordException(NamedTuple):
     value: Optional[BaseException]
     traceback: Optional[TracebackType]
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "(type=%r, value=%r, traceback=%r)" % (
             self.type,
             self.value,
             self.traceback,
         )
 
-    def __reduce__(self):
+    def __reduce__(self) -> tuple:
         # The traceback is not picklable so we need to remove it. Also, some custom exception
         # values aren't picklable either. For user convenience, we try first to serialize it and
         # we remove the value in case or error. As an optimization, we could have re-used the

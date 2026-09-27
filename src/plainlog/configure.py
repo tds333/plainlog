@@ -1,9 +1,10 @@
 import sys
+from typing import Any, Callable, Dict, Optional, Union
 
 from ._logger import logger
 
 
-def _default(level=None, **kwargs) -> None:
+def _default(level: Optional[Union[str, int]] = None, **kwargs: Any) -> None:
     from .processors import SimpleFormatter, Stream
 
     stream = kwargs.get("stream", sys.stdout)
@@ -15,7 +16,7 @@ def _default(level=None, **kwargs) -> None:
     )
 
 
-def _develop(level=None, **kwargs) -> None:
+def _develop(level: Optional[Union[str, int]] = None, **kwargs: Any) -> None:
     from .processors import (
         ConsoleRenderer,
         Stream,
@@ -35,7 +36,7 @@ def _develop(level=None, **kwargs) -> None:
     )
 
 
-def _fingerscrossed(level=None, **kwargs) -> None:
+def _fingerscrossed(level: Optional[Union[str, int]] = None, **kwargs: Any) -> None:
     from .processors import (
         ConsoleRenderer,
         FingersCrossed,
@@ -67,7 +68,7 @@ def _fingerscrossed(level=None, **kwargs) -> None:
     )
 
 
-def _cloud(level=None, **kwargs) -> None:
+def _cloud(level: Optional[Union[str, int]] = None, **kwargs: Any) -> None:
     from .processors import JsonFormatter, Stream
 
     stream = kwargs.get("stream", sys.stderr)
@@ -77,7 +78,7 @@ def _cloud(level=None, **kwargs) -> None:
     )
 
 
-def _json(level=None, **kwargs) -> None:
+def _json(level: Optional[Union[str, int]] = None, **kwargs: Any) -> None:
     from .processors import JsonFormatter, Stream
 
     stream = kwargs.get("stream", sys.stderr)
@@ -88,7 +89,7 @@ def _json(level=None, **kwargs) -> None:
     )
 
 
-def _file(level=None, **kwargs) -> None:
+def _file(level: Optional[Union[str, int]] = None, **kwargs: Any) -> None:
     from .processors import FileWriter, SimpleFormatter
 
     filename = kwargs.get("filename", "plainlog.log")
@@ -101,7 +102,9 @@ def _file(level=None, **kwargs) -> None:
     )
 
 
-def _fingerscrossed_file(level=None, **kwargs) -> None:
+def _fingerscrossed_file(
+    level: Optional[Union[str, int]] = None, **kwargs: Any
+) -> None:
     from .processors import FileWriter, FingersCrossed, SimpleFormatter
 
     filename = kwargs.get("filename", "plainlog.log")
@@ -122,7 +125,7 @@ def _fingerscrossed_file(level=None, **kwargs) -> None:
     )
 
 
-def _develop_no_color(level=None, **kwargs):
+def _develop_no_color(level: Optional[Union[str, int]] = None, **kwargs: Any) -> None:
     from .processors import (
         ConsoleRenderer,
         Stream,
@@ -143,29 +146,31 @@ def _develop_no_color(level=None, **kwargs):
     )
 
 
-def _empty(level=None, **kwargs):
+def _empty(level: Optional[Union[str, int]] = None, **kwargs: Any) -> None:
     logger.configure(processors=(), level=level)
 
 
-def _no_init(level=None, **kwargs):
+def _no_init(level: Optional[Union[str, int]] = None, **kwargs: Any) -> None:
     pass
 
 
-def _std_handler(level=None, **kwargs):
+def _std_handler(level: Optional[Union[str, int]] = None, **kwargs: Any) -> None:
     from .std import set_as_root_handler
 
     set_as_root_handler()
     _default(level, **kwargs)
 
 
-def _std_handler_develop(level=None, **kwargs):
+def _std_handler_develop(
+    level: Optional[Union[str, int]] = None, **kwargs: Any
+) -> None:
     from .std import set_as_root_handler
 
     set_as_root_handler()
     _develop(level, **kwargs)
 
 
-_profiles = {
+_profiles: Dict[str, Callable[..., None]] = {
     "default": _default,
     "develop": _develop,
     "develop_no_color": _develop_no_color,
@@ -181,7 +186,7 @@ _profiles = {
 }
 
 
-def add_profile(name, function):
+def add_profile(name: str, function: Callable[..., None]) -> bool:
     """Register a new logging profile.
 
     Args:
@@ -198,7 +203,11 @@ def add_profile(name, function):
     return True
 
 
-def apply_log_profile(name=None, level=None, **kwargs):
+def apply_log_profile(
+    name: Optional[str] = None,
+    level: Optional[Union[str, int]] = None,
+    **kwargs: Any,
+) -> None:
     """Configure plainlog with a named profile.
 
     Available profiles:

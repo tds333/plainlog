@@ -5,10 +5,10 @@ Processors useful regardless of the logging framework.
 from __future__ import annotations
 
 import contextlib
-from typing import Any
+from typing import Any, Dict
 
 
-def eval_lambda_dict(data: dict) -> dict:
+def eval_lambda_dict(data: Dict[str, Any]) -> Dict[str, Any]:
     for name, value in data.items():
         if callable(value) and value.__name__ == "<lambda>":
             with contextlib.suppress(Exception):
@@ -18,7 +18,7 @@ def eval_lambda_dict(data: dict) -> dict:
     return data
 
 
-def eval_dict(data: dict) -> None:
+def eval_dict(data: Dict[str, Any]) -> None:
     for name, value in data.items():
         if callable(value):
             with contextlib.suppress(Exception):
@@ -26,14 +26,14 @@ def eval_dict(data: dict) -> None:
                 data[name] = result
 
 
-def eval_format(msg, kwargs: dict) -> str:
+def eval_format(msg: Any, kwargs: Dict[str, Any]) -> str:
     kwargs_ = eval_lambda_dict(kwargs.copy())
     message: str = msg.format(**kwargs_)
 
     return message
 
 
-def format_msg(record: dict[str, Any]) -> str:
+def format_msg(record: Dict[str, Any]) -> str:
     msg = record.get("msg", "")
     if not isinstance(msg, str):
         return str(msg)
@@ -46,6 +46,6 @@ def format_msg(record: dict[str, Any]) -> str:
         return msg
 
 
-def handle_close(processor):
+def handle_close(processor: Any) -> None:
     if hasattr(processor, "close") and callable(processor.close):
         processor.close()
