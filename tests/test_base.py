@@ -1,9 +1,12 @@
+from __future__ import annotations
+
 import pickle
+from typing import Any
 
 from plainlog._base import RecordException
 
 
-def test_record_exception_creation():
+def test_record_exception_creation() -> None:
     try:
         raise ValueError("test error")
     except ValueError:
@@ -14,7 +17,7 @@ def test_record_exception_creation():
     assert re.traceback is not None
 
 
-def test_record_exception_repr():
+def test_record_exception_repr() -> None:
     try:
         raise RuntimeError("boom")
     except RuntimeError:
@@ -25,14 +28,14 @@ def test_record_exception_repr():
         assert "boom" in r
 
 
-def test_record_exception_none_fields():
+def test_record_exception_none_fields() -> None:
     re = RecordException(None, None, None)
     assert re.type is None
     assert re.value is None
     assert re.traceback is None
 
 
-def test_record_exception_pickle_roundtrip():
+def test_record_exception_pickle_roundtrip() -> None:
     try:
         raise ValueError("pickle me")
     except ValueError:
@@ -46,9 +49,9 @@ def test_record_exception_pickle_roundtrip():
     assert loaded.traceback is None
 
 
-def test_record_exception_reduce_error():
+def test_record_exception_reduce_error() -> None:
     class UnpicklableExc(Exception):
-        def __reduce_ex__(self, protocol):
+        def __reduce_ex__(self, protocol: Any) -> Any:
             raise pickle.PickleError("cannot pickle")
 
     try:
@@ -63,7 +66,7 @@ def test_record_exception_reduce_error():
     assert result[1][2] is None
 
 
-def test_record_exception_reduce_no_traceback():
+def test_record_exception_reduce_no_traceback() -> None:
     re = RecordException(ValueError, ValueError("simple"), None)
     result = re.__reduce__()
     assert result[0] is RecordException
@@ -72,7 +75,7 @@ def test_record_exception_reduce_no_traceback():
     assert result[1][2] is None
 
 
-def test_record_exception_reduce_with_traceback():
+def test_record_exception_reduce_with_traceback() -> None:
     try:
         raise TypeError("bad")
     except TypeError:

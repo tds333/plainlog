@@ -1,6 +1,10 @@
+from __future__ import annotations
+
 import io
 import logging
+import pathlib
 import sys
+from typing import Any, Iterator
 
 import pytest
 
@@ -16,12 +20,12 @@ from plainlog.processors import (
 )
 
 
-def _find(processors, cls):
+def _find(processors: Any, cls: type) -> Any:
     return next(p for p in processors if isinstance(p, cls))
 
 
 @pytest.fixture(autouse=True)
-def _restore_logger():
+def _restore_logger() -> Iterator[Any]:
     processors = logger_core.processors
     level = logger_core.min_level_no
 
@@ -32,7 +36,7 @@ def _restore_logger():
 
 class TestApplyLogProfile:
     @pytest.mark.parametrize("name", (*_profiles.keys(),))
-    def test_apply_log_profile(self, name):
+    def test_apply_log_profile(self, name: str) -> None:
         apply_log_profile(name, level="DEBUG")
         assert logger.error("Testmessage") is None
         assert logger.debug("Testmessage") is None
@@ -42,20 +46,20 @@ class TestApplyLogProfile:
         assert logger.exception("Testmessage") is None
 
 
-def test_apply_log_profile_default():
+def test_apply_log_profile_default() -> None:
     apply_log_profile(level="DEBUG")
     assert logger.error("ok") is None
 
 
-def test_apply_log_profile_invalid_name():
+def test_apply_log_profile_invalid_name() -> None:
     with pytest.raises(ValueError, match="not a valid log profile"):
         apply_log_profile(name="nonexistent")
 
 
-def test_add_profile_new():
+def test_add_profile_new() -> None:
     _profiles.pop("_test_custom", None)
 
-    def custom(level=None, **kwargs):
+    def custom(level: str | int | None = None, **kwargs: Any) -> None:
         pass
 
     result = add_profile("_test_custom", custom)
@@ -65,15 +69,15 @@ def test_add_profile_new():
     _profiles.pop("_test_custom", None)
 
 
-def test_add_profile_duplicate():
-    def stub(level=None, **kwargs):
+def test_add_profile_duplicate() -> None:
+    def stub(level: str | int | None = None, **kwargs: Any) -> None:
         pass
 
     result = add_profile("default", stub)
     assert result is False
 
 
-def test_default_profile_installs_simple_formatter_on_stdout():
+def test_default_profile_installs_simple_formatter_on_stdout() -> None:
     apply_log_profile("default", level="DEBUG")
     processors = logger_core.processors
 
@@ -83,7 +87,7 @@ def test_default_profile_installs_simple_formatter_on_stdout():
     assert logger_core.min_level_no == LEVEL_DEBUG
 
 
-def test_default_profile_honors_stream_kwarg():
+def test_default_profile_honors_stream_kwarg() -> None:
     buf = io.StringIO()
     apply_log_profile("default", level="DEBUG", stream=buf)
     logger.info("routed to buf")
@@ -92,20 +96,20 @@ def test_default_profile_honors_stream_kwarg():
     assert "routed to buf" in buf.getvalue()
 
 
-def test_default_profile_honors_format_kwarg():
+def test_default_profile_honors_format_kwarg() -> None:
     apply_log_profile("default", level="DEBUG", format="{message}")
 
-    assert logger_core.processors[0]._fmt == "{message}"
+    assert getattr(logger_core.processors[0], "_fmt") == "{message}"  # noqa: B009
 
 
-def test_develop_profile_is_colored():
+def test_develop_profile_is_colored() -> None:
     apply_log_profile("develop", level="DEBUG")
     renderer = _find(logger_core.processors, ConsoleRenderer)
 
     assert renderer._styles.level_info != ""
 
 
-def test_develop_profile_honors_stream_kwarg():
+def test_develop_profile_honors_stream_kwarg() -> None:
     buf = io.StringIO()
     apply_log_profile("develop", level="DEBUG", stream=buf)
     logger.info("develop to buf")
@@ -114,14 +118,14 @@ def test_develop_profile_honors_stream_kwarg():
     assert "develop to buf" in buf.getvalue()
 
 
-def test_develop_no_color_profile_has_no_ansi():
+def test_develop_no_color_profile_has_no_ansi() -> None:
     apply_log_profile("develop_no_color", level="DEBUG")
     renderer = _find(logger_core.processors, ConsoleRenderer)
 
     assert renderer._styles.level_info == ""
 
 
-def test_json_and_cloud_set_expected_indent():
+def test_json_and_cloud_set_expected_indent() -> None:
     apply_log_profile("cloud", level="DEBUG")
     assert _find(logger_core.processors, JsonFormatter)._indent is None
 
@@ -129,7 +133,7 @@ def test_json_and_cloud_set_expected_indent():
     assert _find(logger_core.processors, JsonFormatter)._indent == 2
 
 
-def test_file_profile_writes_to_filename(tmp_path):
+def test_file_profile_writes_to_filename(tmp_path: pathlib.Path) -> None:
     path = tmp_path / "app.log"
     apply_log_profile("file", level="DEBUG", filename=str(path))
     logger.info("to the file")
@@ -139,7 +143,7 @@ def test_file_profile_writes_to_filename(tmp_path):
     assert "to the file" in path.read_text()
 
 
-def test_fingerscrossed_profile_kwargs_and_stream():
+def test_fingerscrossed_profile_kwargs_and_stream() -> None:
     buf = io.StringIO()
     apply_log_profile(
         "fingerscrossed",
@@ -157,7 +161,7 @@ def test_fingerscrossed_profile_kwargs_and_stream():
     assert handler._processor._stream is buf
 
 
-def test_empty_profile_clears_processors():
+def test_empty_profile_clears_processors() -> None:
     apply_log_profile("default", level="DEBUG")
     assert logger_core.processors
 
@@ -166,7 +170,7 @@ def test_empty_profile_clears_processors():
     assert logger_core.processors == ()
 
 
-def test_no_init_profile_leaves_processors_untouched():
+def test_no_init_profile_leaves_processors_untouched() -> None:
     marker = lambda record: record  # noqa: E731
     logger.configure(processors=[marker], level="DEBUG")
     before = logger_core.processors
@@ -176,7 +180,7 @@ def test_no_init_profile_leaves_processors_untouched():
     assert logger_core.processors is before
 
 
-def test_std_handler_default_installs_root_handler_and_forwards_kwargs():
+def test_std_handler_default_installs_root_handler_and_forwards_kwargs() -> None:
     root = logging.getLogger()
     before = list(root.handlers)
     buf = io.StringIO()
@@ -195,10 +199,10 @@ def test_std_handler_default_installs_root_handler_and_forwards_kwargs():
                 root.removeHandler(handler)
 
 
-def test_add_profile_function_receives_level_and_kwargs():
+def test_add_profile_function_receives_level_and_kwargs() -> None:
     recorded = {}
 
-    def custom(level=None, **kwargs):
+    def custom(level: str | int | None = None, **kwargs: Any) -> None:
         recorded["level"] = level
         recorded["kwargs"] = kwargs
 

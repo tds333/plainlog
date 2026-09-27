@@ -1,10 +1,13 @@
+from __future__ import annotations
+
 import logging
 
 from plainlog._logger import logger_core
 from plainlog.std import StdInterceptHandler, set_as_root_handler
+from tests.conftest import DummyHandler
 
 
-def test_set_as_root_handler(thandler):
+def test_set_as_root_handler(thandler: DummyHandler) -> None:
     handler = set_as_root_handler(level="DEBUG")
     root = logging.getLogger(name="root")
     level_old = root.getEffectiveLevel()
@@ -20,7 +23,7 @@ def test_set_as_root_handler(thandler):
         root.removeHandler(handler)
 
 
-def test_std_intercept_handler_level_filtering(thandler):
+def test_std_intercept_handler_level_filtering(thandler: DummyHandler) -> None:
     root = logging.getLogger(name="root")
 
     for h in list(root.handlers):
@@ -34,7 +37,13 @@ def test_std_intercept_handler_level_filtering(thandler):
         root.addHandler(handler)
 
         record_info = root.makeRecord(
-            "root", logging.INFO, "test.py", 1, "direct info", (), None,
+            "root",
+            logging.INFO,
+            "test.py",
+            1,
+            "direct info",
+            (),
+            None,
         )
         handler.emit(record_info)
         logger_core.wait_for_processed()

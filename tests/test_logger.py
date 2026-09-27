@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import io
 import logging
 import pickle
 import sys
 from contextlib import closing
+from typing import Any
 
 import pytest
 
@@ -20,53 +23,54 @@ from plainlog._logger import (
     _validate_name,
     logger_core,
 )
+from tests.conftest import DummyHandler
 
 
-def test_logger_repr():
+def test_logger_repr() -> None:
     rstring = repr(logger)
 
     assert rstring == "<plainlog.Logger name='root' core=<plainlog.Core(name='CORE')>>"
 
 
-def test_logger_new():
+def test_logger_new() -> None:
     new_logger = logger.new(name="new")
 
     assert "new" in repr(new_logger)
 
 
-def test_validate_name_string():
+def test_validate_name_string() -> None:
     assert _validate_name("test") == "test"
 
 
-def test_validate_name_raises_on_non_string():
+def test_validate_name_raises_on_non_string() -> None:
     with pytest.raises(ValueError, match="Name must be a string"):
-        _validate_name(123)
+        _validate_name(123)  # type: ignore
 
 
-def test_validate_level_by_int():
+def test_validate_level_by_int() -> None:
     result = _validate_level(10)
     assert isinstance(result, int)
     assert result == 10
 
 
-def test_validate_level_by_name():
+def test_validate_level_by_name() -> None:
     result = _validate_level("INFO")
     assert isinstance(result, int)
     assert result == 20
 
 
-def test_validate_level_by_level():
+def test_validate_level_by_level() -> None:
     expected = LEVEL_ERROR
     result = _validate_level(expected)
     assert result == expected
 
 
-def test_validate_level_raises_on_invalid():
+def test_validate_level_raises_on_invalid() -> None:
     with pytest.raises(ValueError, match="Unknown level"):
         _validate_level("INVALID")
 
 
-def test_logger_debug(thandler):
+def test_logger_debug(thandler: DummyHandler) -> None:
     message = "log in DEBUG"
     logger.debug(message)
 
@@ -76,7 +80,7 @@ def test_logger_debug(thandler):
     assert record["level"] == LEVEL_DEBUG
 
 
-def test_logger_info(thandler):
+def test_logger_info(thandler: DummyHandler) -> None:
     message = "log in INFO"
     logger.info(message)
 
@@ -86,7 +90,7 @@ def test_logger_info(thandler):
     assert record["level"] == LEVEL_INFO
 
 
-def test_logger_warning(thandler):
+def test_logger_warning(thandler: DummyHandler) -> None:
     message = "log in WARNING"
     logger.warning(message)
 
@@ -96,7 +100,7 @@ def test_logger_warning(thandler):
     assert record["level"] == LEVEL_WARNING
 
 
-def test_logger_error(thandler):
+def test_logger_error(thandler: DummyHandler) -> None:
     message = "log in ERROR"
     logger.error(message)
 
@@ -106,7 +110,7 @@ def test_logger_error(thandler):
     assert record["level"] == LEVEL_ERROR
 
 
-def test_logger_exception(thandler):
+def test_logger_exception(thandler: DummyHandler) -> None:
     message = "log in EXCEPTION"
 
     logger.exception(message)
@@ -118,7 +122,7 @@ def test_logger_exception(thandler):
     assert record["exception"]
 
 
-def test_logger_critical(thandler):
+def test_logger_critical(thandler: DummyHandler) -> None:
     message = "log in CRITICAL"
     logger.critical(message)
 
@@ -128,7 +132,7 @@ def test_logger_critical(thandler):
     assert record["level"] == LEVEL_CRITICAL
 
 
-def test_logger_log(thandler):
+def test_logger_log(thandler: DummyHandler) -> None:
     message = "log in INFO"
     logger.log("INFO", message)
 
@@ -138,7 +142,7 @@ def test_logger_log(thandler):
     assert record["level"] == LEVEL_INFO
 
 
-def test_logger_level_name_standard(thandler):
+def test_logger_level_name_standard(thandler: DummyHandler) -> None:
     logger.info("standard level")
 
     record = thandler.first()
@@ -146,7 +150,7 @@ def test_logger_level_name_standard(thandler):
     assert record["level_name"] == "INFO"
 
 
-def test_logger_level_name_custom_int(thandler):
+def test_logger_level_name_custom_int(thandler: DummyHandler) -> None:
     logger.log(25, "custom level")
 
     record = thandler.first()
@@ -155,7 +159,7 @@ def test_logger_level_name_custom_int(thandler):
     assert record["level_name"] == logging.getLevelName(25)
 
 
-def test_logger_msg_dict(thandler):
+def test_logger_msg_dict(thandler: DummyHandler) -> None:
     message = {"content": "this is a dict"}
     logger.log("INFO", message)
 
@@ -166,7 +170,7 @@ def test_logger_msg_dict(thandler):
     assert record["level"] == LEVEL_INFO
 
 
-def test_logger_call(thandler):
+def test_logger_call(thandler: DummyHandler) -> None:
     message = "log in DEBUG"
     assert logger(msg=message) is True
 
@@ -183,11 +187,11 @@ def test_logger_call(thandler):
     assert record["level"] == LEVEL_INFO
 
 
-def test_logger_name_property():
+def test_logger_name_property() -> None:
     assert logger.name == "root"
 
 
-def test_logger_pickle_roundtrip(thandler):
+def test_logger_pickle_roundtrip(thandler: DummyHandler) -> None:
     lb = logger.bind(x=1, y=2)
     data = pickle.dumps(lb)
     restored = pickle.loads(data)
@@ -197,7 +201,7 @@ def test_logger_pickle_roundtrip(thandler):
     assert restored._core is logger_core
 
 
-def test_logger_pickle_can_log(thandler):
+def test_logger_pickle_can_log(thandler: DummyHandler) -> None:
     lb = logger.bind(user="pickle")
     data = pickle.dumps(lb)
     restored = pickle.loads(data)
@@ -209,7 +213,7 @@ def test_logger_pickle_can_log(thandler):
     assert record["user"] == "pickle"
 
 
-def test_logger_pickle_global_core():
+def test_logger_pickle_global_core() -> None:
     from plainlog._logger import logger_core
 
     lb = Logger(logger_core, "pickle_test", a=1)
@@ -221,11 +225,11 @@ def test_logger_pickle_global_core():
     assert restored._data == {"a": 1}
 
 
-def test_core_processors_property(thandler):
+def test_core_processors_property(thandler: DummyHandler) -> None:
     assert logger_core.processors == (thandler,)
 
 
-def test_logger_context(thandler):
+def test_logger_context(thandler: DummyHandler) -> None:
     token = Logger.context(user="alice")
     try:
         logger.info("with context")
@@ -236,7 +240,7 @@ def test_logger_context(thandler):
         Logger.reset_context(token)
 
 
-def test_logger_contextualize(thandler):
+def test_logger_contextualize(thandler: DummyHandler) -> None:
     with Logger.contextualize(request_id="abc"):
         logger.info("inside context")
         record = thandler.first()
@@ -248,7 +252,7 @@ def test_logger_contextualize(thandler):
     assert "request_id" not in record
 
 
-def test_logger_context_isolation(thandler):
+def test_logger_context_isolation(thandler: DummyHandler) -> None:
     token = Logger.context(trace="first")
     Logger.context(trace="second")
     try:
@@ -259,7 +263,7 @@ def test_logger_context_isolation(thandler):
         Logger.reset_context(token)
 
 
-def test_core_log_no_handler_returns_empty():
+def test_core_log_no_handler_returns_empty() -> None:
     core = Core(name="NO_HANDLER_LOG")
     with closing(core):
         record = core.log({"msg": "direct"})
@@ -267,17 +271,19 @@ def test_core_log_no_handler_returns_empty():
 
 
 class ErrorOnProcess:
-    def __call__(self, record):
+    def __call__(self, record: Record) -> Record:
         raise RuntimeError("process failed")
 
 
-def write_processor_error(record):
-    sys.stderr.write(record.get("processor_error_message"))
-    sys.stderr.write(record.get("processor_error_name_repr"))
+def write_processor_error(record: Record) -> Any:
+    sys.stderr.write(str(record.get("processor_error_message")))
+    sys.stderr.write(str(record.get("processor_error_name_repr")))
     return record
 
 
-def test_core_process_error_prints_to_stderr(thandler, capsys):
+def test_core_process_error_prints_to_stderr(
+    thandler: DummyHandler, capsys: pytest.CaptureFixture[str]
+) -> None:
     logger.configure(
         processors=[ErrorOnProcess(), write_processor_error], level="DEBUG"
     )
@@ -289,14 +295,14 @@ def test_core_process_error_prints_to_stderr(thandler, capsys):
 
 
 class ErrorOnCloseHandler:
-    def close(self):
+    def close(self) -> None:
         raise RuntimeError("close failed")
 
-    def __call__(self, record):
+    def __call__(self, record: Record) -> Any:
         return record
 
 
-def test_print_error_to_stderr(capsys):
+def test_print_error_to_stderr(capsys: pytest.CaptureFixture[str]) -> None:
     core = Core(name="PRINT_TEST")
     with closing(core):
         core._print_error({"msg": "test"}, "dummy_handler", ValueError("bang"))
@@ -306,7 +312,7 @@ def test_print_error_to_stderr(capsys):
         assert "bang" in output
 
 
-def test_print_error_suppressed_when_stderr_closed():
+def test_print_error_suppressed_when_stderr_closed() -> None:
     core = Core(name="PRINT_TEST2")
     with closing(core):
         closed = io.StringIO()
@@ -322,11 +328,11 @@ def test_print_error_suppressed_when_stderr_closed():
 class FailingStderr:
     closed = False
 
-    def write(self, message):
+    def write(self, message: Any) -> None:
         raise OSError("cannot write")
 
 
-def test_print_error_suppressed_on_oserror():
+def test_print_error_suppressed_on_oserror() -> None:
     core = Core(name="PRINT_OSERROR")
     with closing(core):
         old = sys.stderr
@@ -337,7 +343,7 @@ def test_print_error_suppressed_on_oserror():
             sys.stderr = old
 
 
-def test_logger_no_handler():
+def test_logger_no_handler() -> None:
     message = "should not be logged"
     core = Core(name="NO_HANDLER")
     with closing(core):
@@ -351,21 +357,21 @@ def test_logger_no_handler():
         assert log(msg=message) is False
 
 
-def test_core_close_when_not_alive():
+def test_core_close_when_not_alive() -> None:
     core = Core(name="CLOSE_TEST")
     with closing(core):
         core.close()
         core.close()
 
 
-def test_core_is_alive():
+def test_core_is_alive() -> None:
     core = Core(name="ALIVE_TEST")
     with closing(core):
         assert core.is_alive()
     assert not core.is_alive()
 
 
-def test_core_print_error_with_exc_info(capsys):
+def test_core_print_error_with_exc_info(capsys: pytest.CaptureFixture[str]) -> None:
     core = Core(name="EXC_INFO")
     with closing(core):
         try:
@@ -378,19 +384,21 @@ def test_core_print_error_with_exc_info(capsys):
 
 
 class BadStrRecord:
-    def __str__(self):
+    def __str__(self) -> str:
         raise RuntimeError("bad str")
 
 
-def test_core_print_error_unprintable_record(capsys):
+def test_core_print_error_unprintable_record(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
     core = Core(name="BAD_STR")
     with closing(core):
-        core._print_error(BadStrRecord(), "h", ValueError("boom"))
+        core._print_error(BadStrRecord(), "h", ValueError("boom"))  # type: ignore
         output = capsys.readouterr().err
         assert "Unprintable record" in output
 
 
-def test_logger_new_auto_name():
+def test_logger_new_auto_name() -> None:
     log = logger.new()
     assert log.name.startswith("tests.test_logger")
     assert "test_logger_new_auto_name" in log.name
@@ -427,7 +435,7 @@ def _comprehension_site() -> str:
     return [logger.new().name for _ in range(1)][0]
 
 
-def test_logger_new_auto_name_method():
+def test_logger_new_auto_name_method() -> None:
     if _HAS_QUALNAME:
         expected = f"{__name__}._NameTarget.method"
     else:
@@ -436,7 +444,7 @@ def test_logger_new_auto_name_method():
     assert _NameTarget().method() == expected
 
 
-def test_logger_new_auto_name_staticmethod():
+def test_logger_new_auto_name_staticmethod() -> None:
     if _HAS_QUALNAME:
         expected = f"{__name__}._NameTarget.static_method"
     else:
@@ -445,7 +453,7 @@ def test_logger_new_auto_name_staticmethod():
     assert _NameTarget.static_method() == expected
 
 
-def test_logger_new_auto_name_nested_function():
+def test_logger_new_auto_name_nested_function() -> None:
     if _HAS_QUALNAME:
         expected = f"{__name__}._nested_outer.inner"
     else:
@@ -454,7 +462,7 @@ def test_logger_new_auto_name_nested_function():
     assert _nested_outer() == expected
 
 
-def test_logger_new_auto_name_lambda():
+def test_logger_new_auto_name_lambda() -> None:
     if _HAS_QUALNAME:
         expected = f"{__name__}._lambda_site.<lambda>"
     else:
@@ -463,7 +471,7 @@ def test_logger_new_auto_name_lambda():
     assert _lambda_site() == expected
 
 
-def test_logger_new_auto_name_comprehension():
+def test_logger_new_auto_name_comprehension() -> None:
     if _HAS_INLINED_COMPREHENSIONS:
         expected = f"{__name__}._comprehension_site"
     elif _HAS_QUALNAME:
@@ -474,7 +482,7 @@ def test_logger_new_auto_name_comprehension():
     assert _comprehension_site() == expected
 
 
-def test_logger_new_auto_name_falls_back_without_module_name():
+def test_logger_new_auto_name_falls_back_without_module_name() -> None:
     # A frame whose globals have no __name__ yields no detected name, so the
     # parent logger's name is used instead of an empty string.
     namespace: dict = {"logger": logger}
@@ -488,14 +496,14 @@ class BareHandler:
         return record
 
 
-def test_core_handler_no_close():
+def test_core_handler_no_close() -> None:
     core = Core(name="NO_CLOSE")
     with closing(core):
         core.configure(processors=[BareHandler()], level="DEBUG")
         core.configure(processors=[BareHandler()], level="DEBUG")
 
 
-def test_core_configure_none_keeps_processors():
+def test_core_configure_none_keeps_processors() -> None:
     core = Core(name="KEEP_PROCESSORS")
     with closing(core):
         handler = BareHandler()
@@ -506,7 +514,7 @@ def test_core_configure_none_keeps_processors():
         assert core.min_level_no == LEVEL_WARNING
 
 
-def test_core_reconfigure_suppresses_close_error():
+def test_core_reconfigure_suppresses_close_error() -> None:
     core = Core(name="CLOSE_ERROR")
     with closing(core):
         core.configure(processors=[ErrorOnCloseHandler()], level="DEBUG")
@@ -514,7 +522,7 @@ def test_core_reconfigure_suppresses_close_error():
         assert core.processors == ()
 
 
-def test_core_worker_log_when_handler_cleared():
+def test_core_worker_log_when_handler_cleared() -> None:
     core = Core(name="LOG_CLEARED")
     with closing(core):
         dh = BareHandler()
@@ -526,14 +534,14 @@ def test_core_worker_log_when_handler_cleared():
         core.wait_for_processed()
 
 
-def test_core_worker_stops_when_record_filtered():
+def test_core_worker_stops_when_record_filtered() -> None:
     calls = []
 
-    def drop(record):
+    def drop(record: Record) -> Any:
         calls.append("drop")
         return {}
 
-    def after(record):
+    def after(record: Record) -> Any:
         calls.append("after")
         return record
 
@@ -546,13 +554,13 @@ def test_core_worker_stops_when_record_filtered():
         assert calls == ["drop"]
 
 
-def test_core_worker_event(capsys):
+def test_core_worker_event(capsys: pytest.CaptureFixture[str]) -> None:
     core = Core(name="EVENT_TEST")
     with closing(core):
         core.wait_for_processed()
 
 
-def test_core():
+def test_core() -> None:
     records = []
     message = "other core debug"
 
@@ -560,11 +568,11 @@ def test_core():
         def __init__(self) -> None:
             self.records = []
 
-        def __call__(self, record) -> Record:
+        def __call__(self, record: Record) -> Record:
             self.records.append(record)
             return record
 
-    def dummy_processor(record):
+    def dummy_processor(record: Record) -> Any:
         nonlocal records
         records.append(record)
 
@@ -582,38 +590,38 @@ def test_core():
 
 
 class HandlerWithoutClose:
-    def __call__(self, record):
+    def __call__(self, record: Record) -> Any:
         return record
 
 
-def test_core_handler_without_close():
+def test_core_handler_without_close() -> None:
     core = Core(name="NO_CLOSE_ATTR")
     with closing(core):
         core.configure(processors=[HandlerWithoutClose()], level="DEBUG")
         core.configure(processors=[BareHandler()], level="DEBUG")
 
 
-def test_logger_new_at_module_top_level():
+def test_logger_new_at_module_top_level() -> None:
     from tests._helper_new_at_module_level import LOGGER_NAME
 
     assert LOGGER_NAME == "tests._helper_new_at_module_level"
 
 
 class _CapturingHandler:
-    def __init__(self):
+    def __init__(self) -> None:
         self.records = []
 
-    def __call__(self, record):
+    def __call__(self, record: Record) -> Any:
         self.records.append(record)
         return record
 
 
-def _verbose_log_site(log):
+def _verbose_log_site(log: Any) -> Any:
     log.info("verbose message", caller_info=True)
     return _verbose_log_site.__code__.co_firstlineno
 
 
-def test_verbose_adds_caller_info():
+def test_verbose_adds_caller_info() -> None:
     handler = _CapturingHandler()
     core = Core(name="VERBOSE")
     with closing(core):
@@ -630,7 +638,7 @@ def test_verbose_adds_caller_info():
         assert "thread_name" in record
 
 
-def test_verbose_false_omits_caller_info():
+def test_verbose_false_omits_caller_info() -> None:
     handler = _CapturingHandler()
     core = Core(name="NON_VERBOSE")
     with closing(core):
@@ -643,7 +651,7 @@ def test_verbose_false_omits_caller_info():
         assert "line" not in record
 
 
-def test_call_caller_info_adds_caller_info():
+def test_call_caller_info_adds_caller_info() -> None:
     handler = _CapturingHandler()
     core = Core(name="CALL_CALLER_INFO")
     with closing(core):
@@ -656,7 +664,7 @@ def test_call_caller_info_adds_caller_info():
         assert "line" in record
 
 
-def test_error_defaults_to_caller_info():
+def test_error_defaults_to_caller_info() -> None:
     handler = _CapturingHandler()
     core = Core(name="ERROR_CALLER_INFO")
     with closing(core):

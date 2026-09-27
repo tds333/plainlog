@@ -75,7 +75,7 @@ def redact_by_pattern(
     return _redact(mask, lambda key: any(needle in key.lower() for needle in needles))
 
 
-# Filter, are processors, but do not modify record, only return {} if filterd out
+# Filter, are processors, but do not modify record, only return {} if filtered out
 
 
 def filter_None(record: Record) -> Record:

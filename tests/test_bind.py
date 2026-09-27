@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 from plainlog import logger
+from tests.conftest import DummyHandler
 
 
-def test_bind_after_add(thandler):
+def test_bind_after_add(thandler: DummyHandler) -> None:
     logger_bound = logger.bind(a=0)
     logger_bound.debug("A")
 
@@ -11,7 +14,7 @@ def test_bind_after_add(thandler):
     assert record["msg"] == "A"
 
 
-def test_bind_before_add(thandler):
+def test_bind_before_add(thandler: DummyHandler) -> None:
     logger_bound = logger.bind(a=0)
     logger_bound.debug("A")
 
@@ -21,7 +24,7 @@ def test_bind_before_add(thandler):
     assert record["msg"] == "A"
 
 
-def test_add_using_bound(thandler):
+def test_add_using_bound(thandler: DummyHandler) -> None:
     logger_bound = logger.bind(a=0)
     logger.debug("A")
     logger_bound.debug("B")
@@ -39,7 +42,7 @@ def test_add_using_bound(thandler):
     assert record["msg"] == "B"
 
 
-def test_unbind(thandler):
+def test_unbind(thandler: DummyHandler) -> None:
     lb = logger.bind(a=0)
     lb.debug("A")
     lb = lb.unbind("a")

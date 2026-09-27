@@ -1,29 +1,33 @@
 # SPDX-FileCopyrightText: 2023 Wolfgang Langner <tds333@mailbox.org>
 #
 # SPDX-License-Identifier: BSD-3-Clause
+from __future__ import annotations
+
 import multiprocessing as mp
 import os
 import threading
 import time
 import warnings
+from typing import Any
 
 import pytest
 
+from plainlog._base import Record
 from plainlog._logger import Core, Logger, _reset_for_fork, logger_core
 
 
 class CountingHandler:
-    def __init__(self):
+    def __init__(self) -> None:
         self.count = 0
         self._lock = threading.Lock()
 
-    def __call__(self, record):
+    def __call__(self, record: Record) -> Any:
         with self._lock:
             self.count += 1
         return record
 
 
-def _fork_available():
+def _fork_available() -> Any:
     try:
         mp.get_context("fork")
         return True
@@ -31,7 +35,7 @@ def _fork_available():
         return False
 
 
-def test_concurrent_reconfigure_and_log():
+def test_concurrent_reconfigure_and_log() -> None:
     core = Core()
     handler = CountingHandler()
     log = Logger(core=core, name="root")
@@ -41,11 +45,11 @@ def test_concurrent_reconfigure_and_log():
     stop = False
     threads = []
 
-    def log_loop():
+    def log_loop() -> None:
         while not stop:
             log.info("x")
 
-    def configure_loop():
+    def configure_loop() -> None:
         while not stop:
             log.configure(processors=[handler], level="DEBUG")
 
@@ -66,7 +70,7 @@ def test_concurrent_reconfigure_and_log():
     assert handler.count > 0
 
 
-def test_close_then_configure_no_hang():
+def test_close_then_configure_no_hang() -> None:
     core = Core()
     core.configure(processors=[CountingHandler()], level="DEBUG")
     core.close()
@@ -79,7 +83,7 @@ def test_close_then_configure_no_hang():
     assert elapsed < 1.0
 
 
-def test_close_idempotent():
+def test_close_idempotent() -> None:
     core = Core()
     core.configure(processors=[CountingHandler()], level="DEBUG")
     core.close()
@@ -88,7 +92,7 @@ def test_close_idempotent():
     assert not core.is_alive()
 
 
-def test_wait_for_processed_dead_core():
+def test_wait_for_processed_dead_core() -> None:
     core = Core()
     core.close()
     # Must return immediately on a dead worker, not block on an Event
@@ -97,7 +101,9 @@ def test_wait_for_processed_dead_core():
     assert not core.is_alive()
 
 
-def test_register_fork_hook_skipped_without_register_at_fork(monkeypatch):
+def test_register_fork_hook_skipped_without_register_at_fork(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     import plainlog._logger as mod
 
     monkeypatch.delattr(os, "register_at_fork", raising=False)
@@ -105,15 +111,15 @@ def test_register_fork_hook_skipped_without_register_at_fork(monkeypatch):
     mod._register_fork_hook()
 
 
-def test_worker_ignores_processor_returning_non_dict():
+def test_worker_ignores_processor_returning_non_dict() -> None:
     class Poison:
-        def __call__(self, record):
+        def __call__(self, record: Record) -> Any:
             return "poisoned"
 
     captured = []
 
     class Recorder:
-        def __call__(self, record):
+        def __call__(self, record: Record) -> Any:
             captured.append(record)
             return record
 
@@ -141,19 +147,19 @@ def test_worker_ignores_processor_returning_non_dict():
     core.join()
 
 
-def test_worker_survives_poisoned_record_and_processor_exception():
+def test_worker_survives_poisoned_record_and_processor_exception() -> None:
     class Poison:
-        def __call__(self, record):
+        def __call__(self, record: Record) -> Any:
             return "poisoned"
 
     class Raising:
-        def __call__(self, record):
+        def __call__(self, record: Record) -> Record:
             raise ValueError("boom")
 
     captured = []
 
     class Recorder:
-        def __call__(self, record):
+        def __call__(self, record: Record) -> Any:
             captured.append(record)
             return record
 
@@ -174,16 +180,16 @@ def test_worker_survives_poisoned_record_and_processor_exception():
     core.join()
 
 
-def test_worker_survives_processor_exception():
+def test_worker_survives_processor_exception() -> None:
     captured = []
 
     class Recorder:
-        def __call__(self, record):
+        def __call__(self, record: Record) -> Any:
             captured.append(record)
             return record
 
     class Raising:
-        def __call__(self, record):
+        def __call__(self, record: Record) -> Record:
             raise ValueError("boom")
 
     core = Core()
@@ -200,18 +206,18 @@ def test_worker_survives_processor_exception():
     core.join()
 
 
-def test_worker_survives_hostile_repr():
+def test_worker_survives_hostile_repr() -> None:
     class Hostile:
-        def __call__(self, record):
+        def __call__(self, record: Record) -> Record:
             raise ValueError("boom")
 
-        def __repr__(self):
+        def __repr__(self) -> str:
             raise RuntimeError("bad repr")
 
     captured = []
 
     class Recorder:
-        def __call__(self, record):
+        def __call__(self, record: Record) -> Any:
             captured.append(record)
             return record
 
@@ -232,19 +238,19 @@ def test_worker_survives_hostile_repr():
     core.join()
 
 
-def test_worker_survives_hostile_str_exception():
+def test_worker_survives_hostile_str_exception() -> None:
     class BadStrError(Exception):
-        def __str__(self):
+        def __str__(self) -> str:
             raise RuntimeError("bad str")
 
     class Raising:
-        def __call__(self, record):
+        def __call__(self, record: Record) -> Record:
             raise BadStrError()
 
     captured = []
 
     class Recorder:
-        def __call__(self, record):
+        def __call__(self, record: Record) -> Any:
             captured.append(record)
             return record
 
@@ -263,11 +269,11 @@ def test_worker_survives_hostile_str_exception():
     core.join()
 
 
-def test_worker_ignores_unknown_queue_value():
+def test_worker_ignores_unknown_queue_value() -> None:
     captured = []
 
     class Recorder:
-        def __call__(self, record):
+        def __call__(self, record: Record) -> Any:
             captured.append(record)
             return record
 
@@ -287,14 +293,14 @@ def test_worker_ignores_unknown_queue_value():
     core.join()
 
 
-def test_configure_from_processor_does_not_stall():
+def test_configure_from_processor_does_not_stall() -> None:
     core = Core()
     log = Logger(core=core, name="t")
 
     calls = []
 
     class Reentrant:
-        def __call__(self, record):
+        def __call__(self, record: Record) -> Any:
             if not calls:
                 calls.append(True)
                 log.configure(processors=[Reentrant()], level="DEBUG")
@@ -314,7 +320,7 @@ def test_configure_from_processor_does_not_stall():
     core.join()
 
 
-def test_wait_for_processed_is_bounded(monkeypatch):
+def test_wait_for_processed_is_bounded(monkeypatch: pytest.MonkeyPatch) -> None:
     import plainlog._logger as mod
 
     core = Core()
@@ -323,13 +329,13 @@ def test_wait_for_processed_is_bounded(monkeypatch):
     core.join()
 
     class FakeThread:
-        def is_alive(self):
+        def is_alive(self) -> Any:
             return True
 
-        def join(self):
+        def join(self) -> None:
             pass
 
-    core._thread = FakeThread()
+    core._thread = FakeThread()  # type: ignore
     monkeypatch.setattr(mod._env, "DEFAULT_WAIT_TIMEOUT", 0.05)
 
     start = time.monotonic()
@@ -342,7 +348,7 @@ def test_wait_for_processed_is_bounded(monkeypatch):
     assert elapsed < 1.0
 
 
-def test_reset_for_fork_restarts_worker():
+def test_reset_for_fork_restarts_worker() -> None:
     old_thread = logger_core._thread
     old_queue = logger_core._queue
 
@@ -361,11 +367,11 @@ def test_reset_for_fork_restarts_worker():
     assert old_thread.is_alive()
 
 
-def _child_log(q):
+def _child_log(q: Any) -> None:
     from plainlog import logger
 
     class QHandler:
-        def __call__(self, record):
+        def __call__(self, record: Record) -> Any:
             q.put(record["msg"])
             return record
 
@@ -378,7 +384,7 @@ def _child_log(q):
     not _fork_available(),
     reason="fork start method not available on this platform",
 )
-def test_fork_reset_logs_in_child():
+def test_fork_reset_logs_in_child() -> None:
     ctx = mp.get_context("fork")
     q = ctx.Queue()
     p = ctx.Process(target=_child_log, args=(q,))

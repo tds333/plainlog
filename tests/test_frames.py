@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import sys
+from typing import Any
 
 from plainlog._frames import (
     _format_exception,
@@ -9,12 +12,12 @@ from plainlog._frames import (
 )
 
 
-def test_load_get_frame_returns_sys_getframe():
+def test_load_get_frame_returns_sys_getframe() -> None:
     func = load_get_frame_function()
     assert func is sys._getframe
 
 
-def test_load_get_frame_fallback_when_no_sys_getframe():
+def test_load_get_frame_fallback_when_no_sys_getframe() -> None:
     orig = sys._getframe
     del sys._getframe
     try:
@@ -26,42 +29,42 @@ def test_load_get_frame_fallback_when_no_sys_getframe():
         sys._getframe = orig
 
 
-def test_get_frame_returns_frame():
+def test_get_frame_returns_frame() -> None:
     frame = get_frame(0)
     assert frame is not None
     assert frame.f_code.co_name == "test_get_frame_returns_frame"
 
 
-def test_get_frame_with_depth():
-    def inner():
+def test_get_frame_with_depth() -> None:
+    def inner() -> Any:
         return get_frame(1)
 
     frame = inner()
     assert frame.f_code.co_name == "test_get_frame_with_depth"
 
 
-def test_get_frame_is_sys_getframe():
+def test_get_frame_is_sys_getframe() -> None:
     assert get_frame is sys._getframe
 
 
-def test_get_frame_fallback_returns_frame():
+def test_get_frame_fallback_returns_frame() -> None:
     frame = get_frame_fallback(0)
     assert frame is not None
     assert hasattr(frame, "f_code")
 
 
-def test_get_frame_fallback_walks_back_correct_depth():
-    def level2():
+def test_get_frame_fallback_walks_back_correct_depth() -> None:
+    def level2() -> Any:
         return level1()
 
-    def level1():
+    def level1() -> Any:
         return get_frame_fallback(2)
 
     frame = level2()
     assert frame.f_code.co_name == "test_get_frame_fallback_walks_back_correct_depth"
 
 
-def test_format_exception():
+def test_format_exception() -> None:
     try:
         raise ValueError("test error")
     except ValueError:
@@ -71,7 +74,7 @@ def test_format_exception():
     assert result[-1] != "\n"
 
 
-def test_format_exception_with_traceback():
+def test_format_exception_with_traceback() -> None:
     try:
         raise RuntimeError("nested")
     except RuntimeError:
@@ -80,7 +83,7 @@ def test_format_exception_with_traceback():
     assert "nested" in result
 
 
-def test_format_exception_strips_trailing_newline():
+def test_format_exception_strips_trailing_newline() -> None:
     try:
         raise Exception("msg")
     except Exception:
@@ -88,20 +91,20 @@ def test_format_exception_strips_trailing_newline():
     assert not result.endswith("\n")
 
 
-def test_add_caller_info_function_name():
+def test_add_caller_info_function_name() -> None:
     record = {}
     add_caller_info(record, call_level=1)
     assert record["function"] == "test_add_caller_info_function_name"
 
 
-def test_add_caller_info_line_number():
+def test_add_caller_info_line_number() -> None:
     record = {}
     add_caller_info(record, call_level=1)
     assert isinstance(record["line"], int)
     assert record["line"] > 0
 
 
-def test_add_caller_info_file_info():
+def test_add_caller_info_file_info() -> None:
     record = {}
     add_caller_info(record, call_level=1)
     assert "file_name" in record
@@ -110,15 +113,15 @@ def test_add_caller_info_file_info():
     assert "module" in record
 
 
-def test_add_caller_info_thread_info():
+def test_add_caller_info_thread_info() -> None:
     record = {}
     add_caller_info(record, call_level=1)
     assert "thread_id" in record
     assert "thread_name" in record
 
 
-def test_add_caller_info_level_walks_correct_depth():
-    def inner():
+def test_add_caller_info_level_walks_correct_depth() -> None:
+    def inner() -> Any:
         record = {}
         add_caller_info(record, call_level=2)
         return record
