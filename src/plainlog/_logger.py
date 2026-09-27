@@ -305,14 +305,15 @@ class Logger:
                 module_name = frame.f_globals["__name__"]
                 names.append(module_name)
                 code = frame.f_code
-                qualname = getattr(code, "co_qualname", code.co_name)  # 3.11+
+                # co_qualname (3.11+) keeps the class/nesting prefix so a
+                # method is named "module.Class.method"; fall back to co_name
+                # on 3.10. Drop "<locals>" frame markers for readable names.
+                qualname = getattr(code, "co_qualname", code.co_name)
+                qualname = qualname.replace(".<locals>.", ".")
                 if qualname and qualname != "<module>":
                     names.append(qualname)
-            name = ".".join(
-                names
-            )  # TODO: finish impl to handle all cases and assign names correctly
+            name = ".".join(names) or self._name
 
-        name = self._name if name is None else name
         data = {**self._data, **kwargs}
 
         return self.__class__(self._core, name, **data)

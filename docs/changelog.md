@@ -25,6 +25,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `logger.new()` and log through it rather than logging to the root
   `logger`. The benchmark also logs through a bound name so CPython's
   imported-name call-site overhead does not skew the comparison.
+- `Logger.new()` auto-detected names keep the class/nesting prefix from
+  `co_qualname` on Python 3.11+ (e.g. `module.Class.method`), falling back to
+  `module.method` on 3.10; `<locals>` frame markers are stripped.
 
 ### Removed
 

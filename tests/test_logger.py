@@ -396,6 +396,93 @@ def test_logger_new_auto_name():
     assert "test_logger_new_auto_name" in log.name
 
 
+# co_qualname exists from 3.11 on; PEP 709 inlines comprehensions from 3.12 on.
+_HAS_QUALNAME = sys.version_info >= (3, 11)
+_HAS_INLINED_COMPREHENSIONS = sys.version_info >= (3, 12)
+
+
+class _NameTarget:
+    """Hosts a method/staticmethod so auto-name detection can be exercised."""
+
+    def method(self) -> str:
+        return logger.new().name
+
+    @staticmethod
+    def static_method() -> str:
+        return logger.new().name
+
+
+def _nested_outer() -> str:
+    def inner() -> str:
+        return logger.new().name
+
+    return inner()
+
+
+def _lambda_site() -> str:
+    return (lambda: logger.new().name)()
+
+
+def _comprehension_site() -> str:
+    return [logger.new().name for _ in range(1)][0]
+
+
+def test_logger_new_auto_name_method():
+    if _HAS_QUALNAME:
+        expected = f"{__name__}._NameTarget.method"
+    else:
+        expected = f"{__name__}.method"
+
+    assert _NameTarget().method() == expected
+
+
+def test_logger_new_auto_name_staticmethod():
+    if _HAS_QUALNAME:
+        expected = f"{__name__}._NameTarget.static_method"
+    else:
+        expected = f"{__name__}.static_method"
+
+    assert _NameTarget.static_method() == expected
+
+
+def test_logger_new_auto_name_nested_function():
+    if _HAS_QUALNAME:
+        expected = f"{__name__}._nested_outer.inner"
+    else:
+        expected = f"{__name__}.inner"
+
+    assert _nested_outer() == expected
+
+
+def test_logger_new_auto_name_lambda():
+    if _HAS_QUALNAME:
+        expected = f"{__name__}._lambda_site.<lambda>"
+    else:
+        expected = f"{__name__}.<lambda>"
+
+    assert _lambda_site() == expected
+
+
+def test_logger_new_auto_name_comprehension():
+    if _HAS_INLINED_COMPREHENSIONS:
+        expected = f"{__name__}._comprehension_site"
+    elif _HAS_QUALNAME:
+        expected = f"{__name__}._comprehension_site.<listcomp>"
+    else:
+        expected = f"{__name__}.<listcomp>"
+
+    assert _comprehension_site() == expected
+
+
+def test_logger_new_auto_name_falls_back_without_module_name():
+    # A frame whose globals have no __name__ yields no detected name, so the
+    # parent logger's name is used instead of an empty string.
+    namespace: dict = {"logger": logger}
+    exec("result = logger.new().name", namespace)
+
+    assert namespace["result"] == logger.name
+
+
 class BareHandler:
     def __call__(self, record: Record) -> Record:
         return record
