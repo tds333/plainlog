@@ -21,6 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   record (previously `deepcopy`).
 - `Logger.error()`, `critical()` and `exception()` request caller info
   (`function`, `line`, ...) by default.
+- Documentation and benchmark examples now create a child logger with
+  `logger.new()` and log through it rather than logging to the root
+  `logger`. The benchmark also logs through a bound name so CPython's
+  imported-name call-site overhead does not skew the comparison.
 
 ### Removed
 

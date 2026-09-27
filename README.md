@@ -24,9 +24,10 @@ uv sync
 ```python
 from plainlog import logger
 
-logger.info("hello world")
-logger.warning("look out!")
-logger.error("something broke")
+log = logger.new()
+log.info("hello world")
+log.warning("look out!")
+log.error("something broke")
 ```
 
 Or use a profile for more structured output:
@@ -36,17 +37,18 @@ from plainlog import logger
 from plainlog.configure import apply_log_profile
 
 apply_log_profile("develop", level="DEBUG")
-logger.info("ready to go")
+log = logger.new()
+log.info("ready to go")
 ```
 
 ## Child Loggers
 
-Create a child logger whose name is derived from the current module:
+Create a child logger; its name is auto-detected from the current module:
 
 ```python
 from plainlog import logger
 
-log = logger.new(__name__)
+log = logger.new()
 log.info("logged with the module name as logger name")
 ```
 
@@ -61,7 +63,8 @@ from plainlog import logger
 from plainlog.processors import JsonFormatter, Stream
 
 logger.configure(processors=[JsonFormatter(), Stream(sys.stdout)])
-logger.info("hello world", user="alice")
+log = logger.new()
+log.info("hello world", user="alice")
 ```
 
 See the [Processors](https://tds333.github.io/plainlog/processors/) docs for

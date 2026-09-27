@@ -12,20 +12,27 @@ import argparse
 import os
 import timeit
 from statistics import median
+from typing import Callable
 
 from plainlog import logger
+from plainlog._base import Record
 from plainlog._logger import logger_core
 
 DEVNULL = open(os.devnull, "w")
+
+# Log through a bound name (not the imported `logger` global): CPython emits
+# a slower unfused call sequence for `from ... import` names. See
+# bench_stdlib_vs_plainlog.py for details.
+log = logger.new("hotpath")
 
 
 class NullSink:
     """Processor that discards a record after it was built."""
 
-    def __call__(self, record):
+    def __call__(self, record: Record) -> Record:
         return record
 
-    def close(self):
+    def close(self) -> None:
         pass
 
 
@@ -43,21 +50,21 @@ def setup_devnull() -> None:
 
 
 def log_one() -> None:
-    logger.info("benchmark message 42")
+    log.info("benchmark message 42")
 
 
 def log_four() -> None:
-    logger.info("my info log")
-    logger.error("my error log")
-    logger.warning("my warning log")
-    logger.debug("my debug")
+    log.info("my info log")
+    log.error("my error log")
+    log.warning("my warning log")
+    log.debug("my debug")
 
 
 def log_kwargs() -> None:
-    logger.info("benchmark message 42", user="alice", count=3)
+    log.info("benchmark message 42", user="alice", count=3)
 
 
-def measure(func, number: int, runs: int) -> tuple[float, float]:
+def measure(func: Callable[[], None], number: int, runs: int) -> tuple[float, float]:
     times = []
     for _ in range(runs):
         times.append(timeit.timeit(func, number=number) / number)
@@ -87,11 +94,11 @@ def run(number: int, runs: int) -> None:
     print(f"{'1 log (formatter + devnull)':<28} {mn:>10.1f} {md:>11.1f}")
 
     setup_null()
-    token = logger.context(request_id="bench")
+    token = log.context(request_id="bench")
     try:
         mn, md = measure(log_one, number, runs)
     finally:
-        logger.reset_context(token)
+        log.reset_context(token)
     print(f"{'1 log + context':<28} {mn:>10.1f} {md:>11.1f}")
 
 

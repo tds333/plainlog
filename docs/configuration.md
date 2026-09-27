@@ -33,7 +33,8 @@ from plainlog import logger
 from plainlog.configure import apply_log_profile
 
 apply_log_profile("develop", level="DEBUG")
-logger.info("ready")
+log = logger.new()
+log.info("ready")
 ```
 
 ### Available Profiles

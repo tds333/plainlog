@@ -134,7 +134,7 @@ and masks matching leaves instead of replacing the container. Place them early
 in the pipeline, before any formatter, so formatted/serialized output never
 contains the raw value. They scrub matching keys anywhere in the record — at
 the top level and inside nested containers. Secrets interpolated directly into
-the message string (e.g. `logger.info(f"password={pw}")`) are not caught.
+the message string (e.g. `log.info(f"password={pw}")`) are not caught.
 
 ```python
 import sys
@@ -155,7 +155,8 @@ logger.configure(
     ]
 )
 
-logger.info("login attempt", username="alice", password="hunter2")
+log = logger.new()
+log.info("login attempt", username="alice", password="hunter2")
 # -> ... username=alice password=***REDACTED***  (field order may vary)
 ```
 

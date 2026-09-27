@@ -5,17 +5,22 @@ cases you use the pre-configured module-level instance.
 
 ---
 
-## Module-Level Logger
+## Getting a Logger
 
 ```python
 from plainlog import logger
 
-logger.info("hello world")
+log = logger.new()
+log.info("hello world")
 ```
 
-The module-level `logger` is a `Logger` bound to the
-global Core singleton with name ``"root"``. It is automatically configured on
-import — by default it uses the ``"default"`` profile (writes to stdout).
+The module-level `logger` is a `Logger` bound to the global Core singleton
+with name ``"root"``. It is automatically configured on import — by default
+it uses the ``"default"`` profile (writes to stdout).
+
+Prefer creating one child logger per module with `logger.new()` (it
+auto-detects the module name); the root `logger` is mainly the shared entry
+point and a factory for child loggers.
 
 ---
 
@@ -24,7 +29,7 @@ import — by default it uses the ``"default"`` profile (writes to stdout).
 ```python
 from plainlog import logger
 
-log = logger.new() # create a new logger automatically named with the module name
+log = logger.new()  # auto-named after the current module
 
 log.debug("debug message")
 log.info("info message")
@@ -41,34 +46,37 @@ merged into the log record as top-level fields (for example ``record["user"]``).
 ```python
 from plainlog import logger
 
-logger.log("INFO", "explicit level")
-logger.log(20, "level as int")
+log = logger.new()
+log.log("INFO", "explicit level")
+log.log(20, "level as int")
 ```
 
 ### Callable form
 
-A `Logger` is also callable. `logger(level, msg, **kwargs)` behaves like
-`logger.log()` but returns a ``bool``: ``True`` if the record was accepted by
+A `Logger` is also callable. `log(level, msg, **kwargs)` behaves like
+`log.log()` but returns a ``bool``: ``True`` if the record was accepted by
 the Core's processor pipeline, ``False`` if it was dropped (no processors
 configured, or below the minimum level).
 
 ```python
 from plainlog import logger
 
-accepted = logger("INFO", "positional form")
-also_accepted = logger(level="WARNING", msg="keyword form")
+log = logger.new()
+accepted = log("INFO", "positional form")
+also_accepted = log(level="WARNING", msg="keyword form")
 ```
 
 ### Log with exception info
 
 ```python
-import sys
 from plainlog import logger
+
+log = logger.new()
 
 try:
     1 / 0
 except ZeroDivisionError:
-    logger.exception("something went wrong")
+    log.exception("something went wrong")
 ```
 
 ---
@@ -82,7 +90,8 @@ from plainlog import logger
 from plainlog.configure import apply_log_profile
 
 apply_log_profile("develop", level="DEBUG")
-logger.info("now with colors and caller info")
+log = logger.new()
+log.info("now with colors and caller info")
 ```
 
 ### Direct processor setup
@@ -106,7 +115,7 @@ additional static key-value pairs attached to every record.
 ```python
 from plainlog import logger
 
-log = logger.bind(user="alice", request_id="abc-123")
+log = logger.new().bind(user="alice", request_id="abc-123")
 log.info("user action")
 ```
 
@@ -115,7 +124,7 @@ Use `unbind()` to remove keys.
 ```python
 from plainlog import logger
 
-log = logger.bind(user="alice", request_id="abc-123")
+log = logger.new().bind(user="alice", request_id="abc-123")
 log2 = log.unbind("request_id")
 log2.info("without request_id")
 ```
@@ -130,8 +139,9 @@ duration of a block.
 ```python
 from plainlog import logger
 
-with logger.contextualize(request_id="xyz"):
-    logger.info("inside context")
+log = logger.new()
+with log.contextualize(request_id="xyz"):
+    log.info("inside context")
 ```
 
 The context is thread-safe (backed by ``ContextVar``) and works correctly in
@@ -143,12 +153,13 @@ For manual control, `context()` sets the variables and returns a token that
 ```python
 from plainlog import logger
 
-token = logger.context(request_id="xyz")
+log = logger.new()
+token = log.context(request_id="xyz")
 try:
-    logger.info("inside context")
+    log.info("inside context")
 finally:
-    logger.reset_context(token)
-logger.info("after context")
+    log.reset_context(token)
+log.info("after context")
 ```
 
 ---

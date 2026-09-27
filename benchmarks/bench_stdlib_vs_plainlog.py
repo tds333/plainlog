@@ -1,6 +1,13 @@
 """Benchmark comparing stdlib logging vs plainlog performance.
 
 Results are shown side by side with matching scenarios paired together.
+
+Timed functions log through a *bound* name (``log = logger.new("bench")``),
+never the name imported via ``from plainlog import logger``. CPython marks
+names imported with ``from ... import`` as ``is_imported`` in the symbol table
+and emits an unfused call sequence for ``imported.attr(...)``, which is ~20 ns
+slower than the fused form used for an assigned name. Logging through the
+imported root would penalize plainlog for a reason unrelated to logging work.
 """
 
 import argparse
@@ -26,6 +33,7 @@ N = 100_000
 RUNS = 3  # overridden by --iterations / --runs CLI flags
 
 std_log = logging.getLogger(__name__)
+log = logger.new("bench")
 
 
 def setup_stdlib_null() -> None:
@@ -133,7 +141,7 @@ def setup_plainlog_caller() -> None:
 
 
 def plainlog_log() -> None:
-    logger.debug("benchmark message 42")
+    log.debug("benchmark message 42")
 
 
 def setup_plainlog_develop() -> None:
@@ -156,15 +164,15 @@ def setup_plainlog_develop() -> None:
 
 
 def plainlog_log_develop() -> None:
-    logger.info("benchmark message 42")
+    log.info("benchmark message 42")
 
 
 def plainlog_log_json() -> None:
-    logger.info("benchmark message 42")
+    log.info("benchmark message 42")
 
 
 def plainlog_log_caller() -> None:
-    logger.warning("benchmark message 42", caller_info=True)
+    log.warning("benchmark message 42", caller_info=True)
 
 
 def setup_plainlog_no_processors() -> None:
@@ -220,7 +228,7 @@ DEVNULL_FD = open(DEVNULL, "w")
 
 
 def _make_profile_bench(name: str) -> dict:
-    def setup():
+    def setup() -> None:
         apply_log_profile(name, level="DEBUG")
         # redirect handler output to devnull after profile applies its processors
         for h in logger_core.processors:

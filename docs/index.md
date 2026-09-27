@@ -98,7 +98,7 @@ Hence execute blocking stuff in an extra thread.
 There was no library out there with this feature. So I decided to write my own, learning from others, stealing good features from them.
 Implement everything as simple as possible.
 
-It is fast from the beginning by simply doing only the minimal stuff in the hot path of your code where you execute `logger.debug(...)` or another
+It is fast from the beginning by simply doing only the minimal stuff in the hot path of your code where you execute `log.debug(...)` or another
 logger method. It is much faster than the standard library logger and also faster in the sense of not blocking your code than all other Python logging
 libraries.
 
