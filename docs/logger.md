@@ -86,10 +86,9 @@ except ZeroDivisionError:
 ### Using a profile
 
 ```python
-from plainlog import logger
-from plainlog.configure import apply_log_profile
+from plainlog import configure_log, logger
 
-apply_log_profile("develop", level="DEBUG")
+configure_log(profile="develop", level="DEBUG")
 log = logger.new()
 log.info("now with colors and caller info")
 ```
@@ -97,10 +96,10 @@ log.info("now with colors and caller info")
 ### Direct processor setup
 
 ```python
-from plainlog import logger
+from plainlog import configure_log
 from plainlog.processors import SimpleFormatter, Stream
 
-logger.configure(processors=[SimpleFormatter(), Stream()])
+configure_log(processors=[SimpleFormatter(), Stream()])
 ```
 
 See [Processors, Formatters & Handlers](processors.md) for everything available.
@@ -211,6 +210,6 @@ logger.flush()
 
 ::: plainlog.logger
 
-### apply_log_profile
+### configure_log
 
-::: plainlog.configure.apply_log_profile
+::: plainlog.configure.configure_log

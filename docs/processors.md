@@ -22,10 +22,10 @@ Processors are configured as a Sequence and run in order. A typical setup is a
 formatter followed by a handler:
 
 ```python
-from plainlog import logger
+from plainlog import configure_log
 from plainlog.processors import SimpleFormatter, Stream
 
-logger.configure(processors=[SimpleFormatter(), Stream()])
+configure_log(processors=[SimpleFormatter(), Stream()])
 ```
 
 ## Built-in Processors
@@ -90,16 +90,16 @@ All of these are available from ``plainlog.processors``.
 ### Formatter and Stream
 
 ```python
-from plainlog import logger
+from plainlog import configure_log
 from plainlog.processors import JsonFormatter, Stream
 
-logger.configure(processors=[JsonFormatter(), Stream()])
+configure_log(processors=[JsonFormatter(), Stream()])
 ```
 
 ### FingersCrossed — Buffer Until Error
 
 ```python
-from plainlog import logger
+from plainlog import configure_log
 from plainlog.processors import FingersCrossed, SimpleFormatter, Stream
 
 # Buffer up to 100 records, flush everything on ERROR (level 40)
@@ -108,7 +108,7 @@ handler = FingersCrossed(
     action_level=40,
     buffer_size=100,
 )
-logger.configure(processors=[SimpleFormatter(), handler])
+configure_log(processors=[SimpleFormatter(), handler])
 ```
 
 ### AsyncBridge Subclass
@@ -138,7 +138,7 @@ the message string (e.g. `log.info(f"password={pw}")`) are not caught.
 
 ```python
 import sys
-from plainlog import logger
+from plainlog import configure_log, logger
 from plainlog.processors import (
     ConsoleRenderer,
     Stream,
@@ -146,7 +146,7 @@ from plainlog.processors import (
     redact_by_pattern,
 )
 
-logger.configure(
+configure_log(
     processors=[
         redact_by_pattern("password", "token", "secret", "api_key"),
         format_message,

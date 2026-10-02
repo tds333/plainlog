@@ -6,7 +6,7 @@ from typing import Any, Iterator
 
 import pytest
 
-from plainlog import logger
+from plainlog import configure_log, logger
 from plainlog._base import Record
 from plainlog._logger import logger_core
 from plainlog.testing import PlainlogCapture, capture_logs
@@ -58,11 +58,11 @@ class DummyHandler:
 def thandler() -> Iterator[DummyHandler]:
     dh = DummyHandler()
 
-    logger.configure(level="DEBUG", processors=[dh])
+    configure_log(level="DEBUG", processors=[dh])
 
     yield dh
 
-    logger.configure(level="DEBUG", processors=())
+    configure_log(level="DEBUG", processors=())
     dh.clear()
 
 

@@ -432,7 +432,7 @@ class FingersCrossed:
     record are forwarded to the wrapped handler.
 
     Args:
-        handler: Wrapped processor with a ``close()`` method to flush to.
+        processor: Wrapped processor with a ``close()`` method to flush to.
         action_level: Log level number that triggers the flush.
             Defaults to 40 (ERROR).
         buffer_size: Maximum number of records to buffer.

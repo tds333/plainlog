@@ -90,7 +90,7 @@ class PlainlogCapture:
         Args:
             level: Level name (e.g. ``"INFO"``) or numeric level.
         """
-        self._logger.configure(level=level)
+        self._logger._core.configure(processors=None, level=level)
 
     @contextlib.contextmanager
     def at_level(self, level: Union[str, int]) -> Iterator[None]:
@@ -100,11 +100,11 @@ class PlainlogCapture:
             level: Level name (e.g. ``"INFO"``) or numeric level.
         """
         previous = self._logger._core.min_level_no
-        self._logger.configure(level=level)
+        self._logger._core.configure(processors=None, level=level)
         try:
             yield
         finally:
-            self._logger.configure(level=previous)
+            self._logger._core.configure(processors=None, level=previous)
 
     def set_formatter(
         self, formatter: Optional[Union[str, Callable[[Record], str]]]
@@ -134,8 +134,8 @@ def capture_logs(log: Logger = logger) -> Iterator[PlainlogCapture]:
     """Capture plainlog records for the duration of the ``with`` block.
 
     All configured processors are disabled while capturing. The previous level
-    is restored on exit; the previous processor pipeline is not restored,
-    because swapping it out has already closed any closable processors.
+    is restored on exit; the processor pipeline is left empty, so configure it
+    again after the block if you need output.
 
     Args:
         log: The logger whose Core is captured. Defaults to the module-level
@@ -146,8 +146,8 @@ def capture_logs(log: Logger = logger) -> Iterator[PlainlogCapture]:
     """
     previous_level = log._core.min_level_no
     capture = PlainlogCapture(log)
-    log.configure(processors=[capture], level=LEVEL_NOTSET)
+    log._core.configure(processors=[capture], level=LEVEL_NOTSET)
     try:
         yield capture
     finally:
-        log.configure(processors=(), level=previous_level)
+        log._core.configure(processors=(), level=previous_level)

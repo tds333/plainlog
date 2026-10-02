@@ -13,6 +13,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and `PlainlogCapture` object for asserting on logs in pytest or unittest.
 - `Logger.flush()` — block until queued records have been processed.
 
+### Changed
+
+- `Core.configure()` no longer closes the processors it replaces —
+  reconfiguration is an attach/detach operation.
+- `Logger.configure()` was replaced by `configure_log()`, which can apply a
+  named profile, explicit processors, or both. Profiles now return a processor
+  list, or `None` to leave the pipeline unchanged.
+- `configure_log(..., close_before_configure=True)` closes the previously
+  registered processors before installing the new pipeline.
+- `Core.close()` now releases the resources of every registered processor but
+  keeps the worker thread running. The previous behaviour (release and stop)
+  lives in the new `Core.shutdown()`, which is also what runs at interpreter
+  exit.
+
 ## 0.8.0 - 2026-09-27
 
 ### Changed

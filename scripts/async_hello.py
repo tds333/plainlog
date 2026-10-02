@@ -1,7 +1,7 @@
 import asyncio
 from time import sleep, time
 
-from plainlog import logger
+from plainlog import configure_log, logger
 from plainlog._logger import logger_core
 
 # from plainlog._rich_handler import RichHandler
@@ -52,7 +52,7 @@ class LoggerClass:
 
 
 async def main():
-    logger.configure(processors=[MyAsyncBridge()])
+    configure_log(processors=[MyAsyncBridge()])
     log = logger.new()
     log.debug("hello")
 
@@ -97,4 +97,4 @@ if __name__ == "__main__":
         "==============================================================================="
     )
     logger.error("Duration: %f" % duration, timer=True)
-    logger_core.close()
+    logger_core.shutdown()

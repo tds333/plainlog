@@ -4,14 +4,14 @@
 import sys
 
 import plainlog.std
-from plainlog import apply_log_profile
+from plainlog import configure_log
 import logging
 
 print(sys.path)
 
 
 def main():
-    apply_log_profile("develop", level="DEBUG")
+    configure_log(profile="develop", level="DEBUG")
     root = logging.getLogger("root")
     root.setLevel("DEBUG")
     root.addHandler(plainlog.std.StdInterceptHandler())
