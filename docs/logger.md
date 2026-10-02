@@ -187,6 +187,20 @@ log.info("logged with the module name as logger name")
 
 ---
 
+## Flushing
+
+Records are processed on a background thread. `flush()` blocks until every
+record queued so far has been processed — useful before reading output.
+
+```python
+from plainlog import logger
+
+logger.info("processing")
+logger.flush()
+```
+
+---
+
 ## API Reference
 
 ### Logger

@@ -497,6 +497,17 @@ class Logger:
         """
         self._core.configure(processors=processors, level=level)
 
+    def flush(self, timeout: float | None = None) -> None:
+        """Block until every queued record has been processed.
+
+        Records are handled on the background Core thread. Call this before
+        reading side effects such as captured records or written files.
+
+        Args:
+            timeout: Maximum seconds to wait. ``None`` uses the default.
+        """
+        self._core.wait_for_processed(timeout)
+
     def __call__(
         self, level: str | int = LEVEL_DEBUG, msg: Msg = "", **kwargs: Any
     ) -> bool:

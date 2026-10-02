@@ -5,6 +5,14 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Added
+
+- `plainlog.testing` — a framework-agnostic `capture_logs()` context manager
+  and `PlainlogCapture` object for asserting on logs in pytest or unittest.
+- `Logger.flush()` — block until queued records have been processed.
+
 ## 0.8.0 - 2026-09-27
 
 ### Changed

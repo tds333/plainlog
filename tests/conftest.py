@@ -9,6 +9,7 @@ import pytest
 from plainlog import logger
 from plainlog._base import Record
 from plainlog._logger import logger_core
+from plainlog.testing import PlainlogCapture, capture_logs
 
 
 class DummyHandlerOld:
@@ -63,6 +64,12 @@ def thandler() -> Iterator[DummyHandler]:
 
     logger.configure(level="DEBUG", processors=())
     dh.clear()
+
+
+@pytest.fixture
+def plainlog() -> Iterator[PlainlogCapture]:
+    with capture_logs() as capture:
+        yield capture
 
 
 @contextlib.contextmanager

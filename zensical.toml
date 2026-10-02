@@ -51,6 +51,7 @@ nav = [
   { "Processors & Handlers" = "processors.md" },
   { "Base Types" = "base.md" },
   { "Plainlog vs stdlib" = "comparison_to_stdlib.md" },
+  { "Testing" = "testing.md" },
   { "Changelog" = "changelog.md" },
 ]
 

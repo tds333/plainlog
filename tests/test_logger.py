@@ -723,3 +723,19 @@ def test_error_defaults_to_caller_info() -> None:
         record = handler.records[0]
         assert record["function"] == "test_error_defaults_to_caller_info"
         assert "line" in record
+
+
+def test_logger_flush() -> None:
+    captured: list[Record] = []
+
+    def capture(record: Record) -> Record:
+        captured.append(record)
+        return record
+
+    logger.configure(processors=[capture])
+    try:
+        logger.info("flush me")
+        logger.flush()
+        assert len(captured) == 1
+    finally:
+        logger.configure(processors=())

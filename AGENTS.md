@@ -43,7 +43,7 @@ There is no required command ordering — lint/type-check/test are independent.
 - Built with Zensical + mkdocstrings.
 - Navigation defined explicitly in `zensical.toml` `[nav]`.
 - API pages use `::: module.path` directives with explicit `### Heading` above each.
-- Doc pages: `docs/index.md`, `docs/logger.md`, `docs/configuration.md`, `docs/processors.md`, `docs/base.md`, `docs/comparison_to_stdlib.md`, `docs/changelog.md`.
+- Doc pages: `docs/index.md`, `docs/logger.md`, `docs/configuration.md`, `docs/processors.md`, `docs/base.md`, `docs/comparison_to_stdlib.md`, `docs/testing.md`, `docs/changelog.md`.
 
 ## Architecture
 
@@ -70,6 +70,7 @@ There is no required command ordering — lint/type-check/test are independent.
 | `src/plainlog/_dev.py` | `ConsoleRenderer` (processor that renders dev output into `record["message"]`) |
 | `src/plainlog/std.py` | Stdlib logging bridge |
 | `src/plainlog/_base.py` | Core types: `Record`, `RecordException`, `ProcessorProtocol`, `ProcessorCloseProtocol`. (Log level is a plain `int`; `level_name`/`extra`/`exception` live on the record.) |
+| `src/plainlog/testing.py` | `capture_logs()` / `PlainlogCapture` testing helpers (framework-agnostic) |
 | `zensical.toml` | Doc build config + mkdocstrings options |
 
 ## graphify
