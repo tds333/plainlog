@@ -263,6 +263,54 @@ def test_logger_context_isolation(thandler: DummyHandler) -> None:
         Logger.reset_context(token)
 
 
+def test_log_does_not_mutate_passed_kwargs(thandler: DummyHandler) -> None:
+    kwargs: dict[str, Any] = {"user": "alice"}
+
+    logger._log(LEVEL_INFO, "direct", kwargs)
+
+    record = thandler.first()
+    assert record["user"] == "alice"
+    assert kwargs == {"user": "alice"}
+
+
+def test_log_precedence_kwargs_over_context_and_bind(thandler: DummyHandler) -> None:
+    bound = logger.bind(user="from_bind", only_bind=1)
+    token = Logger.context(user="from_ctx", only_ctx=2)
+    try:
+        bound.info("precedence", user="from_kwargs")
+        record = thandler.first()
+        assert record["user"] == "from_kwargs"
+        assert record["only_bind"] == 1
+        assert record["only_ctx"] == 2
+    finally:
+        Logger.reset_context(token)
+
+
+def test_log_fixed_keys_win_over_kwargs(thandler: DummyHandler) -> None:
+    logger._log(LEVEL_INFO, "positional", {"msg": "kwarg", "level": 99})
+
+    record = thandler.first()
+    assert record["msg"] == "positional"
+    assert record["level"] == LEVEL_INFO
+
+
+def test_log_record_keys_identical_for_both_merge_paths(
+    thandler: DummyHandler,
+) -> None:
+    logger.info("same", user="alice")
+    plain = dict(thandler.first())
+
+    thandler.clear()
+    logger.bind(svc="api").info("same", user="alice")
+    bound = dict(thandler.first())
+
+    assert set(bound) - {"svc"} == set(plain)
+    for key, value in plain.items():
+        if key == "created":
+            continue
+        assert bound[key] == value
+
+
 def test_core_log_no_handler_returns_empty() -> None:
     core = Core(name="NO_HANDLER_LOG")
     with closing(core):

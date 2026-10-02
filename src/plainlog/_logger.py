@@ -410,11 +410,10 @@ class Logger:
             exception = RecordException(*sys.exc_info())
 
         ctx = plainlog_context.get(_EMPTY_CONTEXT)
-        data = self._data
-        if kwargs:
-            data = {**self._data, **ctx, **kwargs}
-        elif ctx:
-            data = {**self._data, **ctx}
+        static = self._data
+        data: Dict[str, Any] = kwargs
+        if static or ctx:
+            data = {**static, **ctx, **kwargs}
 
         log_record: Record = {
             **data,
