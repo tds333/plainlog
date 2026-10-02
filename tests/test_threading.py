@@ -40,7 +40,7 @@ def test_concurrent_reconfigure_and_log() -> None:
     handler = CountingHandler()
     log = Logger(core=core, name="root")
 
-    log.configure(processors=[handler], level="DEBUG")
+    core.configure(processors=[handler], level="DEBUG")
 
     stop = False
     threads = []
@@ -51,7 +51,7 @@ def test_concurrent_reconfigure_and_log() -> None:
 
     def configure_loop() -> None:
         while not stop:
-            log.configure(processors=[handler], level="DEBUG")
+            core.configure(processors=[handler], level="DEBUG")
 
     for _ in range(4):
         threads.append(threading.Thread(target=log_loop))
@@ -65,15 +65,15 @@ def test_concurrent_reconfigure_and_log() -> None:
     for t in threads:
         t.join()
 
-    core.close()
+    core.shutdown()
 
     assert handler.count > 0
 
 
-def test_close_then_configure_no_hang() -> None:
+def test_shutdown_then_configure_no_hang() -> None:
     core = Core()
     core.configure(processors=[CountingHandler()], level="DEBUG")
-    core.close()
+    core.shutdown()
     assert not core.is_alive()
 
     start = time.monotonic()
@@ -83,18 +83,18 @@ def test_close_then_configure_no_hang() -> None:
     assert elapsed < 1.0
 
 
-def test_close_idempotent() -> None:
+def test_shutdown_idempotent() -> None:
     core = Core()
     core.configure(processors=[CountingHandler()], level="DEBUG")
-    core.close()
-    core.close()
+    core.shutdown()
+    core.shutdown()
 
     assert not core.is_alive()
 
 
 def test_wait_for_processed_dead_core() -> None:
     core = Core()
-    core.close()
+    core.shutdown()
     # Must return immediately on a dead worker, not block on an Event
     # the worker will never set.
     core.wait_for_processed()
@@ -303,7 +303,7 @@ def test_configure_from_processor_does_not_stall() -> None:
         def __call__(self, record: Record) -> Any:
             if not calls:
                 calls.append(True)
-                log.configure(processors=[Reentrant()], level="DEBUG")
+                core.configure(processors=[Reentrant()], level="DEBUG")
             return record
 
     core.configure(processors=[Reentrant()], level="DEBUG")
@@ -368,14 +368,14 @@ def test_reset_for_fork_restarts_worker() -> None:
 
 
 def _child_log(q: Any) -> None:
-    from plainlog import logger
+    from plainlog import configure_log, logger
 
     class QHandler:
         def __call__(self, record: Record) -> Any:
             q.put(record["msg"])
             return record
 
-    logger.configure(processors=[QHandler()], level="DEBUG")
+    configure_log(processors=[QHandler()], level="DEBUG")
     logger.info("child-message")
     logger_core.wait_for_processed()
 
@@ -395,3 +395,148 @@ def test_fork_reset_logs_in_child() -> None:
 
     assert p.exitcode == 0
     assert q.get(timeout=5) == "child-message"
+
+
+class SpyProcessor:
+    def __init__(self) -> None:
+        self.closed = False
+
+    def __call__(self, record: Record) -> Any:
+        return record
+
+    def close(self) -> None:
+        self.closed = True
+
+
+class NoWeakRefProcessor:
+    __slots__ = ("closed",)
+
+    def __init__(self) -> None:
+        self.closed = False
+
+    def __call__(self, record: Record) -> Any:
+        return record
+
+    def close(self) -> None:
+        self.closed = True
+
+
+class RaisingCloseProcessor:
+    def __call__(self, record: Record) -> Any:
+        return record
+
+    def close(self) -> None:
+        raise RuntimeError("boom")
+
+
+def test_configure_does_not_close_outgoing() -> None:
+    core = Core()
+    try:
+        first = SpyProcessor()
+        core.configure(processors=[first], level="DEBUG")
+        core.configure(processors=[], level="DEBUG")
+        assert first.closed is False
+    finally:
+        core.shutdown()
+
+
+def test_close_releases_resources_but_keeps_worker_alive() -> None:
+    core = Core()
+    try:
+        spy = SpyProcessor()
+        core.configure(processors=[spy], level="DEBUG")
+        core.close()
+        assert spy.closed is True
+        assert core.is_alive() is True
+    finally:
+        core.shutdown()
+
+
+def test_close_closes_processor_with_no_external_reference() -> None:
+    core = Core()
+    try:
+        closed: list[str] = []
+
+        class Spy:
+            def __call__(self, record: Record) -> Any:
+                return record
+
+            def close(self) -> None:
+                closed.append("closed")
+
+        core.configure(processors=[Spy()], level="DEBUG")
+        core.close()
+
+        assert closed == ["closed"]
+    finally:
+        core.shutdown()
+
+
+def test_close_closes_replaced_processors() -> None:
+    core = Core()
+    try:
+        first = SpyProcessor()
+        second = SpyProcessor()
+        core.configure(processors=[first], level="DEBUG")
+        core.configure(processors=[second], level="DEBUG")
+        assert first.closed is False
+        assert second.closed is False
+        core.close()
+        assert first.closed is True
+        assert second.closed is True
+    finally:
+        core.shutdown()
+
+
+def test_close_skips_non_weakrefable_processor() -> None:
+    core = Core()
+    try:
+        spy = NoWeakRefProcessor()
+        core.configure(processors=[spy], level="DEBUG")
+        core.close()
+        assert spy.closed is False
+    finally:
+        core.shutdown()
+
+
+def test_close_suppresses_processor_close_errors() -> None:
+    core = Core()
+    try:
+        core.configure(processors=[RaisingCloseProcessor()], level="DEBUG")
+        core.close()
+        assert core.is_alive()
+    finally:
+        core.shutdown()
+
+
+def test_close_is_idempotent_and_keeps_worker_alive() -> None:
+    core = Core()
+    try:
+        core.close()
+        core.close()
+        assert core.is_alive()
+    finally:
+        core.shutdown()
+
+
+def test_shutdown_closes_and_stops() -> None:
+    core = Core()
+    spy = SpyProcessor()
+    core.configure(processors=[spy], level="DEBUG")
+    core.shutdown()
+    assert spy.closed is True
+    assert core.is_alive() is False
+
+
+def test_shutdown_is_idempotent() -> None:
+    core = Core()
+    core.shutdown()
+    core.shutdown()
+    assert core.is_alive() is False
+
+
+def test_close_after_shutdown_is_noop() -> None:
+    core = Core()
+    core.shutdown()
+    core.close()
+    assert core.is_alive() is False

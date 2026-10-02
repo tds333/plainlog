@@ -18,9 +18,9 @@ import timeit
 from datetime import datetime
 from statistics import mean
 
-from plainlog import logger
+from plainlog import configure_log, logger
 from plainlog._logger import logger_core
-from plainlog.configure import _profiles, apply_log_profile
+from plainlog.configure import _profiles
 from plainlog.processors import (
     JsonFormatter,
     SimpleFormatter,
@@ -116,25 +116,25 @@ def stdlib_log_json() -> None:
 
 
 def setup_plainlog_empty() -> None:
-    apply_log_profile("empty", level="WARNING")
+    configure_log(profile="empty", level="WARNING")
 
 
 def setup_plainlog_simple() -> None:
-    logger.configure(
+    configure_log(
         level="DEBUG",
         processors=[SimpleFormatter("{message}"), Stream(open(DEVNULL, "w"))],
     )
 
 
 def setup_plainlog_json() -> None:
-    logger.configure(
+    configure_log(
         level="DEBUG",
         processors=[JsonFormatter(), Stream(open(DEVNULL, "w"))],
     )
 
 
 def setup_plainlog_caller() -> None:
-    logger.configure(
+    configure_log(
         level="DEBUG",
         processors=[SimpleFormatter("{message}"), Stream(open(DEVNULL, "w"))],
     )
@@ -152,7 +152,7 @@ def setup_plainlog_develop() -> None:
         print_processor_error,
     )
 
-    logger.configure(
+    configure_log(
         level="DEBUG",
         processors=[
             format_message,
@@ -176,7 +176,7 @@ def plainlog_log_caller() -> None:
 
 
 def setup_plainlog_no_processors() -> None:
-    logger.configure(level="DEBUG", processors=())
+    configure_log(level="DEBUG", processors=())
 
 
 BENCHMARKS: list[dict] = [
@@ -229,7 +229,7 @@ DEVNULL_FD = open(DEVNULL, "w")
 
 def _make_profile_bench(name: str) -> dict:
     def setup() -> None:
-        apply_log_profile(name, level="DEBUG")
+        configure_log(profile=name, level="DEBUG")
         # redirect handler output to devnull after profile applies its processors
         for h in logger_core.processors:
             _silence_handler(h)

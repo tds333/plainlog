@@ -51,12 +51,13 @@ There is no required command ordering — lint/type-check/test are independent.
 - **Core** — background thread, dequeues records, runs configured processors. Singleton per process.
 - **Processor** — implements `ProcessorProtocol` (optionally `ProcessorCloseProtocol`).
   - Runs in the core thread; an optional `close()` handles cleanup.
+  - `configure()` never closes replaced processors; closeable processors are registered per Core, `Core.close()` releases them (worker keeps running) and `Core.shutdown()` releases them and stops the worker.
   - Return `{}` to drop a record.
 - **Formatter** — a processor that sets the formatted string in `record["message"]` and returns the record.
 - **Handler** — a processor that performs output by writing `record["message"]` (e.g. `Stream`, `FileWriter`, `AsyncBridge`).
-- **Composition** — `logger.configure(processors=[...])` sets an ordered processor list run in the Core thread; the usual pattern is a formatter followed by a handler (e.g. `[JsonFormatter(), Stream()]`). `SubProcessor` runs a nested pipeline on a record copy. `processors=()` clears the list, `None` leaves it unchanged.
+- **Composition** — `configure_log(processors=[...])` sets an ordered processor list run in the Core thread; the usual pattern is a formatter followed by a handler (e.g. `[JsonFormatter(), Stream()]`). `SubProcessor` runs a nested pipeline on a record copy. `processors=()` clears the list, `None` leaves it unchanged.
 - **Record** — plain `Dict[str, Any]`.
-- **Profiles** — named presets in `configure.py` `_profiles` dict. Used via `apply_log_profile("name")`.
+- **Profiles** — named presets in `configure.py` `_profiles` dict. A profile is a callable returning a processor list (or `None`); used via `configure_log(profile="name")`.
 - **Env config** — `PLAINLOG_PROFILE` and `PLAINLOG_LEVEL` read at import time.
 
 ## Key files
@@ -65,7 +66,7 @@ There is no required command ordering — lint/type-check/test are independent.
 |------|------|
 | `src/plainlog/__init__.py` | Public API surface, auto-configures on import |
 | `src/plainlog/_logger.py` | Logger + Core classes |
-| `src/plainlog/configure.py` | `apply_log_profile()`, `add_profile()`, profile registry |
+| `src/plainlog/configure.py` | `configure_log()`, `add_profile()`, profile registry |
 | `src/plainlog/processors.py` | Processors, formatters and handlers (single module) |
 | `src/plainlog/_dev.py` | `ConsoleRenderer` (processor that renders dev output into `record["message"]`) |
 | `src/plainlog/std.py` | Stdlib logging bridge |

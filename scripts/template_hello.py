@@ -11,7 +11,7 @@
 import sys
 from time import time
 
-from plainlog import logger
+from plainlog import configure_log, logger
 from plainlog._base import Record
 from plainlog.processors import Stream
 from plainlog.warnings import capture_warnings
@@ -54,7 +54,7 @@ log = logger.new()
 
 
 def main():
-    logger.configure(processors=[EvalTemplatHandler()], level="DEBUG")
+    configure_log(processors=[EvalTemplatHandler()], level="DEBUG")
 
     name = "My name"
     log = logger.new()

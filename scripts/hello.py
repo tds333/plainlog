@@ -6,8 +6,7 @@
 
 from time import time
 
-from plainlog import logger
-from plainlog.configure import apply_log_profile
+from plainlog import configure_log, logger
 from plainlog.processors import filter_by_name
 from plainlog.warnings import capture_warnings
 
@@ -108,7 +107,7 @@ def main():
     log = log.bind(bla=5)
     log.info("mit extra")
 
-    # processors are configured via logger.configure(processors=[...]), not Logger.new
+    # processors are configured via configure_log(processors=[...]), not Logger.new
     log = log.bind(my_special_info=0)
     log.warning("warn me")
 
@@ -152,7 +151,7 @@ def main():
 
 def main2():
     # configure_log("develop", level="DEBUG", reset=True, buffer_size=2)
-    apply_log_profile("develop", level="DEBUG")
+    configure_log(profile="develop", level="DEBUG")
     log = logger.new()
     log.debug("hello")
     log.warning("some warning")
@@ -179,10 +178,9 @@ def main2():
 
 def main4():
     global log
-    from plainlog.configure import apply_log_profile
 
     handler_type = "develop"
-    apply_log_profile(handler_type, level="DEBUG")
+    configure_log(profile=handler_type, level="DEBUG")
     # log = logger.name("test")
     # log = logger.name().processor(FilterList(blacklist=["mymodule"], whitelist=["mymodule.class.function"]))
     log.debug(f"Start {__name__}", start=__name__)
@@ -252,8 +250,8 @@ def main4():
     lc = LoggerClass()
     lc.do()
     lc.do_context()
-    # processors are configured via logger.configure(processors=[...]), e.g.
-    # logger.configure(processors=[filter_by_name("LoggerClass")])
+    # processors are configured via configure_log(processors=[...]), e.g.
+    # configure_log(processors=[filter_by_name("LoggerClass")])
     log.debug("with")
     log.new("LoggerClass").info("should filter")
     with log.contextualize(some_ctx="my context info"):

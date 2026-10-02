@@ -6,6 +6,7 @@ import logging
 import os
 import sys
 import traceback
+import weakref
 from contextvars import ContextVar, Token
 from copy import copy
 from multiprocessing import current_process
@@ -51,6 +52,9 @@ _start_time = time()
 
 _STOP = object()
 """Control message that stops the worker."""
+
+_CLOSE_PROCESSORS = object()
+"""Control message that closes all registered closeable processors."""
 
 
 class _Configure(NamedTuple):
@@ -101,6 +105,7 @@ class Core:
         self._name: str = "CORE" if name is None else _validate_name(name)
         self._min_level_no: int = logging.NOTSET
         self._processors: tuple[UniversalProcessorProtocol, ...] = ()
+        self._closeables: weakref.WeakSet[Any] = weakref.WeakSet()
         self._start_worker()
 
     def __repr__(self) -> str:
@@ -158,9 +163,38 @@ class Core:
         self._queue.put(event)
         event.wait(timeout if timeout is not None else _env.DEFAULT_WAIT_TIMEOUT)
 
+    def _detect_closeables(self) -> None:
+        for processor in self._processors:
+            try:
+                if callable(getattr(processor, "close", None)):
+                    self._closeables.add(processor)
+            except TypeError:
+                # Not weak-referenceable; not tracked for shutdown.
+                pass
+
+    def _close_registered(self) -> None:
+        for processor in list(self._closeables):
+            try:
+                handle_close(processor)
+            except Exception:
+                pass
+        self._closeables.clear()
+
     def close(self) -> None:
+        """Release resources held by registered processors.
+
+        Detaches the current pipeline and closes every processor registered
+        with this Core. The worker thread keeps running; use `shutdown()` for
+        a full stop.
+        """
         if self.is_alive():
-            self.configure(level=None, processors=())
+            self._queue.put(_CLOSE_PROCESSORS)
+            self.wait_for_processed(_env.DEFAULT_WAIT_TIMEOUT)
+
+    def shutdown(self) -> None:
+        """Release resources and stop the worker thread."""
+        if self.is_alive():
+            self.close()
             self.stop()
             self.join()
 
@@ -201,12 +235,11 @@ class Core:
                     if level is not None:
                         self._min_level_no = level
                     if c_processors is not None:
-                        for processor in processors:
-                            try:
-                                handle_close(processor)
-                            except Exception:
-                                pass
                         self._processors = processors = tuple(c_processors)
+                        self._detect_closeables()
+                elif value is _CLOSE_PROCESSORS:
+                    self._close_registered()
+                    self._processors = processors = ()
             except Exception:  # pragma: no cover - worker must never die
                 continue
 
@@ -480,23 +513,6 @@ class Logger:
         level = _validate_level(level)
         self._log(level, msg, kwargs)
 
-    def configure(
-        self,
-        *,
-        processors: Optional[Iterable[UniversalProcessorProtocol]] = None,
-        level: Optional[Union[str, int]] = None,
-    ) -> None:
-        """Configure the shared Core.
-
-        Delegates processor and level changes to `Core.configure()`.
-
-        Args:
-            processors: Processors to install, or ``None`` to leave
-                unchanged. Pass an empty iterable to remove all processors.
-            level: Minimum log level.
-        """
-        self._core.configure(processors=processors, level=level)
-
     def __call__(
         self, level: str | int = LEVEL_DEBUG, msg: Msg = "", **kwargs: Any
     ) -> bool:
@@ -517,7 +533,7 @@ class Logger:
 
 logger_core: Core = Core()
 
-atexit.register(logger_core.close)
+atexit.register(logger_core.shutdown)
 
 logger: Logger = Logger(core=logger_core, name="root")
 """Module-level Logger convenience instance.

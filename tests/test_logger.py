@@ -1,15 +1,15 @@
 from __future__ import annotations
 
+import contextlib
 import io
 import logging
 import pickle
 import sys
-from contextlib import closing
-from typing import Any
+from typing import Any, Iterator
 
 import pytest
 
-from plainlog import logger
+from plainlog import configure_log, logger
 from plainlog._base import Record
 from plainlog._logger import (
     LEVEL_CRITICAL,
@@ -24,6 +24,14 @@ from plainlog._logger import (
     logger_core,
 )
 from tests.conftest import DummyHandler
+
+
+@contextlib.contextmanager
+def closing_core(core: Any) -> Iterator[Any]:
+    try:
+        yield core
+    finally:
+        core.shutdown()
 
 
 def test_logger_repr() -> None:
@@ -313,7 +321,7 @@ def test_log_record_keys_identical_for_both_merge_paths(
 
 def test_core_log_no_handler_returns_empty() -> None:
     core = Core(name="NO_HANDLER_LOG")
-    with closing(core):
+    with closing_core(core):
         record = core.log({"msg": "direct"})
         assert record is None
 
@@ -332,7 +340,7 @@ def write_processor_error(record: Record) -> Any:
 def test_core_process_error_prints_to_stderr(
     thandler: DummyHandler, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    logger.configure(
+    configure_log(
         processors=[ErrorOnProcess(), write_processor_error], level="DEBUG"
     )
     logger.info("trigger process error")
@@ -352,7 +360,7 @@ class ErrorOnCloseHandler:
 
 def test_print_error_to_stderr(capsys: pytest.CaptureFixture[str]) -> None:
     core = Core(name="PRINT_TEST")
-    with closing(core):
+    with closing_core(core):
         core._print_error({"msg": "test"}, "dummy_handler", ValueError("bang"))
         output = capsys.readouterr().err
         assert "Logging error" in output
@@ -362,7 +370,7 @@ def test_print_error_to_stderr(capsys: pytest.CaptureFixture[str]) -> None:
 
 def test_print_error_suppressed_when_stderr_closed() -> None:
     core = Core(name="PRINT_TEST2")
-    with closing(core):
+    with closing_core(core):
         closed = io.StringIO()
         closed.close()
         old = sys.stderr
@@ -382,7 +390,7 @@ class FailingStderr:
 
 def test_print_error_suppressed_on_oserror() -> None:
     core = Core(name="PRINT_OSERROR")
-    with closing(core):
+    with closing_core(core):
         old = sys.stderr
         sys.stderr = FailingStderr()
         try:
@@ -394,7 +402,7 @@ def test_print_error_suppressed_on_oserror() -> None:
 def test_logger_no_handler() -> None:
     message = "should not be logged"
     core = Core(name="NO_HANDLER")
-    with closing(core):
+    with closing_core(core):
         core.configure(processors=(), level="DEBUG")
         log = Logger(core, name="test")
         assert log.debug(message) is None
@@ -407,21 +415,21 @@ def test_logger_no_handler() -> None:
 
 def test_core_close_when_not_alive() -> None:
     core = Core(name="CLOSE_TEST")
-    with closing(core):
+    with closing_core(core):
         core.close()
         core.close()
 
 
 def test_core_is_alive() -> None:
     core = Core(name="ALIVE_TEST")
-    with closing(core):
+    with closing_core(core):
         assert core.is_alive()
     assert not core.is_alive()
 
 
 def test_core_print_error_with_exc_info(capsys: pytest.CaptureFixture[str]) -> None:
     core = Core(name="EXC_INFO")
-    with closing(core):
+    with closing_core(core):
         try:
             raise ValueError("from exc_info")
         except ValueError:
@@ -440,7 +448,7 @@ def test_core_print_error_unprintable_record(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     core = Core(name="BAD_STR")
-    with closing(core):
+    with closing_core(core):
         core._print_error(BadStrRecord(), "h", ValueError("boom"))  # type: ignore
         output = capsys.readouterr().err
         assert "Unprintable record" in output
@@ -546,14 +554,14 @@ class BareHandler:
 
 def test_core_handler_no_close() -> None:
     core = Core(name="NO_CLOSE")
-    with closing(core):
+    with closing_core(core):
         core.configure(processors=[BareHandler()], level="DEBUG")
         core.configure(processors=[BareHandler()], level="DEBUG")
 
 
 def test_core_configure_none_keeps_processors() -> None:
     core = Core(name="KEEP_PROCESSORS")
-    with closing(core):
+    with closing_core(core):
         handler = BareHandler()
         core.configure(processors=[handler], level="DEBUG")
         core.configure(processors=None, level="WARNING")
@@ -564,7 +572,7 @@ def test_core_configure_none_keeps_processors() -> None:
 
 def test_core_reconfigure_suppresses_close_error() -> None:
     core = Core(name="CLOSE_ERROR")
-    with closing(core):
+    with closing_core(core):
         core.configure(processors=[ErrorOnCloseHandler()], level="DEBUG")
         core.configure(processors=(), level="DEBUG")
         assert core.processors == ()
@@ -572,7 +580,7 @@ def test_core_reconfigure_suppresses_close_error() -> None:
 
 def test_core_worker_log_when_handler_cleared() -> None:
     core = Core(name="LOG_CLEARED")
-    with closing(core):
+    with closing_core(core):
         dh = BareHandler()
         core.configure(processors=[dh], level="DEBUG")
         core.wait_for_processed()
@@ -594,7 +602,7 @@ def test_core_worker_stops_when_record_filtered() -> None:
         return record
 
     core = Core(name="FILTER_STOP")
-    with closing(core):
+    with closing_core(core):
         core.configure(processors=[drop, after], level="DEBUG")
         log = Logger(core, name="test")
         log.info("filtered out")
@@ -604,7 +612,7 @@ def test_core_worker_stops_when_record_filtered() -> None:
 
 def test_core_worker_event(capsys: pytest.CaptureFixture[str]) -> None:
     core = Core(name="EVENT_TEST")
-    with closing(core):
+    with closing_core(core):
         core.wait_for_processed()
 
 
@@ -628,7 +636,7 @@ def test_core() -> None:
 
     core_test = Core(name="CORE_TEST")
     dummy_handler = DummyHandler()
-    with closing(core_test):
+    with closing_core(core_test):
         core_test.configure(processors=[dummy_handler])
         logger_test = Logger(core_test, name="test")
         logger_test.debug(message)
@@ -644,7 +652,7 @@ class HandlerWithoutClose:
 
 def test_core_handler_without_close() -> None:
     core = Core(name="NO_CLOSE_ATTR")
-    with closing(core):
+    with closing_core(core):
         core.configure(processors=[HandlerWithoutClose()], level="DEBUG")
         core.configure(processors=[BareHandler()], level="DEBUG")
 
@@ -672,7 +680,7 @@ def _verbose_log_site(log: Any) -> Any:
 def test_verbose_adds_caller_info() -> None:
     handler = _CapturingHandler()
     core = Core(name="VERBOSE")
-    with closing(core):
+    with closing_core(core):
         core.configure(processors=[handler], level="DEBUG")
         log = Logger(core, name="test", caller_info=True)
         base_line = _verbose_log_site(log)
@@ -689,7 +697,7 @@ def test_verbose_adds_caller_info() -> None:
 def test_verbose_false_omits_caller_info() -> None:
     handler = _CapturingHandler()
     core = Core(name="NON_VERBOSE")
-    with closing(core):
+    with closing_core(core):
         core.configure(processors=[handler], level="DEBUG")
         log = Logger(core, name="test")
         log.info("plain message")
@@ -702,7 +710,7 @@ def test_verbose_false_omits_caller_info() -> None:
 def test_call_caller_info_adds_caller_info() -> None:
     handler = _CapturingHandler()
     core = Core(name="CALL_CALLER_INFO")
-    with closing(core):
+    with closing_core(core):
         core.configure(processors=[handler], level="DEBUG")
         log = Logger(core, name="test")
         log.info("with caller info", caller_info=True)
@@ -715,7 +723,7 @@ def test_call_caller_info_adds_caller_info() -> None:
 def test_error_defaults_to_caller_info() -> None:
     handler = _CapturingHandler()
     core = Core(name="ERROR_CALLER_INFO")
-    with closing(core):
+    with closing_core(core):
         core.configure(processors=[handler], level="DEBUG")
         log = Logger(core, name="test")
         log.error("boom")

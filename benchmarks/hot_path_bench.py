@@ -14,7 +14,7 @@ import timeit
 from statistics import median
 from typing import Callable
 
-from plainlog import logger
+from plainlog import configure_log, logger
 from plainlog._base import Record
 from plainlog._logger import logger_core
 
@@ -37,13 +37,13 @@ class NullSink:
 
 
 def setup_null() -> None:
-    logger.configure(level="DEBUG", processors=[NullSink()])
+    configure_log(level="DEBUG", processors=[NullSink()])
 
 
 def setup_devnull() -> None:
     from plainlog.processors import SimpleFormatter, Stream
 
-    logger.configure(
+    configure_log(
         level="DEBUG",
         processors=[SimpleFormatter("{message}"), Stream(DEVNULL)],
     )

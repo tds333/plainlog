@@ -24,15 +24,14 @@ from plainlog import logger  # auto-configures "develop" at DEBUG
 
 ## Profiles
 
-A profile is a named preset that configures the logger's processors, level,
-and options in one call. Use `apply_log_profile()` to
-activate one:
+A profile is a named preset that returns a processor pipeline. Use
+`configure_log(profile=...)` to apply one, passing `level=` to set the minimum
+level at the same time:
 
 ```python
-from plainlog import logger
-from plainlog.configure import apply_log_profile
+from plainlog import configure_log, logger
 
-apply_log_profile("develop", level="DEBUG")
+configure_log(profile="develop", level="DEBUG")
 log = logger.new()
 log.info("ready")
 ```
@@ -86,21 +85,19 @@ Additional kwargs:
 
 ## Registering Custom Profiles
 
-Use `add_profile()` to register your own:
+Use `add_profile()` to register your own. A profile is a callable that takes
+keyword arguments and returns a processor list, or `None` to leave the
+pipeline unchanged:
 
 ```python
-from plainlog import logger
-from plainlog.configure import add_profile, apply_log_profile
+from plainlog.configure import add_profile, configure_log
 from plainlog.processors import SimpleFormatter, Stream
 
-def my_profile(level=None, **kwargs):
-    logger.configure(
-        processors=[SimpleFormatter(), Stream()],
-        level=level,
-    )
+def my_profile(**kwargs):
+    return [SimpleFormatter(), Stream()]
 
 add_profile("my_custom", my_profile)
-apply_log_profile("my_custom", level="INFO")
+configure_log(profile="my_custom", level="INFO")
 ```
 
 Returns ``True`` if added, ``False`` if the name already exists.
@@ -109,13 +106,13 @@ Returns ``True`` if added, ``False`` if the name already exists.
 
 ## Direct Configuration
 
-Instead of profiles, call `configure()` directly:
+Instead of profiles, call `configure_log()` directly:
 
 ```python
-from plainlog import logger
+from plainlog import configure_log
 from plainlog.processors import FileWriter
 
-logger.configure(
+configure_log(
     processors=[FileWriter("app.log")],
     level="DEBUG",
 )
@@ -123,11 +120,39 @@ logger.configure(
 
 ---
 
+## Processor Lifecycle and Shutdown
+
+`configure()` only swaps the processor list — it does not close the processors
+it replaces. Replacing a processor therefore leaves its resources (open files,
+async bridges) open until you release them explicitly.
+
+`Core` tracks every processor that exposes a `close()` method. `Core.close()`
+releases those resources and detaches the pipeline while leaving the worker
+thread running; `Core.shutdown()` also stops the worker and is what runs at
+interpreter exit.
+
+```python
+from plainlog._logger import Core
+
+core = Core()
+core.configure(processors=[], level="DEBUG")
+
+core.close()      # release registered resources; the worker keeps running
+core.shutdown()   # release resources and stop the worker
+```
+
+Switching configuration does not release the previous processors unless you
+ask: pass `close_before_configure=True` to `configure_log()` to close the
+currently registered processors before installing the new pipeline. A profile
+that returns `None` (such as `no_init`) leaves the pipeline untouched.
+
+---
+
 ## API Reference
 
-### apply_log_profile
+### configure_log
 
-::: plainlog.configure.apply_log_profile
+::: plainlog.configure.configure_log
 
 ### add_profile
 

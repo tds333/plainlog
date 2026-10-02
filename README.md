@@ -33,10 +33,9 @@ log.error("something broke")
 Or use a profile for more structured output:
 
 ```python
-from plainlog import logger
-from plainlog.configure import apply_log_profile
+from plainlog import configure_log, logger
 
-apply_log_profile("develop", level="DEBUG")
+configure_log(profile="develop", level="DEBUG")
 log = logger.new()
 log.info("ready to go")
 ```
@@ -59,10 +58,10 @@ handler:
 
 ```python
 import sys
-from plainlog import logger
+from plainlog import configure_log, logger
 from plainlog.processors import JsonFormatter, Stream
 
-logger.configure(processors=[JsonFormatter(), Stream(sys.stdout)])
+configure_log(processors=[JsonFormatter(), Stream(sys.stdout)])
 log = logger.new()
 log.info("hello world", user="alice")
 ```

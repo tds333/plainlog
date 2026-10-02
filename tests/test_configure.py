@@ -11,7 +11,7 @@ import pytest
 from plainlog import logger
 from plainlog._dev import ConsoleRenderer
 from plainlog._logger import LEVEL_DEBUG, LEVEL_WARNING, logger_core
-from plainlog.configure import _profiles, add_profile, apply_log_profile
+from plainlog.configure import _profiles, add_profile, configure_log
 from plainlog.processors import (
     FingersCrossed,
     JsonFormatter,
@@ -31,13 +31,13 @@ def _restore_logger() -> Iterator[Any]:
 
     yield
 
-    logger.configure(processors=list(processors), level=level)
+    configure_log(processors=list(processors), level=level)
 
 
-class TestApplyLogProfile:
+class TestConfigureLog:
     @pytest.mark.parametrize("name", (*_profiles.keys(),))
-    def test_apply_log_profile(self, name: str) -> None:
-        apply_log_profile(name, level="DEBUG")
+    def test_configure_log_profile(self, name: str) -> None:
+        configure_log(profile=name, level="DEBUG")
         assert logger.error("Testmessage") is None
         assert logger.debug("Testmessage") is None
         assert logger.info("Testmessage") is None
@@ -46,31 +46,57 @@ class TestApplyLogProfile:
         assert logger.exception("Testmessage") is None
 
 
-def test_apply_log_profile_default() -> None:
-    apply_log_profile(level="DEBUG")
+def test_configure_log_default_profile() -> None:
+    configure_log(profile="default", level="DEBUG")
     assert logger.error("ok") is None
 
 
-def test_apply_log_profile_invalid_name() -> None:
+def test_configure_log_without_profile_or_processors_leaves_unchanged() -> None:
+    before = logger_core.processors
+
+    configure_log(level="DEBUG")
+
+    assert logger_core.processors is before
+
+
+def test_configure_log_processors_only() -> None:
+    marker = lambda record: record  # noqa: E731
+
+    configure_log(processors=[marker], level="DEBUG")
+
+    assert logger_core.processors == (marker,)
+
+
+def test_configure_log_combines_processors_and_profile() -> None:
+    marker = lambda record: record  # noqa: E731
+
+    configure_log(profile="default", processors=[marker], level="DEBUG")
+
+    processors = logger_core.processors
+    assert processors[-1] is marker
+    assert isinstance(processors[0], SimpleFormatter)
+
+
+def test_configure_log_invalid_name() -> None:
     with pytest.raises(ValueError, match="not a valid log profile"):
-        apply_log_profile(name="nonexistent")
+        configure_log(profile="nonexistent")
 
 
 def test_add_profile_new() -> None:
     _profiles.pop("_test_custom", None)
 
-    def custom(level: str | int | None = None, **kwargs: Any) -> None:
+    def custom(**kwargs: Any) -> None:
         pass
 
     result = add_profile("_test_custom", custom)
     assert result is True
     assert "_test_custom" in _profiles
-    apply_log_profile(name="_test_custom")
+    configure_log(profile="_test_custom")
     _profiles.pop("_test_custom", None)
 
 
 def test_add_profile_duplicate() -> None:
-    def stub(level: str | int | None = None, **kwargs: Any) -> None:
+    def stub(**kwargs: Any) -> None:
         pass
 
     result = add_profile("default", stub)
@@ -78,7 +104,7 @@ def test_add_profile_duplicate() -> None:
 
 
 def test_default_profile_installs_simple_formatter_on_stdout() -> None:
-    apply_log_profile("default", level="DEBUG")
+    configure_log(profile="default", level="DEBUG")
     processors = logger_core.processors
 
     assert isinstance(processors[0], SimpleFormatter)
@@ -89,7 +115,7 @@ def test_default_profile_installs_simple_formatter_on_stdout() -> None:
 
 def test_default_profile_honors_stream_kwarg() -> None:
     buf = io.StringIO()
-    apply_log_profile("default", level="DEBUG", stream=buf)
+    configure_log(profile="default", level="DEBUG", stream=buf)
     logger.info("routed to buf")
     logger_core.wait_for_processed()
 
@@ -97,13 +123,13 @@ def test_default_profile_honors_stream_kwarg() -> None:
 
 
 def test_default_profile_honors_format_kwarg() -> None:
-    apply_log_profile("default", level="DEBUG", format="{message}")
+    configure_log(profile="default", level="DEBUG", format="{message}")
 
     assert getattr(logger_core.processors[0], "_fmt") == "{message}"  # noqa: B009
 
 
 def test_develop_profile_is_colored() -> None:
-    apply_log_profile("develop", level="DEBUG")
+    configure_log(profile="develop", level="DEBUG")
     renderer = _find(logger_core.processors, ConsoleRenderer)
 
     assert renderer._styles.level_info != ""
@@ -111,7 +137,7 @@ def test_develop_profile_is_colored() -> None:
 
 def test_develop_profile_honors_stream_kwarg() -> None:
     buf = io.StringIO()
-    apply_log_profile("develop", level="DEBUG", stream=buf)
+    configure_log(profile="develop", level="DEBUG", stream=buf)
     logger.info("develop to buf")
     logger_core.wait_for_processed()
 
@@ -119,23 +145,23 @@ def test_develop_profile_honors_stream_kwarg() -> None:
 
 
 def test_develop_no_color_profile_has_no_ansi() -> None:
-    apply_log_profile("develop_no_color", level="DEBUG")
+    configure_log(profile="develop_no_color", level="DEBUG")
     renderer = _find(logger_core.processors, ConsoleRenderer)
 
     assert renderer._styles.level_info == ""
 
 
 def test_json_and_cloud_set_expected_indent() -> None:
-    apply_log_profile("cloud", level="DEBUG")
+    configure_log(profile="cloud", level="DEBUG")
     assert _find(logger_core.processors, JsonFormatter)._indent is None
 
-    apply_log_profile("json", level="DEBUG")
+    configure_log(profile="json", level="DEBUG")
     assert _find(logger_core.processors, JsonFormatter)._indent == 2
 
 
 def test_file_profile_writes_to_filename(tmp_path: pathlib.Path) -> None:
     path = tmp_path / "app.log"
-    apply_log_profile("file", level="DEBUG", filename=str(path))
+    configure_log(profile="file", level="DEBUG", filename=str(path))
     logger.info("to the file")
     logger_core.wait_for_processed()
 
@@ -145,8 +171,8 @@ def test_file_profile_writes_to_filename(tmp_path: pathlib.Path) -> None:
 
 def test_fingerscrossed_profile_kwargs_and_stream() -> None:
     buf = io.StringIO()
-    apply_log_profile(
-        "fingerscrossed",
+    configure_log(
+        profile="fingerscrossed",
         level="DEBUG",
         action_level="WARNING",
         buffer_size=5,
@@ -162,22 +188,41 @@ def test_fingerscrossed_profile_kwargs_and_stream() -> None:
 
 
 def test_empty_profile_clears_processors() -> None:
-    apply_log_profile("default", level="DEBUG")
+    configure_log(profile="default", level="DEBUG")
     assert logger_core.processors
 
-    apply_log_profile("empty")
+    configure_log(profile="empty")
 
     assert logger_core.processors == ()
 
 
 def test_no_init_profile_leaves_processors_untouched() -> None:
     marker = lambda record: record  # noqa: E731
-    logger.configure(processors=[marker], level="DEBUG")
+    configure_log(processors=[marker], level="DEBUG")
     before = logger_core.processors
 
-    apply_log_profile("no_init")
+    configure_log(profile="no_init")
 
     assert logger_core.processors is before
+
+
+def test_no_init_does_not_close_even_with_close_before_configure() -> None:
+    closed: list[str] = []
+
+    class Spy:
+        def __call__(self, record: Any) -> Any:
+            return record
+
+        def close(self) -> None:
+            closed.append("closed")
+
+    marker = Spy()
+    configure_log(processors=[marker], level="DEBUG")
+
+    configure_log(profile="no_init", close_before_configure=True)
+
+    assert closed == []
+    assert logger_core.processors == (marker,)
 
 
 def test_std_handler_default_installs_root_handler_and_forwards_kwargs() -> None:
@@ -186,7 +231,7 @@ def test_std_handler_default_installs_root_handler_and_forwards_kwargs() -> None
     buf = io.StringIO()
 
     try:
-        apply_log_profile("std_handler_default", level="DEBUG", stream=buf)
+        configure_log(profile="std_handler_default", level="DEBUG", stream=buf)
 
         assert [h for h in root.handlers if h not in before], (
             "expected a stdlib root handler to be installed"
@@ -199,18 +244,41 @@ def test_std_handler_default_installs_root_handler_and_forwards_kwargs() -> None
                 root.removeHandler(handler)
 
 
-def test_add_profile_function_receives_level_and_kwargs() -> None:
+def test_add_profile_function_receives_kwargs() -> None:
     recorded = {}
 
-    def custom(level: str | int | None = None, **kwargs: Any) -> None:
-        recorded["level"] = level
+    def custom(**kwargs: Any) -> None:
         recorded["kwargs"] = kwargs
 
     _profiles.pop("_test_record", None)
     try:
         assert add_profile("_test_record", custom) is True
-        apply_log_profile("_test_record", level="INFO", foo="bar")
+        configure_log(profile="_test_record", level="INFO", foo="bar")
 
-        assert recorded == {"level": "INFO", "kwargs": {"foo": "bar"}}
+        assert recorded == {"kwargs": {"foo": "bar"}}
     finally:
         _profiles.pop("_test_record", None)
+
+
+def test_configure_log_close_before_configure_closes_previous() -> None:
+    closed = []
+
+    class Spy:
+        def __call__(self, record: Any) -> Any:
+            return record
+
+        def close(self) -> None:
+            closed.append("closed")
+
+    def profile(**kwargs: Any) -> Any:
+        return [Spy()]
+
+    _profiles.pop("_test_spy", None)
+    try:
+        assert add_profile("_test_spy", profile) is True
+        configure_log(profile="_test_spy", level="DEBUG")
+        configure_log(profile="empty", close_before_configure=True)
+
+        assert closed
+    finally:
+        _profiles.pop("_test_spy", None)
