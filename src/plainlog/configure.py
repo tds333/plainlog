@@ -228,12 +228,6 @@ def configure_log(
             log_processors.extend(processors)
     elif processors is not None:
         log_processors = [*processors]
-    # if processors is not None:
-    #     log_processors = [*processors]
-    #     if profile_processors is not None:
-    #         log_processors.extend(profile_processors)
-    # elif profile_processors is not None:
-    #     log_processors = [*profile_processors]
 
     if close_before_configure and log_processors is not None:
         logger_core.close()
