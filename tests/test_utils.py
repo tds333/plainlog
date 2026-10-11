@@ -2,18 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from plainlog._utils import eval_dict, eval_format, eval_lambda_dict
-
-
-def test_eval_dict() -> None:
-    def myfunc() -> Any:
-        return "result"
-
-    d = {"data": myfunc}
-
-    eval_dict(d)
-
-    assert d["data"] == "result"
+from plainlog._utils import eval_lambda_dict
 
 
 def test_eval_lambda_dict_func() -> None:
@@ -22,30 +11,14 @@ def test_eval_lambda_dict_func() -> None:
 
     d = {"data": myfunc}
 
-    eval_lambda_dict(d)
+    res = eval_lambda_dict(d)
 
-    assert d["data"] == myfunc
+    assert res["data"] == myfunc
 
 
 def test_eval_lambda_dict_lambda() -> None:
     d = {"data": lambda: "result"}
 
-    eval_lambda_dict(d)
+    res = eval_lambda_dict(d)
 
-    assert d["data"] == "result"
-
-
-def test_eval_format() -> None:
-    msg = "{val}"
-    kwargs = {"val": lambda: "data"}
-
-    result = eval_format(msg, kwargs)
-
-    assert result == "data"
-
-
-def test_eval_dict_with_non_callable() -> None:
-    d = {"a": lambda: "result", "b": 42}
-    eval_dict(d)
-    assert d["a"] == "result"
-    assert d["b"] == 42
+    assert res["data"] == "result"

@@ -16,47 +16,46 @@ def _default(**kwargs: Any) -> Processors:
     return [SimpleFormatter(fmt), Stream(stream)]
 
 
-def _develop(**kwargs: Any) -> Processors:
+def _develop(colors: bool = True, **kwargs: Any) -> Processors:
     from .processors import (
         ConsoleRenderer,
         Stream,
-        format_message,
         print_processor_error,
     )
 
     stream = kwargs.get("stream", sys.stderr)
     processors = [
-        format_message,
-        ConsoleRenderer(colors=True),
+        ConsoleRenderer(colors=colors),
         Stream(stream=stream),
         print_processor_error,
     ]
     return processors
 
 
+def _make_fingerscrossed(
+    processor: UniversalProcessorProtocol, kwargs: Dict[str, Any]
+) -> Any:
+    from .processors import FingersCrossed
+
+    return FingersCrossed(
+        processor,
+        action_level=kwargs.get("action_level"),
+        reset=kwargs.get("reset"),
+        buffer_size=kwargs.get("buffer_size"),
+    )
+
+
 def _fingerscrossed(**kwargs: Any) -> Processors:
     from .processors import (
         ConsoleRenderer,
-        FingersCrossed,
         Stream,
-        format_message,
         print_processor_error,
     )
 
-    action_level = kwargs.get("action_level")
-    buffer_size = kwargs.get("buffer_size")
-    reset = kwargs.get("reset")
     stream = kwargs.get("stream", sys.stderr)
-
-    handler = FingersCrossed(
-        Stream(stream),
-        action_level=action_level,
-        reset=reset,
-        buffer_size=buffer_size,
-    )
+    handler = _make_fingerscrossed(Stream(stream), kwargs)
 
     processors = [
-        format_message,
         ConsoleRenderer(colors=True),
         handler,
         print_processor_error,
@@ -66,18 +65,15 @@ def _fingerscrossed(**kwargs: Any) -> Processors:
 
 
 def _cloud(**kwargs: Any) -> Processors:
+    return _json(indent=None, **kwargs)
+
+
+def _json(indent: Optional[int] = 2, **kwargs: Any) -> Processors:
     from .processors import JsonFormatter, Stream
 
     stream = kwargs.get("stream", sys.stderr)
-    return [JsonFormatter(), Stream(stream=stream)]
 
-
-def _json(**kwargs: Any) -> Processors:
-    from .processors import JsonFormatter, Stream
-
-    stream = kwargs.get("stream", sys.stderr)
-
-    return [JsonFormatter(indent=2), Stream(stream=stream)]
+    return [JsonFormatter(indent=indent), Stream(stream=stream)]
 
 
 def _file(**kwargs: Any) -> Processors:
@@ -91,39 +87,17 @@ def _file(**kwargs: Any) -> Processors:
 
 
 def _fingerscrossed_file(**kwargs: Any) -> Processors:
-    from .processors import FileWriter, FingersCrossed, SimpleFormatter
+    from .processors import FileWriter, SimpleFormatter
 
     filename = kwargs.get("filename", "plainlog.log")
-    action_level = kwargs.get("action_level")
-    buffer_size = kwargs.get("buffer_size")
-    reset = kwargs.get("reset")
     fmt = kwargs.get("format")
 
-    handler = FingersCrossed(
-        FileWriter(filename, watch=True),
-        action_level=action_level,
-        reset=reset,
-        buffer_size=buffer_size,
-    )
+    handler = _make_fingerscrossed(FileWriter(filename, watch=True), kwargs)
     return [SimpleFormatter(fmt), handler]
 
 
 def _develop_no_color(**kwargs: Any) -> Processors:
-    from .processors import (
-        ConsoleRenderer,
-        Stream,
-        format_message,
-        print_processor_error,
-    )
-
-    stream = kwargs.get("stream", sys.stderr)
-
-    return [
-        format_message,
-        ConsoleRenderer(colors=False),
-        Stream(stream=stream),
-        print_processor_error,
-    ]
+    return _develop(colors=False, **kwargs)
 
 
 def _empty(**kwargs: Any) -> Processors:
@@ -134,18 +108,17 @@ def _no_init(**kwargs: Any) -> Processors:
     return None
 
 
-def _std_handler(**kwargs: Any) -> Processors:
+def _std_handler(
+    profile: Callable[..., Processors] = _default, **kwargs: Any
+) -> Processors:
     from .std import set_as_root_handler
 
     set_as_root_handler()
-    return _default(**kwargs)
+    return profile(**kwargs)
 
 
 def _std_handler_develop(**kwargs: Any) -> Processors:
-    from .std import set_as_root_handler
-
-    set_as_root_handler()
-    return _develop(**kwargs)
+    return _std_handler(_develop, **kwargs)
 
 
 _profiles: Dict[str, Callable[..., Processors]] = {

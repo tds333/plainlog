@@ -28,6 +28,7 @@ from . import _env
 from ._base import Record, UniversalProcessorProtocol
 from ._dev import ConsoleRenderer  # noqa
 from ._utils import (
+    eval_lambda_dict,
     format_msg,
     handle_close,
 )
@@ -129,6 +130,12 @@ def filter_by_level(level_per_module: Dict[str, Any]) -> Callable[[Record], Reco
     return levelfilter
 
 
+def _split_name(name: str) -> set:
+    """Return the dotted prefixes of *name* (``a.b.c`` → ``{a, a.b, a.b.c}``)."""
+    parts = name.split(".")
+    return {".".join(parts[:i]) for i in range(1, len(parts) + 1)}
+
+
 class FilterList:
     def __init__(
         self, blacklist: Iterable[str], whitelist: Optional[Iterable[str]] = None
@@ -138,12 +145,10 @@ class FilterList:
         self._partition_cache: dict = {}
 
     def partition(self, name: str) -> set:
-        if name in self._partition_cache:
-            return self._partition_cache[name]
-        part_set = set()
-        parts = name.split(".")
-        for i in range(1, len(parts) + 1):
-            part_set.add(".".join(parts[:i]))
+        cached = self._partition_cache.get(name)
+        if cached is not None:
+            return cached
+        part_set = _split_name(name)
         self._partition_cache[name] = part_set
 
         return part_set
@@ -168,12 +173,7 @@ class WhitelistLevel:
     @staticmethod
     @lru_cache
     def partition(name: str) -> set:
-        part_set = set()
-        parts = name.split(".")
-        for i in range(1, len(parts) + 1):
-            part_set.add(".".join(parts[:i]))
-
-        return part_set
+        return _split_name(name)
 
     def __call__(self, record: Record) -> Record:
         name = record["name"]
@@ -230,7 +230,7 @@ class SimpleFormatter:
         self._fmt = fmt if fmt is not None else self.DEFAULT_FORMAT
 
     def __call__(self, record: Record) -> Record:
-        data = copy(record)
+        data = eval_lambda_dict(record)
         data["datetime"] = datetime.fromtimestamp(data.pop("created"), tz=timezone.utc)
         format_message(data)
         message = self._fmt.format_map(data)
@@ -280,7 +280,7 @@ class JsonFormatter:
                 "value": exception.value,
                 "traceback": bool(exception.traceback),
             }
-
+        record = eval_lambda_dict(record)
         format_message(record)
 
         serializable = {

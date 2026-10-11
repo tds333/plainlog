@@ -164,6 +164,14 @@ class TestConsoleRenderer:
         out = r(make_record(msg="literal {} braces"))["formatted_message"]
         assert "literal {} braces" in out
 
+    def test_preset_message_takes_precedence_over_msg(self) -> None:
+        r = ConsoleRenderer()
+        out = r(make_record("ignored", name="test_logger", message="preset"))[
+            "formatted_message"
+        ]
+        assert "preset" in out
+        assert "ignored" not in out
+
     def test_exc_info_tuple(self) -> None:
         r = ConsoleRenderer()
         try:

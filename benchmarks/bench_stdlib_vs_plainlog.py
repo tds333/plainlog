@@ -148,14 +148,12 @@ def setup_plainlog_develop() -> None:
     from plainlog.processors import (
         ConsoleRenderer,
         Stream,
-        format_message,
         print_processor_error,
     )
 
     configure_log(
         level="DEBUG",
         processors=[
-            format_message,
             ConsoleRenderer(colors=False),
             Stream(open(DEVNULL, "w")),
             print_processor_error,

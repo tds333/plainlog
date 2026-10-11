@@ -1,7 +1,5 @@
 import sys
-import traceback
 from collections.abc import Callable
-from io import StringIO
 from os.path import basename, splitext
 from pathlib import Path
 from threading import current_thread
@@ -29,23 +27,6 @@ def load_get_frame_function() -> Callable[[int], FrameType]:
 
 
 get_frame = load_get_frame_function()
-
-
-def _format_exception(exc_info: tuple) -> str:
-    """
-    Prettyprint an `exc_info` tuple.
-
-    Shamelessly stolen from stdlib's logging module.
-    """
-    sio = StringIO()
-
-    traceback.print_exception(exc_info[0], exc_info[1], exc_info[2], None, sio)
-    s = sio.getvalue()
-    sio.close()
-    if s[-1:] == "\n":  # pragma: no cover
-        s = s[:-1]
-
-    return s
 
 
 def add_caller_info(record: Record, call_level: int = 3) -> None:

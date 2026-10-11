@@ -43,8 +43,8 @@ log.info("ready")
 | Profile | Processors | Output | Notes |
 |---------|------------|--------|-------|
 | ``default`` | [`SimpleFormatter`](processors.md#simpleformatter) + [`Stream`](processors.md#stream) | stdout | Default single-line format |
-| ``develop`` | `format_message` + `ConsoleRenderer` + [`Stream`](processors.md#stream) + `print_processor_error` | stderr | Colorized, error printing |
-| ``develop_no_color`` | `format_message` + `ConsoleRenderer` + [`Stream`](processors.md#stream) + `print_processor_error` | stderr | No ANSI codes, error printing |
+| ``develop`` | `ConsoleRenderer` + [`Stream`](processors.md#stream) + `print_processor_error` | stderr | Colorized, error printing |
+| ``develop_no_color`` | `ConsoleRenderer` + [`Stream`](processors.md#stream) + `print_processor_error` | stderr | No ANSI codes, error printing |
 
 #### Structured / JSON Output
 
@@ -64,7 +64,7 @@ log.info("ready")
 
 | Profile | Processors | Notes |
 |---------|------------|-------|
-| ``fingerscrossed`` | `format_message` + `ConsoleRenderer` + [`FingersCrossed`](processors.md#fingerscrossed) wrapping [`Stream`](processors.md#stream) + `print_processor_error` | stderr, colorized, buffer until ERROR |
+| ``fingerscrossed`` | `ConsoleRenderer` + [`FingersCrossed`](processors.md#fingerscrossed) wrapping [`Stream`](processors.md#stream) + `print_processor_error` | stderr, colorized, buffer until ERROR |
 
 Additional kwargs:
 

@@ -82,7 +82,6 @@ class _ColorfulStyles:
 
     timestamp = DIM
     logger_name = BLUE
-    # logger_name = DIM
     kv_key = CYAN
     kv_value = MAGENTA
 
@@ -92,7 +91,6 @@ class _PlainStyles:
     bright = ""
 
     level_critical = ""
-    # level_exception = ""
     level_error = ""
     level_warn = ""
     level_info = ""
@@ -106,7 +104,6 @@ class _PlainStyles:
 
 
 def default_exception_formatter(sio: TextIO, exc_info: tuple) -> None:
-    # sio.write("\n" + _format_exception(exc_info))
     sio.write("\n")
     traceback.print_exception(exc_info[0], exc_info[1], exc_info[2], None, sio)
 
@@ -192,13 +189,12 @@ class ConsoleRenderer:
                     + self._styles.reset
                 )
         record = eval_lambda_dict(record)
-        message = record.get("message")
+        message = record.get("message", None)
         if message is None:
             message = format_msg(record)
-        else:
-            message = str(message)
+
+            record["message"] = message
         event = message
-        record["message"] = message
         logger_name = record.get("name", None)
         if not self._log_name:
             logger_name = None
@@ -206,17 +202,11 @@ class ConsoleRenderer:
             event = _pad(event, self._pad_event) + self._styles.reset + " "
         else:
             event += self._styles.reset
-        # sio.write(self._styles.bright + event)
         sio.write(event)
 
         if logger_name is not None:
             sio.write(
-                "["
-                + self._styles.logger_name
-                # + self._styles.bright
-                + logger_name
-                + self._styles.reset
-                + "] "
+                "[" + self._styles.logger_name + logger_name + self._styles.reset + "] "
             )
 
         exc = record.get("exception", None)
@@ -238,7 +228,6 @@ class ConsoleRenderer:
 
         if exc is not None:
             self._exception_formatter(sio, (exc.type, exc.value, exc.traceback))
-        # sio.write("\n")
 
         record["formatted_message"] = sio.getvalue()
 

@@ -9,28 +9,16 @@ from typing import Any, Dict
 
 
 def eval_lambda_dict(data: Dict[str, Any]) -> Dict[str, Any]:
+    ret = {}
     for name, value in data.items():
         if callable(value) and value.__name__ == "<lambda>":
             with contextlib.suppress(Exception):
                 result = value()
-                data[name] = result
+                ret[name] = result
+        else:
+            ret[name] = value
 
-    return data
-
-
-def eval_dict(data: Dict[str, Any]) -> None:
-    for name, value in data.items():
-        if callable(value):
-            with contextlib.suppress(Exception):
-                result = value()
-                data[name] = result
-
-
-def eval_format(msg: Any, kwargs: Dict[str, Any]) -> str:
-    kwargs_ = eval_lambda_dict(kwargs.copy())
-    message: str = msg.format(**kwargs_)
-
-    return message
+    return ret
 
 
 def format_msg(record: Dict[str, Any]) -> str:
@@ -39,7 +27,7 @@ def format_msg(record: Dict[str, Any]) -> str:
         return str(msg)
 
     try:
-        return eval_format(msg, record)
+        return msg.format(**record)
     except (KeyError, IndexError, TypeError, ValueError):
         # Not a format template (e.g. literal braces or a missing field):
         # fall back to the raw message instead of dropping the record.

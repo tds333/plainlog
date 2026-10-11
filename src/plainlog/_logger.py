@@ -5,7 +5,6 @@ import contextlib
 import logging
 import os
 import sys
-import traceback
 import weakref
 from contextvars import ContextVar, Token
 from copy import copy
@@ -17,8 +16,8 @@ from typing import (
     Any,
     Callable,
     Dict,
+    Generator,
     Iterable,
-    Iterator,
     NamedTuple,
     Optional,
     Union,
@@ -101,20 +100,11 @@ _LEVEL_NAMES: Dict[int, str] = {
 
 
 class Core:
-    def __init__(self, name: Optional[str] = None) -> None:
-        self._name: str = "CORE" if name is None else _validate_name(name)
+    def __init__(self) -> None:
         self._min_level_no: int = logging.NOTSET
         self._processors: tuple[UniversalProcessorProtocol, ...] = ()
         self._closeables: weakref.WeakSet[Any] = weakref.WeakSet()
         self._start_worker()
-
-    def __repr__(self) -> str:
-        name = self.name
-        return f"<plainlog.Core({name=})>"
-
-    @property
-    def name(self) -> str:
-        return self._name
 
     @property
     def processors(self) -> tuple[UniversalProcessorProtocol, ...]:
@@ -153,15 +143,10 @@ class Core:
         self.wait_for_processed(_env.DEFAULT_WAIT_TIMEOUT)
 
     def wait_for_processed(self, timeout: Optional[float] = None) -> None:
-        if not self._thread.is_alive():
-            return
-        if self._thread is current_thread():
-            # cannot wait for the worker from within the worker
-            return
-
-        event: Event = Event()
-        self._queue.put(event)
-        event.wait(timeout if timeout is not None else _env.DEFAULT_WAIT_TIMEOUT)
+        if self._thread.is_alive() and self._thread is not current_thread():
+            event: Event = Event()
+            self._queue.put(event)
+            event.wait(timeout if timeout is not None else _env.DEFAULT_WAIT_TIMEOUT)
 
     def _detect_closeables(self) -> None:
         for processor in self._processors:
@@ -243,36 +228,6 @@ class Core:
             except Exception:  # pragma: no cover - worker must never die
                 continue
 
-    @staticmethod
-    def _print_error(
-        record: Record, handler: Any, exception: Optional[BaseException] = None
-    ) -> None:
-        if not sys.stderr or sys.stderr.closed:
-            return
-
-        if exception is None:
-            type_, value, traceback_ = sys.exc_info()
-        else:
-            type_, value, traceback_ = (
-                type(exception),
-                exception,
-                exception.__traceback__,
-            )
-
-        try:
-            sys.stderr.write("--- Logging error in Plainlog handler %r ---\n" % handler)
-            try:
-                record_repr = str(record)
-            except Exception:
-                record_repr = "/!\\ Unprintable record /!\\"
-            sys.stderr.write("Record was: %s\n" % record_repr)
-            traceback.print_exception(type_, value, traceback_, None, sys.stderr)
-            sys.stderr.write("--- End of logging error ---\n")
-        except OSError:
-            pass
-        finally:
-            del type_, value, traceback_
-
 
 class Logger:
     """Logger that sends structured log records to a shared Core.
@@ -309,8 +264,7 @@ class Logger:
 
     def __repr__(self) -> str:
         name = self._name
-        core = repr(self._core)
-        return f"<plainlog.Logger name={name!r} core={core}>"
+        return f"<plainlog.Logger name={name!r}>"
 
     @property
     def name(self) -> str:
@@ -413,7 +367,7 @@ class Logger:
     @contextlib.contextmanager
     def contextualize(
         **kwargs: Any,
-    ) -> Iterator[Token[Dict[str, Any]]]:  # noqa: N805
+    ) -> Generator[Token[Dict[str, Any]]]:  # noqa: N805
         """Context manager that sets kwargs as context variables.
 
         Args:

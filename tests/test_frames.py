@@ -4,7 +4,6 @@ import sys
 from typing import Any
 
 from plainlog._frames import (
-    _format_exception,
     add_caller_info,
     get_frame,
     get_frame_fallback,
@@ -62,33 +61,6 @@ def test_get_frame_fallback_walks_back_correct_depth() -> None:
 
     frame = level2()
     assert frame.f_code.co_name == "test_get_frame_fallback_walks_back_correct_depth"
-
-
-def test_format_exception() -> None:
-    try:
-        raise ValueError("test error")
-    except ValueError:
-        result = _format_exception(sys.exc_info())
-    assert "ValueError" in result
-    assert "test error" in result
-    assert result[-1] != "\n"
-
-
-def test_format_exception_with_traceback() -> None:
-    try:
-        raise RuntimeError("nested")
-    except RuntimeError:
-        result = _format_exception(sys.exc_info())
-    assert "RuntimeError" in result
-    assert "nested" in result
-
-
-def test_format_exception_strips_trailing_newline() -> None:
-    try:
-        raise Exception("msg")
-    except Exception:
-        result = _format_exception(sys.exc_info())
-    assert not result.endswith("\n")
 
 
 def test_add_caller_info_function_name() -> None:

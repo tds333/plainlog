@@ -13,7 +13,7 @@ Use `capture_logs()` directly, or wrap it in a fixture for your test runner:
 from __future__ import annotations
 
 import contextlib
-from typing import Callable, Iterator, Optional, Union
+from typing import Callable, Generator, Optional, Union
 
 from ._base import Record
 from ._logger import LEVEL_NOTSET, Logger, logger
@@ -93,7 +93,7 @@ class PlainlogCapture:
         self._logger._core.configure(processors=None, level=level)
 
     @contextlib.contextmanager
-    def at_level(self, level: Union[str, int]) -> Iterator[None]:
+    def at_level(self, level: Union[str, int]) -> Generator[None]:
         """Temporarily set the Core's minimum level for a ``with`` block.
 
         Args:
@@ -130,7 +130,7 @@ class PlainlogCapture:
 
 
 @contextlib.contextmanager
-def capture_logs(log: Logger = logger) -> Iterator[PlainlogCapture]:
+def capture_logs(log: Logger = logger) -> Generator[PlainlogCapture]:
     """Capture plainlog records for the duration of the ``with`` block.
 
     All configured processors are disabled while capturing. The previous level

@@ -66,11 +66,11 @@ configure_log(processors=[SimpleFormatter(), Stream()])
 | [`FingersCrossed`](#fingerscrossed) | Buffers until a threshold level triggers a flush |
 | [`WrapStandardHandler`](#wrapstandardhandler) | Bridges plainlog records to stdlib handlers |
 
-### Filters & Utilities
+### Filters, Helpers & Utilities
 
 | Processor | Description |
 |-----------|-------------|
-| `format_message` | Fills ``record["message"]`` from ``msg`` and the record's fields |
+| `format_message` | Helper that fills ``record["message"]`` from ``msg`` and the record's fields |
 | `print_processor_error` | Prints a record's processor error to stderr |
 | `redact_fields(*fields, mask="***REDACTED***")` | Masks exact record keys (case-insensitive, recurses into nested dicts and lists) |
 | `redact_by_pattern(*patterns, mask="***REDACTED***")` | Masks record keys containing a substring (case-insensitive, recurses into nested dicts and lists) |
@@ -84,6 +84,12 @@ configure_log(processors=[SimpleFormatter(), Stream()])
 | `ConsoleRenderer` | Developer-friendly colored line renderer |
 
 All of these are available from ``plainlog.processors``.
+
+!!! note
+    `format_message` is a helper, not a required pipeline step: `SimpleFormatter`,
+    `JsonFormatter` and `ConsoleRenderer` already fill ``record["message"]``
+    internally. Add it explicitly only when a handler has no formatter in front
+    of it, for example `SubProcessor([format_message, Stream()])`.
 
 ## Usage
 
@@ -142,14 +148,12 @@ from plainlog import configure_log, logger
 from plainlog.processors import (
     ConsoleRenderer,
     Stream,
-    format_message,
     redact_by_pattern,
 )
 
 configure_log(
     processors=[
         redact_by_pattern("password", "token", "secret", "api_key"),
-        format_message,
         ConsoleRenderer(colors=False),
         Stream(sys.stdout),
     ]
