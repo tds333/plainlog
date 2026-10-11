@@ -27,7 +27,7 @@ def _find(processors: Any, cls: type) -> Any:
 @pytest.fixture(autouse=True)
 def _restore_logger() -> Iterator[Any]:
     processors = logger_core.processors
-    level = logger_core.min_level_no
+    level = logger_core.min_level
 
     yield
 
@@ -110,7 +110,7 @@ def test_default_profile_installs_simple_formatter_on_stdout() -> None:
     assert isinstance(processors[0], SimpleFormatter)
     assert isinstance(processors[1], Stream)
     assert processors[1]._stream is sys.stdout
-    assert logger_core.min_level_no == LEVEL_DEBUG
+    assert logger_core.min_level == LEVEL_DEBUG
 
 
 def test_default_profile_honors_stream_kwarg() -> None:

@@ -340,9 +340,7 @@ def write_processor_error(record: Record) -> Any:
 def test_core_process_error_prints_to_stderr(
     thandler: DummyHandler, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    configure_log(
-        processors=[ErrorOnProcess(), write_processor_error], level="DEBUG"
-    )
+    configure_log(processors=[ErrorOnProcess(), write_processor_error], level="DEBUG")
     logger.info("trigger process error")
     logger_core.wait_for_processed()
     output = capsys.readouterr().err
@@ -499,7 +497,7 @@ def test_core_configure_none_keeps_processors() -> None:
         core.configure(processors=None, level="WARNING")
         core.wait_for_processed()
         assert core.processors == (handler,)
-        assert core.min_level_no == LEVEL_WARNING
+        assert core.min_level == LEVEL_WARNING
 
 
 def test_core_reconfigure_suppresses_close_error() -> None:

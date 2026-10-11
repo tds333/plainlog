@@ -36,7 +36,7 @@ class StdInterceptHandler(logging.Handler):
         core = self._core
         level: int = record.levelno
 
-        if core.min_level_no > level or self.level > level:
+        if core.min_level > level or self.level > level:
             return
 
         extra: dict = {}

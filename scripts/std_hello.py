@@ -7,7 +7,7 @@ import plainlog.std
 from plainlog import configure_log
 import logging
 
-print(sys.path)
+# print(sys.path)
 
 
 def main():

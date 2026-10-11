@@ -17,16 +17,16 @@ def test_capture_is_a_processor() -> None:
 
 
 def test_capture_context_isolates_and_restores() -> None:
-    previous_level = logger._core.min_level_no
+    previous_level = logger._core.min_level
 
     with capture_logs() as capture:
         logger.info("inside")
         assert [record["msg"] for record in capture.records] == ["inside"]
         assert logger._core.processors == (capture,)
-        assert logger._core.min_level_no == LEVEL_NOTSET
+        assert logger._core.min_level == LEVEL_NOTSET
 
     assert logger._core.processors == ()
-    assert logger._core.min_level_no == previous_level
+    assert logger._core.min_level == previous_level
 
 
 def test_records_flush_pending() -> None:
@@ -160,7 +160,7 @@ def test_plainlog_fixture_captures(plainlog: PlainlogCapture) -> None:
 
 def test_plainlog_fixture_captures_all_levels(plainlog: PlainlogCapture) -> None:
     logger.debug("debug")
-    assert logger._core.min_level_no == LEVEL_NOTSET
+    assert logger._core.min_level == LEVEL_NOTSET
     assert [record["msg"] for record in plainlog.records] == ["debug"]
 
 

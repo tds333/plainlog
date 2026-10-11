@@ -101,7 +101,7 @@ _LEVEL_NAMES: Dict[int, str] = {
 
 class Core:
     def __init__(self) -> None:
-        self._min_level_no: int = logging.NOTSET
+        self._min_level: int = logging.NOTSET
         self._processors: tuple[UniversalProcessorProtocol, ...] = ()
         self._closeables: weakref.WeakSet[Any] = weakref.WeakSet()
         self._start_worker()
@@ -111,8 +111,8 @@ class Core:
         return self._processors
 
     @property
-    def min_level_no(self) -> int:
-        return self._min_level_no
+    def min_level(self) -> int:
+        return self._min_level
 
     def log(self, log_record: Record) -> None:
         self._queue.put(log_record)
@@ -218,7 +218,7 @@ class Core:
                     c_processors = value.processors
                     level = value.level
                     if level is not None:
-                        self._min_level_no = level
+                        self._min_level = level
                     if c_processors is not None:
                         self._processors = processors = tuple(c_processors)
                         self._detect_closeables()
@@ -389,7 +389,7 @@ class Logger:
     def _log(self, level: int, msg: Msg, kwargs: Dict[str, Any]) -> bool:
         core = self._core
 
-        if not core._processors or core._min_level_no > level:
+        if not core._processors or core._min_level > level:
             return False
 
         exception = None

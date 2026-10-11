@@ -99,7 +99,7 @@ class PlainlogCapture:
         Args:
             level: Level name (e.g. ``"INFO"``) or numeric level.
         """
-        previous = self._logger._core.min_level_no
+        previous = self._logger._core.min_level
         self._logger._core.configure(processors=None, level=level)
         try:
             yield
@@ -144,7 +144,7 @@ def capture_logs(log: Logger = logger) -> Generator[PlainlogCapture]:
     Yields:
         A `PlainlogCapture` holding the recorded records.
     """
-    previous_level = log._core.min_level_no
+    previous_level = log._core.min_level
     capture = PlainlogCapture(log)
     log._core.configure(processors=[capture], level=LEVEL_NOTSET)
     try:
