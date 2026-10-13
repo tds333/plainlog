@@ -1,3 +1,5 @@
+"""Caller frame helpers for plainlog."""
+
 import sys
 from collections.abc import Callable
 from os.path import basename, splitext

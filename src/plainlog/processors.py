@@ -37,6 +37,18 @@ start_time: float = time.time()
 
 
 def get_formatted_message(record: Record) -> str:
+    """Return a record's rendered message.
+
+    Prefers ``formatted_message``, then ``message``, and finally the raw
+    ``msg`` field.
+
+    Args:
+        record: Log record to inspect.
+
+    Returns:
+        The rendered message as a string.
+    """
+
     message = record.get("message", record["msg"])
     message = str(record.get("formatted_message", message))
 
@@ -65,6 +77,19 @@ def _redact(mask: str, matches: Callable[[str], bool]) -> Callable[[Record], Rec
 def redact_fields(
     *fields: Any, mask: str = "***REDACTED***"
 ) -> Callable[[Record], Record]:
+    """Return a processor that masks fields whose names exactly match.
+
+    Matching is case-insensitive and recurses through nested dictionaries and
+    lists.
+
+    Args:
+        *fields: Field names to mask.
+        mask: Replacement value for masked fields.
+
+    Returns:
+        A processor callable.
+    """
+
     names = {str(field).lower() for field in fields}
     return _redact(mask, lambda key: key.lower() in names)
 
@@ -72,6 +97,19 @@ def redact_fields(
 def redact_by_pattern(
     *patterns: Any, mask: str = "***REDACTED***"
 ) -> Callable[[Record], Record]:
+    """Return a processor that masks fields whose names contain a pattern.
+
+    Matching is case-insensitive and recurses through nested dictionaries and
+    lists.
+
+    Args:
+        *patterns: Substrings to match against field names.
+        mask: Replacement value for masked fields.
+
+    Returns:
+        A processor callable.
+    """
+
     needles = tuple(str(pattern).lower() for pattern in patterns)
     return _redact(mask, lambda key: any(needle in key.lower() for needle in needles))
 
@@ -80,16 +118,43 @@ def redact_by_pattern(
 
 
 def filter_None(record: Record) -> Record:
+    """Drop records whose ``name`` is ``None``.
+
+    Args:
+        record: Log record to filter.
+
+    Returns:
+        The unchanged record, or an empty dict when dropped.
+    """
+
     if record["name"] is None:
         return {}
     return record
 
 
 def filter_all(record: Record) -> Record:
+    """Drop every record.
+
+    Args:
+        record: Log record to filter.
+
+    Returns:
+        An empty dict.
+    """
+
     return {}
 
 
 def filter_by_name(parent: str) -> Callable[[Record], Record]:
+    """Return a processor that drops records whose name starts with *parent*.
+
+    Args:
+        parent: Prefix to match against the record's ``name``.
+
+    Returns:
+        A processor callable.
+    """
+
     def namefilter(record: Record) -> Record:
         name = record["name"]
         if name is None:
@@ -102,6 +167,15 @@ def filter_by_name(parent: str) -> Callable[[Record], Record]:
 
 
 def allow_by_name(parent: str) -> Callable[[Record], Record]:
+    """Return a processor that keeps only records whose name starts with *parent*.
+
+    Args:
+        parent: Prefix to match against the record's ``name``.
+
+    Returns:
+        A processor callable.
+    """
+
     def allow_name(record: Record) -> Record:
         name = record["name"]
         if name and name.startswith(parent):
@@ -112,6 +186,16 @@ def allow_by_name(parent: str) -> Callable[[Record], Record]:
 
 
 def filter_by_level(level_per_module: Dict[str, Any]) -> Callable[[Record], Record]:
+    """Return a per-module minimum-level filter.
+
+    Args:
+        level_per_module: Mapping from module name to minimum level. Use
+            ``False`` to block a module entirely.
+
+    Returns:
+        A processor callable.
+    """
+
     def levelfilter(record: Record) -> Record:
         name = record["name"]
 
@@ -137,6 +221,18 @@ def _split_name(name: str) -> set:
 
 
 class FilterList:
+    """Name-based deny/allow list processor.
+
+    Args:
+        blacklist: Iterable of dotted names to deny.
+        whitelist: Optional iterable of dotted names to allow. When omitted,
+            only the blacklist applies.
+
+    Attributes:
+        _whitelist: Frozen set of whitelisted names.
+        _blacklist: Frozen set of blacklisted names.
+    """
+
     def __init__(
         self, blacklist: Iterable[str], whitelist: Optional[Iterable[str]] = None
     ) -> None:
@@ -166,6 +262,20 @@ class FilterList:
 
 
 class WhitelistLevel:
+    """Per-module minimum-level allow list.
+
+    Only records whose name or a dotted prefix appears in *whitelist* are
+    kept. The configured level for a matching name is applied as a minimum
+    level.
+
+    Args:
+        whitelist: Mapping from logger name to minimum level.
+
+    Attributes:
+        _whitelist_names: Frozen set of whitelisted names.
+        _whitelist_levels: Mapping from logger name to level.
+    """
+
     def __init__(self, whitelist: Dict[str, int]) -> None:
         self._whitelist_names = frozenset(whitelist)
         self._whitelist_levels = whitelist
@@ -199,6 +309,15 @@ class WhitelistLevel:
 
 
 def format_message(record: Record) -> Record:
+    """Fill ``record["message"]`` from ``msg`` when it is missing.
+
+    Args:
+        record: Log record to update.
+
+    Returns:
+        The updated record.
+    """
+
     message = record.get("message", None)
     if message is None:
         message = format_msg(record)
@@ -209,6 +328,15 @@ def format_message(record: Record) -> Record:
 
 
 def print_processor_error(record: Record) -> Record:
+    """Print a processor error stored on the record to stderr.
+
+    Args:
+        record: Log record to inspect.
+
+    Returns:
+        The unchanged record.
+    """
+
     error_message = record.get("processor_error_message", None)
     error_processor_name = record.get("processor_error_name_repr", None)
     if error_message is not None:

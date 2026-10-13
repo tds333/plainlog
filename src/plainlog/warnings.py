@@ -1,3 +1,5 @@
+"""Python warnings integration for plainlog."""
+
 import warnings
 from typing import Callable, Optional, TextIO, Type, Union
 

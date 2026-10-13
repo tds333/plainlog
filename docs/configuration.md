@@ -148,6 +148,21 @@ that returns `None` (such as `no_init`) leaves the pipeline untouched.
 
 ---
 
+## Stdlib Interoperability
+
+`plainlog.std` provides a bridge from Python's standard library logging into
+plainlog's Core. `set_as_root_handler()` installs an
+`StdInterceptHandler` on the stdlib root logger and returns it:
+
+```python
+from plainlog.std import set_as_root_handler
+
+set_as_root_handler()
+```
+
+This is what the `std_handler_default` and `std_handler_develop` profiles use
+internally.
+
 ## API Reference
 
 ### configure_log
@@ -157,3 +172,15 @@ that returns `None` (such as `no_init`) leaves the pipeline untouched.
 ### add_profile
 
 ::: plainlog.configure.add_profile
+
+### Core
+
+::: plainlog._logger.Core
+
+### StdInterceptHandler
+
+::: plainlog.std.StdInterceptHandler
+
+### set_as_root_handler
+
+::: plainlog.std.set_as_root_handler

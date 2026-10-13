@@ -197,3 +197,28 @@ log.info("login attempt", username="alice", password="hunter2")
 ### JsonFormatter
 
 ::: plainlog.processors.JsonFormatter
+
+### ConsoleRenderer
+
+::: plainlog.processors.ConsoleRenderer
+
+### FilterList
+
+::: plainlog.processors.FilterList
+
+### WhitelistLevel
+
+::: plainlog.processors.WhitelistLevel
+
+### Helper functions
+
+::: plainlog.processors.redact_fields
+::: plainlog.processors.redact_by_pattern
+::: plainlog.processors.filter_None
+::: plainlog.processors.filter_all
+::: plainlog.processors.filter_by_name
+::: plainlog.processors.allow_by_name
+::: plainlog.processors.filter_by_level
+::: plainlog.processors.format_message
+::: plainlog.processors.print_processor_error
+::: plainlog.processors.get_formatted_message

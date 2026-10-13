@@ -184,3 +184,13 @@ class TestWithSetup(unittest.TestCase):
 Because capture is isolated, `capture_logs()` replaces the app's real processor
 pipeline for the duration of the block and does not restore it; tests that need
 real handlers should not rely on it.
+
+## API Reference
+
+### PlainlogCapture
+
+::: plainlog.testing.PlainlogCapture
+
+### capture_logs
+
+::: plainlog.testing.capture_logs

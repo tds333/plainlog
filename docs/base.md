@@ -29,3 +29,31 @@ throughout the library.
 ### UniversalProcessorProtocol
 
 ::: plainlog._base.UniversalProcessorProtocol
+
+## Record Keys
+
+Core keys:
+
+- `level`
+- `level_name`
+- `msg`
+- `name`
+- `created`
+- `process_id`
+- `process_name`
+- `exception`
+
+Additional keys added by plainlog features:
+
+- `exc_info`
+- `caller_info`
+- `function`
+- `line`
+- `path`
+- `module`
+- `file_name`
+- `file_path`
+- `thread_id`
+- `thread_name`
+
+Additional user-supplied fields are also stored directly on the record.

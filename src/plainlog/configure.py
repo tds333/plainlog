@@ -1,3 +1,5 @@
+"""Configuration and profile registry for plainlog."""
+
 import sys
 from typing import Any, Callable, Dict, Iterable, Optional, Union
 

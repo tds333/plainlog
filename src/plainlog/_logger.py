@@ -1,3 +1,5 @@
+"""Logger and Core implementation for plainlog."""
+
 from __future__ import annotations
 
 import atexit

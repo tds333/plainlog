@@ -1,3 +1,5 @@
+"""Environment-based configuration for plainlog."""
+
 from os import environ
 
 PLAINLOG_LEVEL: str = environ.get("PLAINLOG_LEVEL", "NOTSET")

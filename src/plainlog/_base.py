@@ -1,3 +1,5 @@
+"""Core types, protocols, and record constants used throughout plainlog."""
+
 import pickle
 from types import TracebackType
 from typing import Any, Dict, NamedTuple, Optional, Protocol, Union

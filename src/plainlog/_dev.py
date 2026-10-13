@@ -1,3 +1,5 @@
+"""Developer console rendering for plainlog."""
+
 from __future__ import annotations
 
 import sys
@@ -104,11 +106,45 @@ class _PlainStyles:
 
 
 def default_exception_formatter(sio: TextIO, exc_info: tuple) -> None:
+    """Write an exception traceback to *sio*.
+
+    Args:
+        sio: Writable text stream.
+        exc_info: Tuple returned by ``sys.exc_info()``.
+    """
+
     sio.write("\n")
     traceback.print_exception(exc_info[0], exc_info[1], exc_info[2], None, sio)
 
 
 class ConsoleRenderer:
+    """Developer-friendly colored renderer for plainlog records.
+
+    Renders the record's message, level, logger name, timestamp, and remaining
+    key-value pairs into ``record["formatted_message"]``. Instances are used as
+    ordinary processors and run in the Core thread.
+
+    Args:
+        pad_event: Width used to pad the event/message column.
+            Defaults to 40.
+        colors: Enable ANSI color output. Defaults to auto-detection for the
+            current platform.
+        repr_native_str: Render string values with ``repr()`` when ``True``.
+            Defaults to ``False``.
+        level_styles: Mapping from level name to style string. When ``None``,
+            the built-in level styles are used.
+        exception_formatter: Callable that writes exception details to the
+            provided stream. Defaults to :func:`default_exception_formatter`.
+        sort_keys: Sort additional record keys in the output. Defaults to
+            ``True``.
+        short_level: Render levels as their first character. Defaults to
+            ``True``.
+        log_name: Include the logger name in the output. Defaults to ``True``.
+
+    Attributes:
+        formatted_message: The rendered output is stored on this record key.
+    """
+
     def __init__(
         self,
         pad_event: int = _EVENT_WIDTH,

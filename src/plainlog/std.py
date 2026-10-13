@@ -1,3 +1,5 @@
+"""Stdlib logging bridge for plainlog."""
+
 import logging
 from typing import Union
 

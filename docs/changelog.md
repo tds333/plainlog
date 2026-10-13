@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Expanded API documentation and docstrings for `ConsoleRenderer`,
+  processor helpers, testing helpers, the stdlib bridge, and `Core`.
 - Internal cleanup: removed unused internals (`Core._print_error`,
   `_frames._format_exception`, `_utils.eval_dict`) and consolidated duplicated
   profile builders and name-splitting logic. No public API change.
