@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 
-from plainlog._logger import logger_core
+from plainlog._logger import Core, logger_core
 from plainlog.std import StdInterceptHandler, set_as_root_handler
 from tests.conftest import DummyHandler
 
@@ -21,6 +21,32 @@ def test_set_as_root_handler(thandler: DummyHandler) -> None:
     finally:
         root.setLevel(level_old)
         root.removeHandler(handler)
+
+
+def test_std_intercept_handler_skips_without_processors() -> None:
+    core = Core()
+    handler = StdInterceptHandler()
+    handler._core = core
+    record = logging.LogRecord("root", logging.INFO, "test.py", 1, "dropped", (), None)
+
+    handler.emit(record)
+
+    assert core._queue.empty()
+    core.shutdown()
+
+
+def test_std_intercept_handler_skips_empty_pipeline() -> None:
+    core = Core()
+    core.configure(processors=(), level="DEBUG")
+    handler = StdInterceptHandler()
+    handler._core = core
+    record = logging.LogRecord("root", logging.INFO, "test.py", 1, "dropped", (), None)
+
+    try:
+        handler.emit(record)
+        assert core._queue.empty()
+    finally:
+        core.shutdown()
 
 
 def test_std_intercept_handler_level_filtering(thandler: DummyHandler) -> None:

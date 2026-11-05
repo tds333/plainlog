@@ -106,7 +106,11 @@ class Core:
         self._min_level: int = logging.NOTSET
         self._processors: tuple[UniversalProcessorProtocol, ...] = ()
         self._closeables: weakref.WeakSet[Any] = weakref.WeakSet()
-        self._start_worker()
+        self._queue: SimpleQueue = SimpleQueue()
+        self._thread: Thread = Thread(
+            target=self._worker, daemon=True, name="plainlog-worker"
+        )
+        self._started: bool = False
 
     @property
     def processors(self) -> tuple[UniversalProcessorProtocol, ...]:
@@ -120,10 +124,12 @@ class Core:
         self._queue.put(log_record)
 
     def stop(self) -> None:
-        self._queue.put(_STOP)
+        if self._started:
+            self._queue.put(_STOP)
 
     def join(self) -> None:
-        self._thread.join()
+        if self._started:
+            self._thread.join()
 
     def is_alive(self) -> bool:
         return self._thread.is_alive()
@@ -134,11 +140,17 @@ class Core:
         processors: Optional[Iterable[UniversalProcessorProtocol]],
         level: Optional[Union[str, int]] = None,
     ) -> None:
-        if not self.is_alive():
-            return
-
         if level is not None:
             level = _validate_level(level)
+
+        if not self._started:
+            if processors is None:
+                if level is not None:
+                    self._min_level = level
+                return
+            self._start_worker()
+        elif not self._thread.is_alive():
+            return
 
         self._queue.put(_Configure(processors, level))
 
@@ -186,11 +198,8 @@ class Core:
             self.join()
 
     def _start_worker(self) -> None:
-        self._queue: SimpleQueue = SimpleQueue()
-        self._thread: Thread = Thread(
-            target=self._worker, daemon=True, name="plainlog-worker"
-        )
         self._thread.start()
+        self._started = True
 
     def _worker(self) -> None:
         queue_get = self._queue.get
@@ -521,7 +530,14 @@ def _reset_for_fork() -> None:
     logger_process_ident = proc.ident
     logger_process_name = proc.name
 
-    logger_core._start_worker()
+    if not logger_core._started:
+        return
+
+    logger_core._queue = SimpleQueue()
+    logger_core._thread = Thread(
+        target=logger_core._worker, daemon=True, name="plainlog-worker"
+    )
+    logger_core._thread.start()
 
 
 def _register_fork_hook() -> None:

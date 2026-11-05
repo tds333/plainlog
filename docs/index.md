@@ -31,7 +31,8 @@ No dependencies on other libraries, pure Python.
 
 You have a logger and simply use this. Records are handled by processors in an extra thread.
 A processor can be a simple callable, receiving a log record and returning one.
-They are executed in order.
+They are executed in order. The worker thread is started lazily, on the first
+configuration that installs a processor pipeline.
 
 ### What is the difference to other logging libraries?
 

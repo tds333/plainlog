@@ -48,7 +48,7 @@ There is no required command ordering — lint/type-check/test are independent.
 ## Architecture
 
 - **Logger** — lightweight, builds a `Record` dict, enqueues to Core. Lives in app thread.
-- **Core** — background thread, dequeues records, runs configured processors. Singleton per process.
+- **Core** — background thread (started lazily on the first pipeline configure), dequeues records, runs configured processors. Singleton per process.
 - **Processor** — implements `ProcessorProtocol` (optionally `ProcessorCloseProtocol`).
   - Runs in the core thread; an optional `close()` handles cleanup.
   - `configure()` never closes replaced processors; closeable processors are registered per Core, `Core.close()` releases them (worker keeps running) and `Core.shutdown()` releases them and stops the worker.

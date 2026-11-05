@@ -16,7 +16,8 @@ log.info("hello world")
 
 The module-level `logger` is a `Logger` bound to the global Core singleton
 with name ``"root"``. It is automatically configured on import — by default
-it uses the ``"default"`` profile (writes to stdout).
+it uses the ``"default"`` profile (writes to stdout). The Core worker thread
+starts lazily when a processor pipeline is first installed.
 
 Prefer creating one child logger per module with `logger.new()` (it
 auto-detects the module name); the root `logger` is mainly the shared entry

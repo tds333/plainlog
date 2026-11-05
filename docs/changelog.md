@@ -5,6 +5,22 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Changed
+
+- The Core worker thread is now started lazily by the first `Core.configure()`
+  call that installs a processor pipeline. Constructing a `Core`, setting only a
+  level, or applying a profile that returns `None` (such as `no_init`) no longer
+  spawns a worker thread. Importing `plainlog` still starts it through the
+  default profile.
+
+### Fixed
+
+- `StdInterceptHandler` now drops stdlib log records when no processor pipeline
+  is configured, matching `Logger`. Previously it could enqueue records into a
+  worker queue that was never started or no longer had a consumer.
+
 ## 0.10.0 - 2026-10-23
 
 ### Changed

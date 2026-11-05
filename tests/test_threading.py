@@ -13,7 +13,13 @@ from typing import Any
 import pytest
 
 from plainlog._base import Record
-from plainlog._logger import Core, Logger, _reset_for_fork, logger_core
+from plainlog._logger import (
+    LEVEL_DEBUG,
+    Core,
+    Logger,
+    _reset_for_fork,
+    logger_core,
+)
 
 
 class CountingHandler:
@@ -68,6 +74,56 @@ def test_concurrent_reconfigure_and_log() -> None:
     core.shutdown()
 
     assert handler.count > 0
+
+
+def test_core_starts_worker_lazily() -> None:
+    core = Core()
+    try:
+        assert not core.is_alive()
+        core.configure(processors=[], level="DEBUG")
+        assert core.is_alive()
+    finally:
+        core.shutdown()
+
+
+def test_core_noop_configure_does_not_start_worker() -> None:
+    core = Core()
+    try:
+        core.configure(processors=None, level=None)
+        assert not core.is_alive()
+    finally:
+        core.shutdown()
+
+
+def test_core_level_only_configure_does_not_start_worker() -> None:
+    core = Core()
+    try:
+        core.configure(processors=None, level="DEBUG")
+        assert not core.is_alive()
+        assert core.min_level == LEVEL_DEBUG
+    finally:
+        core.shutdown()
+
+
+def test_stop_and_join_before_start_do_not_break_worker() -> None:
+    core = Core()
+    try:
+        core.stop()
+        core.join()
+        assert not core.is_alive()
+
+        handler = CountingHandler()
+        core.configure(processors=[handler], level="DEBUG")
+
+        assert core.is_alive()
+
+        log = Logger(core=core, name="t")
+        log.info("still processed")
+        core.wait_for_processed(2)
+
+        assert handler.count == 1
+    finally:
+        core.shutdown()
 
 
 def test_shutdown_then_configure_no_hang() -> None:
@@ -348,6 +404,20 @@ def test_wait_for_processed_is_bounded(monkeypatch: pytest.MonkeyPatch) -> None:
     assert elapsed < 1.0
 
 
+def test_reset_for_fork_keeps_unstarted_worker_lazy(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import plainlog._logger as mod
+
+    core = Core()
+    monkeypatch.setattr(mod, "logger_core", core)
+
+    mod._reset_for_fork()
+
+    assert core._started is False
+    assert not core.is_alive()
+
+
 def test_reset_for_fork_restarts_worker() -> None:
     old_thread = logger_core._thread
     old_queue = logger_core._queue
@@ -512,6 +582,7 @@ def test_close_suppresses_processor_close_errors() -> None:
 def test_close_is_idempotent_and_keeps_worker_alive() -> None:
     core = Core()
     try:
+        core.configure(processors=[], level="DEBUG")
         core.close()
         core.close()
         assert core.is_alive()

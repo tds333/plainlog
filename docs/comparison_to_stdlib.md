@@ -2,7 +2,7 @@
 
 | Aspect | plainlog | stdlib `logging` |
 |---|---|---|
-| **Architecture** | Logger and Core are cleanly separated via a thread-safe `SimpleQueue`. The logger runs in the application thread; the Core runs in a dedicated daemon thread. | Logger, Handler, and Formatter all run in the caller's thread. No built-in queue-based decoupling. |
+| **Architecture** | Logger and Core are cleanly separated via a thread-safe `SimpleQueue`. The logger runs in the application thread; the Core runs in a dedicated daemon thread, started lazily on the first pipeline configuration. | Logger, Handler, and Formatter all run in the caller's thread. No built-in queue-based decoupling. |
 | **Blocking behavior** | Non-blocking by design. The logger merely builds a dict record and enqueues it; all I/O and formatting happen in the Core's background thread. | Synchronous and blocking in the hot path (I/O inside `emit()` blocks the caller). |
 | **Record type** | Log records are plain Python `dict` objects. | Log records are `LogRecord` instances (a class with many attributes). |
 | **Logger hierarchy** | No logger hierarchy. Multiple loggers share one singleton Core. Logger names are flat/dotted strings but not hierarchical beyond that. | Strict hierarchical logger tree with parent-child propagation. |

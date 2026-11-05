@@ -38,6 +38,9 @@ class StdInterceptHandler(logging.Handler):
         core = self._core
         level: int = record.levelno
 
+        if not core.processors:
+            return
+
         if core.min_level > level or self.level > level:
             return
 

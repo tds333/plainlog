@@ -131,6 +131,10 @@ releases those resources and detaches the pipeline while leaving the worker
 thread running; `Core.shutdown()` also stops the worker and is what runs at
 interpreter exit.
 
+`Core` starts its worker thread lazily: constructing a `Core` does not spawn a
+thread, and neither does setting only a level. The worker starts on the first
+`configure()` call that installs a processor pipeline.
+
 ```python
 from plainlog._logger import Core
 
@@ -161,7 +165,8 @@ set_as_root_handler()
 ```
 
 This is what the `std_handler_default` and `std_handler_develop` profiles use
-internally.
+internally. Stdlib records are forwarded only while a processor pipeline is
+configured; otherwise they are dropped, matching `Logger`.
 
 ## API Reference
 

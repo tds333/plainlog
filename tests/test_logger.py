@@ -380,6 +380,8 @@ def test_core_close_when_not_alive() -> None:
 def test_core_is_alive() -> None:
     core = Core()
     with closing_core(core):
+        assert not core.is_alive()
+        core.configure(processors=[], level="DEBUG")
         assert core.is_alive()
     assert not core.is_alive()
 
